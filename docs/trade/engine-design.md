@@ -158,6 +158,52 @@ taxonomy slice — never the whole document), measured tokens/latency/cost
 persisted on the extraction run, graceful partial results (a failed clause
 becomes `unmapped` with the failure named, never a dropped clause).
 
+### 4b. The second reader and the arbiter
+
+`kairos/trade/extract_wholedoc.py` + `kairos/trade/arbitrate.py`.
+
+The pipeline above reads clause by clause, and that shape is what makes the
+completeness guarantee mechanical. It is also its blind spot: a clause is
+judged with its neighbours and its named cross-references and nothing else,
+so a definition set twenty pages away, or a basis stated only in the recitals,
+is invisible to it.
+
+So there is a SECOND reader with the opposite shape - the whole agreement, all
+sixty-four term schemas, one call on the reasoning tier - and where the two
+readings disagree, a THIRD call rules on it holding the document, the taxonomy
+definition of each contested term, and both candidates side by side. One call
+per document, not one per disagreement.
+
+Three constraints keep the guarantees intact while a model decides:
+
+1. **Neither the second reader nor the arbiter may change the clause list.**
+   Coverage is computed from the segmenter's clauses, which no model produced.
+   A reader that could also define the denominator could report perfect
+   coverage of a document it had half read.
+2. **Evidence is checked in code, not trusted.** A reading whose clause id does
+   not exist, whose term is not in the taxonomy, or whose quote is not verbatim
+   in the clause it names is DROPPED and counted. A ruling whose quote fails
+   the same check survives as a ruling but is forced to low confidence and says
+   so.
+3. **The ruling is a proposal.** The hard rule is unchanged: a person approves.
+   What the arbiter buys is that the person meets one ruled proposal with its
+   reasoning attached instead of a pile of unresolved contradictions.
+
+Two failure modes were measured rather than imagined, and both are pinned by
+test in `tests/test_trade_arbitration.py`:
+
+- A whole-document stage sharing the clause stages' 4000-token output ceiling
+  is truncated mid-answer and returns ZERO terms with ZERO errors - the worst
+  shape a failure can take. Stages now carry their own ceilings, and the notes
+  field that consumed the budget is capped.
+- A reader judged on schemas it was never shown scores its correct readings as
+  parameter misses. All sixty-four schemas ride in its catalogue.
+
+The arbiter's prompt is itself an experimental variable (`ARBITER_PROMPTS`,
+selected by `KAIROS_TRADE_ARBITER_PROMPT`) because the first version told the
+judge which reader to trust on the dimension in dispute. Both versions are
+measured against each other in `docs/trade/arbitration-accuracy.md`.
+
 ## 5. Review and approval
 
 The review surface (Commercial → הסכמים) shows document beside proposal:

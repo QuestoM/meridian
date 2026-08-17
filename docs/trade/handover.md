@@ -109,6 +109,21 @@ versions of 2024-11-01, and the recomputed plan of record.
    (Proven end to end against the running server on 2026-08-17; if the room
    is impatient, the six seeded agreements ARE this pipeline's output.)
 
+8. **The three questions a commercial director will actually ask**, all
+   answerable on screen because each was asked here first and fixed:
+   - *Can I see the document itself?* Yes — the signed PDF renders inside the
+     review, beside the proposed terms, page by page.
+   - *What if someone uploads a spreadsheet?* Refused at the boundary, by
+     content rather than by filename, because an xlsx renamed .pdf is still an
+     xlsx. The refusal says what to do instead: export to PDF; scanned is fine.
+   - *What about an appendix, or an amendment signed mid-term?* Attach it to
+     the approved agreement. It goes back to review so its clauses face the
+     same completeness gate — while the approved version KEEPS GOVERNING until
+     a new approval supersedes it. Binding moves on approve and supersede,
+     never on attach.
+   And a document that is attached but not yet read says exactly that, with the
+   button that reads it, rather than showing an error.
+
 ## The numbers we publish
 
 From `docs/trade/extraction-accuracy.md`, produced by

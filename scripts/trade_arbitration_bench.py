@@ -123,6 +123,10 @@ def main() -> None:
         caller = extract_provider.StageCaller(
             client=client, stats=stats, auth_mode=auth_mode,
             max_tokens_by_stage={"wholedoc": 16000, "arbitrate": 16000},
+            timeout_by_stage={
+                "wholedoc": extract_provider.WHOLE_DOCUMENT_TIMEOUT_SECONDS,
+                "arbitrate": extract_provider.WHOLE_DOCUMENT_TIMEOUT_SECONDS,
+            },
         )
         print(f"\n=== {doc_id} ({route})", flush=True)
 

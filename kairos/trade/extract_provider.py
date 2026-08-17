@@ -35,7 +35,16 @@ DEFAULT_SMALL = "claude-haiku-4-5-20251001"
 DEFAULT_MID = "claude-sonnet-5"
 DEFAULT_REASON = "claude-opus-5"
 
+# A per-request deadline, so a call that will never answer cannot hold a run
+# open forever. This constant existed from the first commit and was NEVER
+# APPLIED - a protection that reads as present in the source and does nothing
+# at runtime, which is worse than not having it. It is passed to the client
+# now, and the whole-document stages get their own longer deadline because a
+# sixteen-thousand-token answer over a fifty-clause agreement legitimately
+# takes minutes: a 180-second ceiling there would not be a guard, it would be
+# a guaranteed failure.
 CALL_TIMEOUT_SECONDS = 180.0
+WHOLE_DOCUMENT_TIMEOUT_SECONDS = 900.0
 
 TIERS = ("small", "mid", "reason")
 
@@ -182,6 +191,7 @@ class StageCaller:
     # and returned zero terms with zero errors. Measured: output_tokens 4000 of
     # 4000, instances absent from the tool input.
     max_tokens_by_stage: dict[str, int] = field(default_factory=dict)
+    timeout_by_stage: dict[str, float] = field(default_factory=dict)
     attempts: int = 5
     backoff_seconds: tuple[float, ...] = (5.0, 15.0, 40.0, 90.0)
     pace_seconds: float = 0.6
@@ -204,6 +214,7 @@ class StageCaller:
                 response = self.client.messages.create(
                     model=model,
                     max_tokens=self.max_tokens_by_stage.get(stage, self.max_tokens),
+                    timeout=self.timeout_by_stage.get(stage, CALL_TIMEOUT_SECONDS),
                     system=[*system_prefix(self.auth_mode),
                             {"type": "text", "text": system}],
                     messages=[{"role": "user", "content": content}],
