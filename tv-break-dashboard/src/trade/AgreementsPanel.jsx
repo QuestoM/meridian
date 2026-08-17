@@ -280,7 +280,7 @@ export default function AgreementsPanel({ locale = 'he', notify = () => {}, canE
           'הכתובת מפנה להסכם שאינו נמצא במאגר. ייתכן שהוא בוטל, או שהקישור אינו עדכני.',
         )}
         action={(
-          <Button type="button" onClick={closeAgreement}>
+          <Button type="button" variant="contained" onClick={closeAgreement}>
             {pageText(locale, 'Back to the agreements', 'חזרה לרשימת ההסכמים')}
           </Button>
         )}
@@ -348,7 +348,7 @@ export default function AgreementsPanel({ locale = 'he', notify = () => {}, canE
             {pageText(locale, 'Refresh', 'רענון')}
           </Button>
           {canEdit ? (
-            <Button type="button" onClick={() => setCreating(true)}>
+            <Button type="button" variant="contained" onClick={() => setCreating(true)}>
               <FilePlus2 size={14} aria-hidden="true" />
               {pageText(locale, 'Add an agreement', 'הוספת הסכם')}
             </Button>
@@ -378,7 +378,7 @@ export default function AgreementsPanel({ locale = 'he', notify = () => {}, canE
           title={pageText(locale, 'The agreements could not be read', 'לא ניתן היה לקרוא את ההסכמים')}
           description={refusalText(error, locale)}
           action={(
-            <Button type="button" onClick={reload}>
+            <Button type="button" variant="contained" onClick={reload}>
               {pageText(locale, 'Try again', 'נסו שוב')}
             </Button>
           )}
@@ -394,7 +394,7 @@ export default function AgreementsPanel({ locale = 'he', notify = () => {}, canE
             'הסכם נכנס לכאן כמסמך חתום. הוא נקרא, כל סעיף נסקר מול קטלוג המונחים, ורק מה שאדם מאשר רשאי לשנות תמחור או שיבוץ.',
           )}
           action={canEdit ? (
-            <Button type="button" onClick={() => setCreating(true)}>
+            <Button type="button" variant="contained" onClick={() => setCreating(true)}>
               <FilePlus2 size={14} aria-hidden="true" />
               {pageText(locale, 'Add the first agreement', 'הוספת ההסכם הראשון')}
             </Button>

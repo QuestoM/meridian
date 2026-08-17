@@ -19,6 +19,37 @@ import { blockerSentence } from './trade-vocabulary';
 // to do about it, with the ids it names. `aria-describedby` ties the button to
 // that list, so the reason reaches a screen reader and not only the screen.
 
+// The ids a blocker names, in the order a person reads clause numbers.
+//
+// The gate sorts its ids in Python with plain `sorted()`, which is
+// lexicographic: 1.1, 1.2, 1.3, 1.4, 10.1, 10.2 — clause 10 lands before clause
+// 2. On its own that is only untidy. What makes it a real defect is the
+// truncation below: only the first eight ids are shown, so on the corpus
+// flagship a reviewer asking "which clauses have I not read" was shown 1.1
+// through 10.5 and told there were 41 more, while 2.1 — the clause they would
+// actually turn to next — sat inside "and more". The eight shown were not the
+// eight anyone wanted.
+//
+// Sorting numerically at the display boundary rather than asking the server to
+// re-sort keeps this a presentation decision, which is what it is: the same
+// payload also carries term ids like `gt-cash-discount`, where alphabetical IS
+// the right order, and the comparator below falls through to a string compare
+// for any segment that is not a number, so both kinds order correctly.
+function orderedIds(ids) {
+  return [...ids].sort((left, right) => {
+    const a = String(left).split(/(\d+)/);
+    const b = String(right).split(/(\d+)/);
+    for (let index = 0; index < Math.max(a.length, b.length); index += 1) {
+      const one = a[index] ?? '';
+      const two = b[index] ?? '';
+      if (one === two) continue;
+      const numeric = /^\d+$/.test(one) && /^\d+$/.test(two);
+      return numeric ? Number(one) - Number(two) : one.localeCompare(two);
+    }
+    return 0;
+  });
+}
+
 // A count, or a count against the total it has to reach. The two are different
 // facts and the second is the only one that can be complete, so "complete" is
 // marked only where a total exists to be reached.
@@ -80,8 +111,15 @@ export default function ReviewCoverageHeader({
           </div>
 
           <div className="trd-coverage-act">
+            {/* The filled one. Approving is the act this whole screen exists to
+                gate, and left at the default text variant it read as the quietest
+                control on the page — quieter than the outlined Cancel beside every
+                dialog. A disabled contained button still reads as the primary the
+                reviewer is working towards, which is the honest hierarchy: the
+                refusal beneath it says what is missing. */}
             <Button
               type="button"
+              variant="contained"
               onClick={onApprove}
               disabled={!coverage.ready || !canEdit || approving}
               aria-describedby={coverage.ready && canEdit ? undefined : listId}
@@ -119,7 +157,7 @@ export default function ReviewCoverageHeader({
                     <Status status="warning">{blockerSentence(blocker, locale)}</Status>
                     {Array.isArray(blocker.ids) && blocker.ids.length > 0 ? (
                       <span className="trd-blocker-ids">
-                        {blocker.ids.slice(0, 8).map((id) => (
+                        {orderedIds(blocker.ids).slice(0, 8).map((id) => (
                           <Code key={id} className="trd-id-chip">{id}</Code>
                         ))}
                         {blocker.ids.length < blocker.count ? (

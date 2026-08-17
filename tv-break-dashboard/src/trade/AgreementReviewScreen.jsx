@@ -246,7 +246,7 @@ export default function AgreementReviewScreen({
             <Button type="button" variant="outlined" onClick={onClose}>
               {pageText(locale, 'Back to the agreements', 'חזרה לרשימת ההסכמים')}
             </Button>
-            <Button type="button" onClick={reload}>{pageText(locale, 'Try again', 'נסו שוב')}</Button>
+            <Button type="button" variant="contained" onClick={reload}>{pageText(locale, 'Try again', 'נסו שוב')}</Button>
           </div>
         )}
       />

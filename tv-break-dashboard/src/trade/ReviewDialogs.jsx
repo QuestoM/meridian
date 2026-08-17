@@ -198,7 +198,7 @@ export default function ReviewDialogs({ action, locale, busy, error, onClose, on
           <Button type="button" variant="outlined" onClick={onClose}>
             {pageText(locale, 'Cancel', 'ביטול')}
           </Button>
-          <Button type="submit" form="trd-action-form" disabled={!canSubmit || busy}>
+          <Button type="submit" form="trd-action-form" variant="contained" disabled={!canSubmit || busy}>
             {busy
               ? pageText(locale, 'Saving', 'שומר')
               : pageText(locale, 'Save', 'שמירה')}

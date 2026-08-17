@@ -208,7 +208,15 @@ export function AdvertiserRecordsPanel({
     <section className="page-workspace" aria-busy={loading} aria-label={pageText(locale, 'Advertiser pricing records', 'רשומות תמחור מפרסמים')}>
       <div className="page-header">
         <div>
-          <h2>{pageText(locale, 'Pricing rules', 'כללי תמחור')}</h2>
+          {/* No heading here. The Commercial chrome already titles this view
+              "Pricing rules" as the workspace H1, and this panel printed the same
+              two words again as an H2 directly beneath it — measured on the built
+              bundle: H1 "כללי תמחור" and H2 "כללי תמחור", the only exact
+              title duplication left in the destination's seven views. Two
+              headings reading the same thing look like two screens stacked by
+              mistake. The sentence below is NOT a duplicate and stays: it says
+              what a row without an advertiser name does, which is the one thing
+              a reader of this table has to know and the chrome does not say. */}
           <p>
             {pageText(
               locale,

@@ -145,6 +145,7 @@ export default function SimulationPanel({ payload, error, locale, busy, onRun, c
       </label>
       <Button
         type="button"
+        variant="contained"
         disabled={busy || !canRun}
         onClick={() => onRun(from || to ? { from: from || null, to: to || null } : null)}
       >

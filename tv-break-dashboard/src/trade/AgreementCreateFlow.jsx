@@ -113,7 +113,7 @@ export default function AgreementCreateFlow({ locale = 'he', notify = () => {}, 
       <Button type="button" variant="outlined" onClick={onClose}>
         {pageText(locale, 'Cancel', 'ביטול')}
       </Button>
-      <Button type="submit" form="trd-create-form" disabled={!canSubmit}>
+      <Button type="submit" form="trd-create-form" variant="contained" disabled={!canSubmit}>
         <Upload size={14} aria-hidden="true" />
         {pageText(locale, 'Create and read the document', 'יצירה וקריאת המסמך')}
       </Button>
@@ -126,6 +126,7 @@ export default function AgreementCreateFlow({ locale = 'he', notify = () => {}, 
       {created ? (
         <Button
           type="button"
+          variant="contained"
           onClick={() => onCreated(created.agreement.agreement_id, phase === 'done' ? 'review' : 'detail')}
         >
           {phase === 'done'

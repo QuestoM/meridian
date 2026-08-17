@@ -232,7 +232,7 @@ export default function AgreementDetailScreen({
             <Button type="button" variant="outlined" onClick={onClose}>
               {pageText(locale, 'Back to the agreements', 'חזרה לרשימת ההסכמים')}
             </Button>
-            <Button type="button" onClick={reload}>{pageText(locale, 'Try again', 'נסו שוב')}</Button>
+            <Button type="button" variant="contained" onClick={reload}>{pageText(locale, 'Try again', 'נסו שוב')}</Button>
           </div>
         )}
       />
@@ -276,7 +276,7 @@ export default function AgreementDetailScreen({
         </div>
         {documents.length > 0 ? (
           <div className="trd-header-actions">
-            <Button type="button" onClick={onOpenReview}>
+            <Button type="button" variant="contained" onClick={onOpenReview}>
               <FileSearch size={14} aria-hidden="true" />
               {pageText(locale, 'Open the review', 'פתיחת הסקירה')}
             </Button>
@@ -400,7 +400,7 @@ export default function AgreementDetailScreen({
         error={obligationsError}
         locale={locale}
         onRetry={(
-          <Button type="button" onClick={reload}>{pageText(locale, 'Try again', 'נסו שוב')}</Button>
+          <Button type="button" variant="contained" onClick={reload}>{pageText(locale, 'Try again', 'נסו שוב')}</Button>
         )}
       />
 
