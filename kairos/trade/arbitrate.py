@@ -31,6 +31,7 @@ where the two readers agreed, nobody spent a model call re-deciding it.
 from __future__ import annotations
 
 import json
+import os
 from typing import Any, Callable, Optional
 
 from . import taxonomy, taxonomy_schemas
@@ -38,7 +39,25 @@ from .documents import Citation, Clause, TermInstance
 
 CallFn = Callable[..., dict[str, Any]]
 
-ARBITER_SYSTEM = """אתה השופט. שני קוראים קראו את אותו הסכם מסחרי חתום ואינם מסכימים.
+# THE JUDGE'S PROMPT IS AN EXPERIMENTAL VARIABLE, so both versions live here
+# and the measurement says which one produced which number.
+#
+# v1-primed was the first attempt and it carries a defect worth keeping on the
+# record: it TELLS the judge that the clause reader "is precise on the clause's
+# own details" and the whole-document reader "may be less precise" - an
+# unearned prior planted on exactly the dimension in dispute - and it tells it
+# to use the drop-the-term verdict "sparingly", which is a thumb on the scale
+# towards keeping whatever was proposed. The first measurement suggested the
+# opposite of the prior was true.
+#
+# v2-neutral describes each reader's SHAPE (one saw a clause, one saw the
+# document) and says nothing about reliability, splits the two kinds of dispute
+# apart - which parameters are right, versus whether the term is there at all -
+# and removes the stigma from dropping a term nobody should have proposed.
+#
+# Select with KAIROS_TRADE_ARBITER_PROMPT; the default is what ships.
+ARBITER_PROMPTS = {
+    "v1-primed": """אתה השופט. שני קוראים קראו את אותו הסכם מסחרי חתום ואינם מסכימים.
 
 קורא א' קרא סעיף-אחר-סעיף: הוא מדייק בפרטי הסעיף עצמו, אך רואה רק את הסעיף,
 שכניו וההפניות המפורשות שלו.
@@ -58,7 +77,47 @@ ARBITER_SYSTEM = """אתה השופט. שני קוראים קראו את אות�
 - params חייב להתאים לסכמת המונח. שדה שהמסמך אינו נותן נרשם ב-missing ולא מומצא.
 - ההנמקה בעברית, משפט אחד, ואומרת מה במסמך הכריע - לא איזה קורא נשמע בטוח יותר.
 - הכרעה על סתירה בין שני סעיפים בהסכם אינה עניינך: אם המסמך עצמו סותר את עצמו,
-  שתי הקריאות נכונות במקומן, ומנגנון התקדימות יכריע ביניהן אחר כך."""
+  שתי הקריאות נכונות במקומן, ומנגנון התקדימות יכריע ביניהן אחר כך.""",
+    "v2-neutral": """אתה השופט. שני קוראים קראו את אותו הסכם מסחרי חתום ואינם מסכימים.
+
+קורא א' ראה כל סעיף בנפרד, עם שכניו וההפניות המפורשות שלו.
+קורא ב' ראה את המסמך כולו בבת אחת.
+
+זה כל ההבדל ביניהם, והוא הבדל בשדה הראייה בלבד. אל תניח שאחד מהם מדויק יותר
+מהשני, לא בפרטים ולא בהקשר: הכרע לפי מה שכתוב במסמך שלפניך, ולא לפי איזה קורא
+נשמע בטוח יותר או ראה יותר.
+
+לכל מחלוקת החזר בדיוק אחת מההכרעות:
+- "a"        קריאת קורא א' נכונה כפי שהיא.
+- "b"        קריאת קורא ב' נכונה כפי שהיא.
+- "revised"  אף אחת אינה נכונה במלואה, ואתה כותב את הפרמטרים בעצמך.
+- "neither"  אין בסעיף הזה מונח מסחרי כזה, ושתי הקריאות שגויות.
+
+שני סוגי מחלוקת, ושתי שאלות שונות:
+
+1. שני הקוראים ראו את אותו מונח באותו סעיף וחלוקים על הפרמטרים. השאלה היא
+   שדה-שדה: מה בדיוק אומר הסעיף על כל שדה. אל תבחר צד בגלל שרוב השדות שלו
+   נכונים - אם לכל אחד יש שדה נכון, ההכרעה היא "revised" עם הצירוף הנכון.
+
+2. רק אחד מהקוראים ראה כאן מונח. השאלה אינה מי צודק אלא האם הסעיף באמת קובע את
+   המונח הזה. סעיף שמזכיר מספר אינו בהכרח קובע התחייבות; סעיף שמפנה למקום אחר
+   אינו בהכרח קובע בעצמו. אם הסעיף אינו קובע את המונח - "neither", וזו הכרעה
+   נכונה ורגילה, לא ויתור.
+
+חוקים מחייבים:
+- הכרעה חייבת מובאה מילולית מתוך הסעיף הנקוב, בדיוק כפי שהיא כתובה במסמך.
+- params חייב להתאים לסכמת המונח. שדה שהמסמך אינו נותן נרשם ב-missing ולא מומצא.
+  קריאה שממציאה ערך לשדה שהסעיף שותק עליו גרועה מקריאה שמשאירה אותו חסר.
+- ההנמקה בעברית, משפט אחד, ואומרת מה במסמך הכריע.
+- סתירה בין שני סעיפים בהסכם אינה עניינך: אם המסמך סותר את עצמו, שתי הקריאות
+  נכונות במקומן, ומנגנון התקדימות יכריע ביניהן אחר כך.""",
+}
+
+ARBITER_PROMPT_VERSION = (
+    os.environ.get("KAIROS_TRADE_ARBITER_PROMPT", "").strip() or "v2-neutral"
+)
+ARBITER_SYSTEM = ARBITER_PROMPTS[ARBITER_PROMPT_VERSION]
+
 
 
 def _contest_block(kind: str, clause: Clause, term_id: str,

@@ -1,24 +1,158 @@
 {
- "run_at": "2026-08-17T20:30:09+00:00",
+ "run_at": "2026-08-17T21:02:50+00:00",
  "documents": {
   "heb-amendment-q4-2026": {
    "route": "digital",
    "alignment": {
-    "agreed": 0,
-    "params_differ": 0,
-    "pipeline_only": 18,
-    "whole_only": 0
+    "agreed": 1,
+    "params_differ": 8,
+    "pipeline_only": 8,
+    "whole_only": 3
    },
    "whole_dropped": [],
-   "rulings": [],
+   "rulings": [
+    {
+     "clause_id": "1.1",
+     "term_id": "effective-window",
+     "verdict": "b",
+     "reason_he": "הסעיף נוקב תאריך תחילה מפורש אך מגדיר את הסיום כ'תום תקופת ההסכם העיקרי' ללא תאריך, ולכן ends_on נרשם כחסר ולא כערך מומצא כמו '<UNKNOWN>'.",
+     "outcome": "whole-document reading kept"
+    },
+    {
+     "clause_id": "1.2",
+     "term_id": "precedence-clause",
+     "verdict": "b",
+     "reason_he": "כותרת המסמך מזהה את 'תיקון זה' כתיקון מס' 1, ורשימת ה-missing של קורא א' מונה שדות שאינם בסכמת המונח.",
+     "outcome": "whole-document reading kept"
+    },
+    {
+     "clause_id": "2.2",
+     "term_id": "cpp-daypart-table",
+     "verdict": "b",
+     "reason_he": "הסעיף קובע תעריף לרצועת פריים בלבד, ולכן היעדר רצועות אחרות אינו חוסר; שדה vintage (גרסת נתוני הרייטינג) הוא שאינו מופיע במסמך.",
+     "outcome": "whole-document reading kept"
+    },
+    {
+     "clause_id": "2.2",
+     "term_id": "term-effective-windows",
+     "verdict": "b",
+     "reason_he": "שני השדות הנדרשים מולאו כראוי משתי המילים המפורשות בסעיף, ורשימת ה-missing של קורא א' מונה שדות scope שאינם חלק מסכמת המונח.",
+     "outcome": "whole-document reading kept"
+    },
+    {
+     "clause_id": "2.3",
+     "term_id": "volume-discount-ladder",
+     "verdict": "revised",
+     "reason_he": "הסעיף אינו מפרט מדרגות כלל אלא רק מחיל את ההנחה המדורגת על חודש דצמבר 2026, ולכן tiers ריק (ולא מדרגה מומצאת 0/0 כאצל קורא א') והתקופה הנקובה בסעיף היא חודש.",
+     "outcome": "arbiter's own reading"
+    },
+    {
+     "clause_id": "3.1",
+     "term_id": "category-exclusivity",
+     "verdict": "a",
+     "reason_he": "המסמך כותב \"קטגוריית הקוסמטיקה והטיפוח\" ו\"רצועת הפריים\" מילה במילה, וקורא א' משמר את הניסוח המדויק בעוד קורא ב' משנה אותו ומכפיל את חלון התוקף גם בתוך exclusivity_scope.",
+     "outcome": "pipeline reading kept"
+    },
+    {
+     "clause_id": "pre-1",
+     "term_id": "amendment-layer",
+     "verdict": "revised",
+     "reason_he": "מועד החתימה 14.09.2026 אינו מועד התוקף — סעיף 1.1 קובע במפורש תוקף מ-01.10.2026 (כקורא ב'), אך שם ההסכם הבסיסי הוא כפי שנכתב בכותרת ורשימת הסעיפים המתוקנים אינה מופיעה בסעיף זה.",
+     "outcome": "arbiter's own reading"
+    },
+    {
+     "clause_id": "pre-2",
+     "term_id": "agreement-parties",
+     "verdict": "b",
+     "reason_he": "סעיף החתימות sig-1 נוקב בשמות החותמים בפועל, בעוד קורא א' רשם את שמות התאגידים כ'חותמים'.",
+     "outcome": "whole-document reading kept"
+    },
+    {
+     "clause_id": "1.1",
+     "term_id": "amendment-layer",
+     "verdict": "revised",
+     "reason_he": "הסעיף עצמו קובע תחולה ותוקף, אך התקציר של קורא א' משלב הוראת עדיפות מסעיף 1.2 ופרטי חתימה מהמבוא שאינם בסעיף זה.",
+     "outcome": "arbiter's own reading"
+    },
+    {
+     "clause_id": "2.1",
+     "term_id": "ratecard-index",
+     "verdict": "neither",
+     "reason_he": "הסעיף קובע היקף רכישות כספי במונחי מחירון ברוטו ואינו קובע שיעור הצמדה או גרסת מחירון כלשהם, ולכן אין כאן מונח הצמדה למחירון; כמו כן ה-scope שייחס קורא א' (פריים, 30 שניות) שאוב מסעיף 2.2 ולא מסעיף זה.",
+     "outcome": "dropped"
+    },
+    {
+     "clause_id": "2.3",
+     "term_id": "term-effective-windows",
+     "verdict": "revised",
+     "reason_he": "הסעיף אכן קובע חלון תחולה ייעודי — החלת ההנחה המדורגת על דצמבר 2026 חרף ביטול סעיף 2.4 — ולכן שני שדות החובה ניתנים למילוי מלשון הסעיף ואינם חסרים.",
+     "outcome": "arbiter's own reading"
+    },
+    {
+     "clause_id": "3.1",
+     "term_id": "fixed-spot-pricing",
+     "verdict": "neither",
+     "reason_he": "הסעיף קובע תוספת אחוזית על תעריפי הרצועה ולא מחיר קבוע בשקלים לספוט, ולכן אין כאן מונח של מחיר קבוע לספוט כלל.",
+     "outcome": "dropped"
+    },
+    {
+     "clause_id": "3.1",
+     "term_id": "programme-daypart-restrictions",
+     "verdict": "a",
+     "reason_he": "לשון \"לא ישובץ\" היא איסור שיבוץ מוחלט ברצועה מוגדרת, ולכן mode=forbid ו-hard=true; רשימת ה-missing של קורא א' מונה שדות scope שאינם בסכמת המונח.",
+     "outcome": "pipeline reading kept"
+    },
+    {
+     "clause_id": "3.2",
+     "term_id": "agreement-parties",
+     "verdict": "revised",
+     "reason_he": "המילים \"רשימת המפרסמים המיוצגים\" מלמדות שהמפרסם פועל דרך הסוכנות אופק מדיה שהיא הצד להסכם לפי סעיף pre-2, ולא כצד ישיר.",
+     "outcome": "arbiter's own reading"
+    },
+    {
+     "clause_id": "3.2",
+     "term_id": "amendment-layer",
+     "verdict": "revised",
+     "reason_he": "\"מועד כניסת תיקון זה לתוקף\" מוגדר במפורש בסעיף 1.1 כ-01.10.2026, ולכן התאריך ניתן לקביעה ואינו חסר.",
+     "outcome": "arbiter's own reading"
+    },
+    {
+     "clause_id": "4.1",
+     "term_id": "precedence-clause",
+     "verdict": "revised",
+     "reason_he": "נוסח \"למעט האמור במפורש בתיקון זה\" הוא הוראת עדיפות לטובת התיקון על פני יתר הוראות ההסכם ונספחיו, ולכן שדות החובה ניתנים למילוי מלשון הסעיף.",
+     "outcome": "arbiter's own reading"
+    },
+    {
+     "clause_id": "2.3",
+     "term_id": "amendment-layer",
+     "verdict": "b",
+     "reason_he": "הסעיף מבטל במפורש סעיף מסוים בהסכם העיקרי מיום כניסת התיקון לתוקף (01.10.2026 לפי סעיף 1.1), וזו שכבת תיקון לכל דבר.",
+     "outcome": "whole-document reading kept"
+    },
+    {
+     "clause_id": "3.2",
+     "term_id": "brand-scope",
+     "verdict": "revised",
+     "reason_he": "סעיף 3.1 מזהה את המותג כ\"לבנדר קוסמטיקה\" ואילו \"לבנדר קוסמטיקה בע\"מ\" הוא שם המפרסם התאגידי, ולכן שדה המותגים צריך לשאת את שם המותג.",
+     "outcome": "arbiter's own reading"
+    },
+    {
+     "clause_id": "pre-2",
+     "term_id": "agreement-level",
+     "verdict": "b",
+     "reason_he": "המבוא (pre-3) מגדיר את ההסכם העיקרי כהסכם מסגרת שנתי מיום 15.12.2025 עם סוכנות, ולכן רמת ההסכם היא מסגרת סוכנות.",
+     "outcome": "whole-document reading kept"
+    }
+   ],
    "scores": {
     "pipeline": {
      "clauses_truth": 12,
      "clauses_pipeline": 12,
      "clauses_accounted": 12,
-     "disposition_class_hits": 10,
+     "disposition_class_hits": 11,
      "instances_truth": 7,
-     "instances_found": 18,
+     "instances_found": 17,
      "matched": 7,
      "missed": [],
      "spurious": [
@@ -27,48 +161,44 @@
        "term_id": "amendment-layer"
       },
       {
-       "instance_id": "x-003",
-       "term_id": "agreement-level"
-      },
-      {
        "instance_id": "x-004",
-       "term_id": "amendment-layer"
-      },
-      {
-       "instance_id": "x-005",
        "term_id": "effective-window"
       },
       {
-       "instance_id": "x-008",
-       "term_id": "brand-scope"
+       "instance_id": "x-006",
+       "term_id": "agreement-parties"
       },
       {
-       "instance_id": "x-009",
+       "instance_id": "x-007",
        "term_id": "amendment-layer"
       },
       {
-       "instance_id": "x-010",
+       "instance_id": "x-008",
        "term_id": "precedence-clause"
       },
       {
-       "instance_id": "x-012",
-       "term_id": "payment-indexation"
+       "instance_id": "x-010",
+       "term_id": "ratecard-index"
       },
       {
-       "instance_id": "x-015",
+       "instance_id": "x-013",
        "term_id": "volume-discount-ladder"
       },
       {
-       "instance_id": "x-016",
+       "instance_id": "x-014",
        "term_id": "term-effective-windows"
       },
       {
-       "instance_id": "x-018",
+       "instance_id": "x-016",
        "term_id": "programme-daypart-restrictions"
+      },
+      {
+       "instance_id": "x-017",
+       "term_id": "fixed-spot-pricing"
       }
      ],
      "recall": 1.0,
-     "precision": 0.3889,
+     "precision": 0.4118,
      "param_hits": 13,
      "param_total": 29,
      "param_accuracy": 0.4483,
@@ -114,127 +244,197 @@
      "clauses_truth": 12,
      "clauses_pipeline": 12,
      "clauses_accounted": 12,
-     "disposition_class_hits": 1,
+     "disposition_class_hits": 10,
      "instances_truth": 7,
-     "instances_found": 0,
-     "matched": 0,
-     "missed": [
+     "instances_found": 12,
+     "matched": 7,
+     "missed": [],
+     "spurious": [
       {
-       "instance_id": "am-parties",
-       "term_id": "agreement-parties"
-      },
-      {
-       "instance_id": "am-layer",
+       "instance_id": "whole-001-amendment-layer",
        "term_id": "amendment-layer"
       },
       {
-       "instance_id": "am-precedence",
-       "term_id": "precedence-clause"
+       "instance_id": "whole-003-agreement-level",
+       "term_id": "agreement-level"
       },
       {
-       "instance_id": "am-budget",
-       "term_id": "budget-commitment"
+       "instance_id": "whole-004-effective-window",
+       "term_id": "effective-window"
       },
       {
-       "instance_id": "am-q4-cpp",
-       "term_id": "cpp-daypart-table"
+       "instance_id": "whole-010-volume-discount-ladder",
+       "term_id": "volume-discount-ladder"
       },
       {
-       "instance_id": "am-q4-window",
-       "term_id": "term-effective-windows"
-      },
-      {
-       "instance_id": "am-exclusivity",
-       "term_id": "category-exclusivity"
+       "instance_id": "whole-012-brand-scope",
+       "term_id": "brand-scope"
       }
      ],
-     "spurious": [],
-     "recall": 0.0,
-     "precision": null,
-     "param_hits": 0,
-     "param_total": 0,
-     "param_accuracy": null,
-     "by_family": {},
+     "recall": 1.0,
+     "precision": 0.5833,
+     "param_hits": 17,
+     "param_total": 29,
+     "param_accuracy": 0.5862,
+     "by_family": {
+      "A": {
+       "hits": 8,
+       "total": 16,
+       "instances": 3,
+       "accuracy": 0.5
+      },
+      "B": {
+       "hits": 4,
+       "total": 4,
+       "instances": 1,
+       "accuracy": 1.0
+      },
+      "D": {
+       "hits": 3,
+       "total": 4,
+       "instances": 1,
+       "accuracy": 0.75
+      },
+      "F": {
+       "hits": 2,
+       "total": 3,
+       "instances": 1,
+       "accuracy": 0.6667
+      },
+      "H": {
+       "hits": 0,
+       "total": 2,
+       "instances": 1,
+       "accuracy": 0.0
+      }
+     },
      "citation_failures": [],
      "conflicts_expected": 0,
      "conflicts_found": 0,
-     "unmapped_found": 11,
+     "unmapped_found": 1,
      "unmapped_truth": 0
     },
     "arbitrated": {
      "clauses_truth": 12,
      "clauses_pipeline": 12,
      "clauses_accounted": 12,
-     "disposition_class_hits": 1,
+     "disposition_class_hits": 11,
      "instances_truth": 7,
-     "instances_found": 0,
-     "matched": 0,
-     "missed": [
+     "instances_found": 18,
+     "matched": 7,
+     "missed": [],
+     "spurious": [
       {
-       "instance_id": "am-parties",
-       "term_id": "agreement-parties"
+       "instance_id": "arb-1.1-effective-window",
+       "term_id": "effective-window"
       },
       {
-       "instance_id": "am-layer",
+       "instance_id": "arb-2.3-volume-discount-ladder",
+       "term_id": "volume-discount-ladder"
+      },
+      {
+       "instance_id": "arb-pre-1-amendment-layer",
        "term_id": "amendment-layer"
       },
       {
-       "instance_id": "am-precedence",
-       "term_id": "precedence-clause"
-      },
-      {
-       "instance_id": "am-budget",
-       "term_id": "budget-commitment"
-      },
-      {
-       "instance_id": "am-q4-cpp",
-       "term_id": "cpp-daypart-table"
-      },
-      {
-       "instance_id": "am-q4-window",
+       "instance_id": "arb-2.3-term-effective-windows",
        "term_id": "term-effective-windows"
       },
       {
-       "instance_id": "am-exclusivity",
-       "term_id": "category-exclusivity"
+       "instance_id": "x-016",
+       "term_id": "programme-daypart-restrictions"
+      },
+      {
+       "instance_id": "arb-3.2-agreement-parties",
+       "term_id": "agreement-parties"
+      },
+      {
+       "instance_id": "arb-3.2-amendment-layer",
+       "term_id": "amendment-layer"
+      },
+      {
+       "instance_id": "arb-4.1-precedence-clause",
+       "term_id": "precedence-clause"
+      },
+      {
+       "instance_id": "arb-2.3-amendment-layer",
+       "term_id": "amendment-layer"
+      },
+      {
+       "instance_id": "arb-3.2-brand-scope",
+       "term_id": "brand-scope"
+      },
+      {
+       "instance_id": "arb-pre-2-agreement-level",
+       "term_id": "agreement-level"
       }
      ],
-     "spurious": [],
-     "recall": 0.0,
-     "precision": null,
-     "param_hits": 0,
-     "param_total": 0,
-     "param_accuracy": null,
-     "by_family": {},
+     "recall": 1.0,
+     "precision": 0.3889,
+     "param_hits": 16,
+     "param_total": 29,
+     "param_accuracy": 0.5517,
+     "by_family": {
+      "A": {
+       "hits": 8,
+       "total": 16,
+       "instances": 3,
+       "accuracy": 0.5
+      },
+      "B": {
+       "hits": 4,
+       "total": 4,
+       "instances": 1,
+       "accuracy": 1.0
+      },
+      "D": {
+       "hits": 3,
+       "total": 4,
+       "instances": 1,
+       "accuracy": 0.75
+      },
+      "F": {
+       "hits": 1,
+       "total": 3,
+       "instances": 1,
+       "accuracy": 0.3333
+      },
+      "H": {
+       "hits": 0,
+       "total": 2,
+       "instances": 1,
+       "accuracy": 0.0
+      }
+     },
      "citation_failures": [],
      "conflicts_expected": 0,
      "conflicts_found": 0,
-     "unmapped_found": 11,
+     "unmapped_found": 0,
      "unmapped_truth": 0
     }
    },
    "seconds": {
-    "pipeline": 255.07243516699236,
-    "whole": 58.64211545800208,
-    "arbitrated": 63.70275341600063
+    "pipeline": 237.67386141700263,
+    "whole": 43.20272337499773,
+    "arbitrated": 95.25041358399903
    },
    "provider": {
     "classify": {
      "calls": 2,
      "failed": 0,
      "input_tokens": 11516,
-     "output_tokens": 1215,
-     "latency_seconds": 14.52,
+     "output_tokens": 1013,
+     "latency_seconds": 16.8,
      "models": [
       "claude-haiku-4-5-20251001"
      ]
     },
     "parameterise": {
-     "calls": 18,
+     "calls": 17,
      "failed": 0,
-     "input_tokens": 37166,
-     "output_tokens": 13634,
-     "latency_seconds": 229.0,
+     "input_tokens": 35381,
+     "output_tokens": 13134,
+     "latency_seconds": 209.98,
      "models": [
       "claude-opus-5",
       "claude-sonnet-5"
@@ -243,9 +443,9 @@
     "wholedoc": {
      "calls": 1,
      "failed": 0,
-     "input_tokens": 5347,
-     "output_tokens": 4000,
-     "latency_seconds": 58.03,
+     "input_tokens": 15400,
+     "output_tokens": 3326,
+     "latency_seconds": 42.6,
      "models": [
       "claude-opus-5"
      ]
@@ -253,9 +453,9 @@
     "arbitrate": {
      "calls": 1,
      "failed": 0,
-     "input_tokens": 15464,
-     "output_tokens": 4000,
-     "latency_seconds": 63.09,
+     "input_tokens": 17851,
+     "output_tokens": 6568,
+     "latency_seconds": 94.65,
      "models": [
       "claude-opus-5"
      ]

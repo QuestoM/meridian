@@ -39,6 +39,13 @@ from scripts.trade_extraction_accuracy import score_document  # noqa: E402
 OUT_MD = ROOT / "docs" / "trade" / "arbitration-accuracy.md"
 OUT_JSON = ROOT / "docs" / "trade" / "arbitration-accuracy.json"
 
+# Readings A and B are the expensive half - a clause-by-clause pass is minutes
+# of model time - and the JUDGE is the part worth iterating on. So every run
+# caches both readings per document, and --from-cache re-rules them without
+# paying for them again. An experiment you cannot afford to repeat is not an
+# experiment; it is one anecdote.
+CACHE = ROOT / "tests" / "trade_corpus" / ".arbitration-cache"
+
 
 def _pct(value: Any) -> str:
     return "—" if value is None else f"{100 * float(value):.1f}%"
@@ -90,9 +97,11 @@ def _as_extraction(base: DocumentExtraction, instances: list[Any]) -> DocumentEx
 
 def main() -> None:
     wanted = [a for a in sys.argv[1:] if not a.startswith("--")]
+    from_cache = "--from-cache" in sys.argv
     truths = corpus.load_all()
     doc_ids = wanted or sorted(truths)
     client, auth_mode = extract_provider.build_client()
+    CACHE.mkdir(parents=True, exist_ok=True)
     records: dict[str, Any] = {}
 
     for doc_id in doc_ids:
@@ -117,27 +126,47 @@ def main() -> None:
         )
         print(f"\n=== {doc_id} ({route})", flush=True)
 
+        cache_file = CACHE / f"{doc_id}.json"
+        cached = None
+        if from_cache and cache_file.exists():
+            cached = json.loads(cache_file.read_text(encoding="utf-8"))
+
         # ---- A: the shipped clause-by-clause pipeline -----------------------
-        started = time.monotonic()
-        pipeline = extract_run.run_pdf(
-            pdf, caller, document_id=doc_id, agreement_id=doc_id,
-            force_route=route if route != "digital" else None,
-            page_images=images or None,
-        )
-        a_seconds = time.monotonic() - started
+        if cached:
+            from kairos.trade.documents import extraction_from_payload
+            pipeline = extraction_from_payload(cached["pipeline"])
+            a_seconds = float(cached["seconds"]["pipeline"])
+            print("  A pipeline    from cache", flush=True)
+        else:
+            started = time.monotonic()
+            pipeline = extract_run.run_pdf(
+                pdf, caller, document_id=doc_id, agreement_id=doc_id,
+                force_route=route if route != "digital" else None,
+                page_images=images or None,
+            )
+            a_seconds = time.monotonic() - started
         a_score = score_document(truth, pipeline)
         print(f"  A pipeline    recall {_pct(a_score['recall'])}  "
               f"precision {_pct(a_score['precision'])}  params {_pct(a_score['param_accuracy'])}  "
               f"{a_seconds:.0f}s", flush=True)
 
         # ---- B: one reading of the whole document ---------------------------
-        started = time.monotonic()
-        page_blocks = extract_wholedoc.vision_blocks(images) if images else None
-        whole = extract_wholedoc.read_whole_document(
-            pipeline.clauses, caller.call, page_images=page_blocks)
+        if cached:
+            whole = cached["whole"]
+            b_seconds = float(cached["seconds"]["whole"])
+            print("  B whole-doc   from cache", flush=True)
+        else:
+            started = time.monotonic()
+            page_blocks = extract_wholedoc.vision_blocks(images) if images else None
+            whole = extract_wholedoc.read_whole_document(
+                pipeline.clauses, caller.call, page_images=page_blocks)
+            b_seconds = time.monotonic() - started
+            cache_file.write_text(json.dumps({
+                "pipeline": pipeline.to_payload(), "whole": whole,
+                "seconds": {"pipeline": a_seconds, "whole": b_seconds},
+            }, ensure_ascii=False), encoding="utf-8")
         b_instances = extract_wholedoc.instances_from_records(
             whole["instances"], pipeline.clauses, document_id=doc_id)
-        b_seconds = time.monotonic() - started
         b_score = score_document(truth, _as_extraction(pipeline, b_instances))
         print(f"  B whole-doc   recall {_pct(b_score['recall'])}  "
               f"precision {_pct(b_score['precision'])}  params {_pct(b_score['param_accuracy'])}  "
@@ -156,6 +185,7 @@ def main() -> None:
 
         records[doc_id] = {
             "route": route,
+            "arbiter_prompt": arbitrate.ARBITER_PROMPT_VERSION,
             "alignment": {k: len(alignment[k]) for k in
                           ("agreed", "params_differ", "pipeline_only", "whole_only")},
             "whole_dropped": whole["dropped"],
@@ -189,9 +219,15 @@ def _totals(records: dict[str, Any], reading: str) -> dict[str, Any]:
 
 
 def _write(records: dict[str, Any]) -> None:
-    OUT_JSON.write_text(json.dumps(
-        {"run_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-         "documents": records}, ensure_ascii=False, indent=1), encoding="utf-8")
+    payload = {"run_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+               "arbiter_prompt": arbitrate.ARBITER_PROMPT_VERSION,
+               "documents": records}
+    body = json.dumps(payload, ensure_ascii=False, indent=1)
+    OUT_JSON.write_text(body, encoding="utf-8")
+    # One archive per prompt version, so the comparison table below is GENERATED
+    # from measurements rather than typed from memory.
+    (OUT_JSON.parent / f"arbitration-{arbitrate.ARBITER_PROMPT_VERSION}.json").write_text(
+        body, encoding="utf-8")
 
     rows = [
         "# Three readings of the same corpus, measured",
@@ -199,6 +235,8 @@ def _write(records: dict[str, Any]) -> None:
         "Produced by `scripts/trade_arbitration_bench.py` against the corpus in",
         "`tests/trade_corpus/agreements` and the same independently authored ground",
         "truth as `extraction-accuracy.md`. Every number is a real provider run.",
+        "",
+        f"Arbiter prompt: `{arbitrate.ARBITER_PROMPT_VERSION}`.",
         "",
         "| reading | what it is | recall | precision | parameters | seconds |",
         "|---|---|---|---|---|---|",
@@ -235,6 +273,24 @@ def _write(records: dict[str, Any]) -> None:
                "neither": "no commercial term here at all"}
     for verdict, count in sorted(verdicts.items(), key=lambda kv: -kv[1]):
         rows.append(f"| `{verdict}` | {meaning.get(verdict, verdict)} | {count} |")
+
+    # The judge's own prompt, measured against itself.
+    archives = sorted((OUT_JSON.parent).glob("arbitration-v*.json"))
+    if len(archives) > 1:
+        rows += ["", "## The judge's prompt is a variable, so it was measured", "",
+                 "| arbiter prompt | recall | precision | parameters |",
+                 "|---|---|---|---|"]
+        for archive in archives:
+            other = json.loads(archive.read_text(encoding="utf-8"))
+            docs = other.get("documents", {})
+            shared = {k: v for k, v in docs.items() if k in records}
+            if not shared:
+                continue
+            t_other = _totals(shared, "arbitrated")
+            rows.append(
+                f"| `{other.get('arbiter_prompt', archive.stem)}` "
+                f"| {_pct(t_other['recall'])} | {_pct(t_other['precision'])} "
+                f"| {_pct(t_other['params'])} |")
 
     rows += ["", "## Per document", "",
              "| document | A recall | B recall | C recall | A params | B params | C params |",
