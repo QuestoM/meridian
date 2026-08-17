@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card, CardBody, EmptyState, Status } from '../studio';
 import { Button } from '../studio/actions';
 import { FilePlus2, Scale } from 'lucide-react';
@@ -71,11 +71,40 @@ function UnmappedClauses({ clauses, locale, canEdit, onAcknowledge }) {
   );
 }
 
+// A term card is a paragraph of reasoning, its citations and four actions -
+// nothing like a clause row - so the whole proposal rendered at once made the
+// review 16,700px tall on the corpus flagship, and the reviewer's own queue sat
+// somewhere inside it. The reveal is progressive and BUDGETED ACROSS THE
+// GROUPS rather than per group, because the queue is one queue: the mechanism
+// headings order it, they do not divide it into separate lists.
+const TERM_WINDOW = 12;
+
 export default function ReviewProposalPane({
   locale, canEdit, busy, filter, counts, groups, shown, conflicts, unacknowledged,
   selectedClause, clauseTermIds, onFilter, onSelectClause, onConfirm, on,
 }) {
   const openConflicts = conflicts.filter((conflict) => conflict.open).length;
+  const [visibleTerms, setVisibleTerms] = useState(TERM_WINDOW);
+
+  // A new filter is a new queue, so the window starts again rather than
+  // stranding the reviewer deep inside a list they did not ask for.
+  useEffect(() => { setVisibleTerms(TERM_WINDOW); }, [filter]);
+
+  const { windowed, totalTerms, shownTerms } = useMemo(() => {
+    let budget = visibleTerms;
+    const kept = [];
+    let total = 0;
+    let taken = 0;
+    for (const group of groups) {
+      total += group.terms.length;
+      if (budget <= 0) continue;
+      const slice = group.terms.slice(0, budget);
+      budget -= slice.length;
+      taken += slice.length;
+      kept.push({ ...group, terms: slice, groupTotal: group.terms.length });
+    }
+    return { windowed: kept, totalTerms: total, shownTerms: taken };
+  }, [groups, visibleTerms]);
   return (
     <div className="trd-proposal">
       <div className="trd-pane-head">
@@ -151,7 +180,7 @@ export default function ReviewProposalPane({
         />
       ) : null}
 
-      {groups.map((group) => (
+      {windowed.map((group) => (
         <section key={group.key} className="trd-group">
           <h4 className="trd-group-head">
             <Status status={group.key === REJECTED_GROUP ? 'danger' : mechanismTone(group.key)}>
@@ -159,7 +188,15 @@ export default function ReviewProposalPane({
                 ? pageText(locale, 'Rejected', 'נדחו')
                 : mechanismName(group.key, locale)}
             </Status>
-            <span className="trd-group-count">{formatNumber(group.terms.length, locale)}</span>
+            <span className="trd-group-count">
+              {group.terms.length === group.groupTotal
+                ? formatNumber(group.groupTotal, locale)
+                : pageText(
+                  locale,
+                  `${formatNumber(group.terms.length, locale)} of ${formatNumber(group.groupTotal, locale)}`,
+                  `${formatNumber(group.terms.length, locale)} מתוך ${formatNumber(group.groupTotal, locale)}`,
+                )}
+            </span>
           </h4>
           {group.terms.map((term) => (
             <ReviewTermCard
@@ -178,6 +215,25 @@ export default function ReviewProposalPane({
           ))}
         </section>
       ))}
+
+      {shownTerms < totalTerms ? (
+        <div className="trd-window-more" role="status">
+          <span>
+            {pageText(
+              locale,
+              `Showing ${formatNumber(shownTerms, locale)} of ${formatNumber(totalTerms, locale)} terms`,
+              `מוצגים ${formatNumber(shownTerms, locale)} מתוך ${formatNumber(totalTerms, locale)} מונחים`,
+            )}
+          </span>
+          <Button
+            type="button"
+            variant="outlined"
+            onClick={() => setVisibleTerms((count) => count + TERM_WINDOW)}
+          >
+            {pageText(locale, 'Show the next terms', 'הצגת המונחים הבאים')}
+          </Button>
+        </div>
+      ) : null}
 
       {conflicts.length > 0 ? (
         <Card dense className="trd-conflict-summary">
