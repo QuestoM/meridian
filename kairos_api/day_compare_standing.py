@@ -278,6 +278,7 @@ def contractual_standing(
             "available": False,
             "reason": "no approved agreement carries a committed term, so nothing is measured",
             "reason_he": "אין הסכם מאושר עם מונח מחייב, ולכן אין מה למדוד",
+            "phrase_he": "התחייבויות: אין הסכם מאושר למדידה",
             "counts": {}, "obligations": [],
         }
     if day_rows == 0:
@@ -287,6 +288,7 @@ def contractual_standing(
                       "effect on commitments is unknown rather than nil",
             "reason_he": "ספר האספקה אינו מחזיק שורה ליום הזה בערוץ הזה, ולכן השפעת היום על "
                          "ההתחייבויות אינה ידועה ואינה אפס",
+            "phrase_he": "השפעה על התחייבויות אינה ידועה: אין ליום שורת אספקה",
             "counts": {}, "obligations": [],
             "day_capacity": {
                 "baseline_seconds": baseline_seconds, "side_seconds": side_seconds,

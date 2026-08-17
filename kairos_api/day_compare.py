@@ -86,7 +86,9 @@ def _money_delta(side: dict[str, Any], base: dict[str, Any]) -> dict[str, Any]:
 
 def _commitment_phrase(dimension: dict[str, Any]) -> str:
     if not dimension.get("available"):
-        return "עמידה בהתחייבויות: לא נבדק"
+        # The dimension says WHY it is unmeasured; "not checked" would claim
+        # the check never ran, when it ran and found its basis missing.
+        return str(dimension.get("phrase_he") or "עמידה בהתחייבויות: לא נבדק")
     counts = dimension.get("counts") or {}
     for key, one, many in (
         (standing.BREAKS, "התחייבות אחת בהפרה", "התחייבויות בהפרה"),
