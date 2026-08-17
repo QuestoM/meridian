@@ -335,7 +335,7 @@ function TVBreakDashboard({ auth, setAuth }) {
           copy, locale, activeView, activeDomain, activeDomainLabel, localItems,
           onNavigateLocal: (item) => setActiveView(item.target.view, item.target.params || {}),
           setActiveView, showPlanContext,
-          schedule, overview, settings, settingsAvailable, online, partial,
+          schedule, overview, settings, settingsAvailable, online, partial, loading,
           notify, handleRefresh, assistantOpen, setAssistantOpen,
           activeNotificationCount, setFeedOpen, persistSettings,
         })}

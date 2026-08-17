@@ -100,6 +100,18 @@ def _commitment_phrase(dimension: dict[str, Any]) -> str:
             return one
         if total > 1:
             return f"{total} {many}"
+    # An all-unknown standing is NOT "no change": nothing was measured, and
+    # saying "no change" converts an honest unknown into a reassurance. The
+    # adversarial suite planted a strict tripwire on exactly this line.
+    unknown = int(counts.get(standing.UNKNOWN, 0))
+    measured_any = any(
+        int(counts.get(key, 0)) > 0
+        for key in (standing.BREAKS, standing.ENDANGERS, standing.ADVANCES,
+                    standing.UNCHANGED)
+    )
+    if unknown and not measured_any:
+        return ("השפעה על התחייבויות אינה ידועה: "
+                f"{unknown} התחייבויות ללא בסיס מדידה")
     return "אין שינוי בעמידה בהתחייבויות"
 
 

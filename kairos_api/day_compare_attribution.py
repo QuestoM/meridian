@@ -118,10 +118,20 @@ def _row_index(frame: pd.DataFrame) -> dict[str, dict[str, Any]]:
 
 
 def _revenue_agorot(frame: pd.DataFrame) -> int:
-    """Every agora a frame carries, whether or not the row can be keyed to a programme."""
+    """Every agora a frame carries, on the SAME basis as the headline.
+
+    The headline the decision-maker reads is plan_version_store._totals:
+    the float column summed once, rounded once to two decimals. This truth
+    figure must be computed identically — rounding each row to agorot first
+    and summing summed DIFFERENTLY from the headline on sub-agora fractions,
+    so the payload could claim exact:True while disagreeing with the number
+    it explains. With one basis, any per-row rounding drift lands in
+    ``residual`` and is printed as unattributed instead of denied.
+    """
     if frame is None or frame.empty or "predicted_revenue" not in frame.columns:
         return 0
-    return sum(_cents(value) for value in frame["predicted_revenue"])
+    revenue = pd.to_numeric(frame["predicted_revenue"], errors="coerce").fillna(0)
+    return _cents(round(float(revenue.sum()), 2))
 
 
 def _classify(before: Optional[dict[str, Any]], after: Optional[dict[str, Any]]) -> str:

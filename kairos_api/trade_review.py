@@ -242,7 +242,20 @@ def document_gate(agreement_id: str, document_id: str) -> dict[str, Any]:
     acks = review.get("unmapped_acks", {})
     states = review.get("instances", {})
 
-    unseen = sorted(c["clause_id"] for c in clauses if c["clause_id"] not in seen)
+    # Clause ids sort in DOCUMENT ORDER, not lexicographically: a reviewer
+    # scanning for what is unread expects 2.1 after 1.4, and sorted() strings
+    # put 10.1 there instead. Numeric components compare as numbers; anything
+    # non-numeric (pre-1, sig-1, appA-2) keeps a stable textual order after.
+    def _clause_key(cid: str) -> tuple:
+        parts = str(cid).replace("-", ".").split(".")
+        return tuple(
+            (0, int(part)) if part.isdigit() else (1, part) for part in parts
+        )
+
+    unseen = sorted(
+        (c["clause_id"] for c in clauses if c["clause_id"] not in seen),
+        key=_clause_key,
+    )
     undecided = sorted(
         iid for iid, entry in states.items()
         if entry.get("state", PROPOSED) == PROPOSED

@@ -36,6 +36,7 @@ export const copyByLocale = {
     scenarios: ['Balanced', 'Revenue priority', 'Retention guardrail'],
     compare: 'Compare',
     liveApi: 'Live API',
+    checkingApi: 'Checking the API',
     snapshot: 'API unreachable',
     partialData: 'Some data failed to load',
     data: 'Data',
@@ -147,7 +148,10 @@ export const copyByLocale = {
     scenario: 'תרחיש',
     scenarios: ['מאוזן', 'מקסום הכנסה', 'הגנת שימור'],
     compare: 'השוואה',
-    liveApi: 'API חי',
+    // Starts with a Hebrew anchor on purpose: a label whose first strong
+    // character is Latin resolves LTR and the chip read "חי API", reversed.
+    liveApi: 'ה־API חי',
+    checkingApi: 'בודק חיבור ל־API',
     snapshot: 'אין חיבור ל־API',
     partialData: 'חלק מהנתונים לא נטענו',
     data: 'נתונים',

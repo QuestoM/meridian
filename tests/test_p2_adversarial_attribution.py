@@ -8,10 +8,13 @@ programme id at all, money that runs negative, and revenue carrying fractions
 below one agora - because an identity that holds only on round numbers is not an
 identity.
 
-Two of the attacks land, and both are recorded here as strict xfails rather than
-as passing tests that describe the defect. A strict xfail is a ratchet: it fails
-the moment somebody fixes the underlying behaviour, which is when the marker
-should come off, and it never lets the defect quietly become the specification.
+Two of the attacks landed when this suite was written, and both were recorded
+as strict xfails - a ratchet that fails the moment somebody fixes the
+underlying behaviour. Both ratchets have since fired and come off: the
+attribution now measures its truth figure on the headline's own rounding
+basis (one sum, one round), and an all-unknown commitments standing names its
+unknowns instead of reading as "no change". The tests below now lock the
+fixed behaviour.
 
 The rest are regression locks on behaviour that is genuinely right and that a
 future refactor of the rounding basis could easily break.
@@ -74,15 +77,6 @@ def rows_with(mapper) -> pd.DataFrame:
 
 # --------------------------------------------------- the attack that lands (1)
 
-@pytest.mark.xfail(strict=True, reason=(
-    "MEASURED DEFECT: the attribution rounds each row to agorot (int(round(v*100)) "
-    "in day_compare_attribution._cents/_revenue_agorot) while the headline sums the "
-    "floats first and rounds once (plan_version_store._totals -> "
-    "round(float(revenue.sum()), 2)). Sub-agora fractions therefore accumulate into a "
-    "divergence between the attributed total and the headline it claims to explain. "
-    "The reconciliation cannot see it because residual compares a per-row sum against "
-    "a per-row sum, so the payload reports exact:True while the two figures disagree. "
-    "Measured: 6 rows carrying +0.001 ILS each diverge by 1 agora; 60 rows by 6."))
 def test_sub_agora_fractions_must_not_break_the_identity_or_the_exact_flag(scoped):
     """Revenue below one agora per row: the identity the surface promises.
 
@@ -101,38 +95,35 @@ def test_sub_agora_fractions_must_not_break_the_identity_or_the_exact_flag(scope
     assert measured["cells"] == measured["buckets"] == measured["total"]
 
 
-def test_the_divergence_is_measured_and_grows_with_the_row_count(scoped):
-    """The size of the defect above, pinned so a fix can be checked against it.
+def test_the_divergence_is_zero_at_any_row_count(scoped):
+    """The historical defect's own measurements, inverted into the lock.
 
-    This test asserts what the code DOES today on purpose. It is the evidence for
-    the xfail above rather than an endorsement: if a fix lands, the divergences
-    become zero and this test fails loudly, which is the point at which both it
-    and the marker should be revisited together.
+    Before the fix, 6 rows carrying +0.001 ILS diverged by 1 agora and 60 rows
+    by 6, with exact:True beside both. One rounding basis (the headline's: sum
+    once, round once) makes the divergence structurally zero; these are the
+    same two measurements asserting the repaired identity.
     """
+    # The identity must CLOSE against the headline, and the sub-agora drift
+    # the per-row cells cannot carry must surface as an explicit unattributed
+    # remainder with exact:False - declared, not denied. exact:True beside a
+    # divergence was the defect; exact:False beside a printed one-agora
+    # remainder is the honesty mechanism working.
     six = identity(frame(BASE_ROWS),
                    rows_with(lambda r: (r[0], r[1], r[2], r[3], r[4] + 0.001, r[5])))
-    assert six["headline"] - six["total"] == 1
-    assert six["exact"] is True, "the reconciliation is blind to this class"
+    assert six["headline"] - six["total"] == 0
+    assert six["exact"] is False
 
     base_many = [("20:00", "Drama", 3, 360.0, 10_000.0, f"X{index}")
                  for index in range(60)]
     side_many = [("20:00", "Drama", 3, 360.0, 10_000.001, f"X{index}")
                  for index in range(60)]
     many = identity(frame(base_many), frame(side_many))
-    assert many["headline"] - many["total"] == 6
-    assert many["exact"] is True
+    assert many["headline"] - many["total"] == 0
+    assert many["exact"] is False
 
 
 # --------------------------------------------------- the attack that lands (2)
 
-@pytest.mark.xfail(strict=True, reason=(
-    "MEASURED DEFECT: day_compare._commitment_phrase loops over breaks/endangers/"
-    "advances only and falls through to 'אין שינוי בעמידה בהתחייבויות' - no change - "
-    "when every obligation measured UNKNOWN. An unmeasured commitment is then "
-    "reported to the decision-maker as a reassurance. This is the live path on the "
-    "real seeded data: the one approved agreement in data/agreements carries exactly "
-    "one obliging term, added-value-media, which obligations.py routes to "
-    "_eval_untracked, so counts reads {unknown: 1} and every other bucket zero."))
 def test_an_all_unknown_standing_must_not_read_as_no_change():
     """The headline sentence for a dimension that measured nothing.
 

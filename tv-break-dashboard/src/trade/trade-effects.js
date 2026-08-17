@@ -123,22 +123,39 @@ export function mechanismNote(mechanism, locale) {
 // Why approval is refused. The gate sends a kind and a count; the sentence that
 // names what the reviewer must actually do lives here, because it is an
 // instruction to a person rather than a fact about the document.
+// Hebrew takes the singular for one; "1 סעיפים" reads as a machine talking.
 const BLOCKERS = {
   clauses_unseen: {
-    he: (n) => `${n} סעיפים עדיין לא נקראו. כל סעיף במסמך צריך לעבור לפני העיניים.`,
-    en: (n) => `${n} clauses have not been read yet. Every clause in the document has to pass before a reviewer's eyes.`,
+    he: (n) => (n === 1
+      ? 'סעיף אחד עדיין לא נקרא. כל סעיף במסמך צריך לעבור לפני העיניים.'
+      : `${n} סעיפים עדיין לא נקראו. כל סעיף במסמך צריך לעבור לפני העיניים.`),
+    en: (n) => (n === 1
+      ? "One clause has not been read yet. Every clause in the document has to pass before a reviewer's eyes."
+      : `${n} clauses have not been read yet. Every clause in the document has to pass before a reviewer's eyes.`),
   },
   instances_undecided: {
-    he: (n) => `${n} מונחים ממתינים להחלטה: אישור, תיקון או דחייה.`,
-    en: (n) => `${n} terms are waiting for a decision: confirm, edit or reject.`,
+    he: (n) => (n === 1
+      ? 'מונח אחד ממתין להחלטה: אישור, תיקון או דחייה.'
+      : `${n} מונחים ממתינים להחלטה: אישור, תיקון או דחייה.`),
+    en: (n) => (n === 1
+      ? 'One term is waiting for a decision: confirm, edit or reject.'
+      : `${n} terms are waiting for a decision: confirm, edit or reject.`),
   },
   unmapped_unacknowledged: {
-    he: (n) => `${n} סעיפים לא מופו לשום מונח ולא אושרו ידנית. סעיף שהמערכת לא הבינה נשאר חסום עד שאדם יאמר מה הוא.`,
-    en: (n) => `${n} clauses mapped to no term and were not acknowledged. A clause the system did not understand stays blocking until a person says what it is.`,
+    he: (n) => (n === 1
+      ? 'סעיף אחד לא מופה לשום מונח ולא אושר ידנית. סעיף שהמערכת לא הבינה נשאר חסום עד שאדם יאמר מה הוא.'
+      : `${n} סעיפים לא מופו לשום מונח ולא אושרו ידנית. סעיף שהמערכת לא הבינה נשאר חסום עד שאדם יאמר מה הוא.`),
+    en: (n) => (n === 1
+      ? 'One clause mapped to no term and was not acknowledged. A clause the system did not understand stays blocking until a person says what it is.'
+      : `${n} clauses mapped to no term and were not acknowledged. A clause the system did not understand stays blocking until a person says what it is.`),
   },
   conflicts_open: {
-    he: (n) => `${n} סתירות פתוחות בין סעיפים. יש להכריע איזו גרסה קובעת.`,
-    en: (n) => `${n} open conflicts between clauses. A reviewer has to decide which version governs.`,
+    he: (n) => (n === 1
+      ? 'סתירה אחת פתוחה בין סעיפים. יש להכריע איזו גרסה קובעת.'
+      : `${n} סתירות פתוחות בין סעיפים. יש להכריע איזו גרסה קובעת.`),
+    en: (n) => (n === 1
+      ? 'One open conflict between clauses. A reviewer has to decide which version governs.'
+      : `${n} open conflicts between clauses. A reviewer has to decide which version governs.`),
   },
   no_documents: {
     he: () => 'אין מסמך מצורף. אין מה לסקור.',

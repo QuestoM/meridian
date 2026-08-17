@@ -28,6 +28,7 @@ export function renderTopBar({
   overview,
   online,
   partial,
+  loading,
   handleRefresh,
   assistantOpen,
   setAssistantOpen,
@@ -37,9 +38,13 @@ export function renderTopBar({
   settingsAvailable,
   persistSettings,
 }) {
+  // Before the first response resolves nothing is known, and unknown is not
+  // negative: the chip says "checking", never "no connection", until a fetch
+  // has actually failed. The offline styling is kept so the state still
+  // reads as not-yet-good.
   const connectionLabel = online
     ? (partial ? copy.partialData : copy.liveApi)
-    : copy.snapshot;
+    : (loading ? copy.checkingApi : copy.snapshot);
 
   return (
     <header className="top-bar">

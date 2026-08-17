@@ -111,11 +111,13 @@ function GateLine({ row, locale }) {
   }
   return (
     <Status status="warning" icon={<ShieldAlert size={14} aria-hidden="true" />}>
-      {pageText(
-        locale,
-        `${formatNumber(row.gate_blockers, locale)} blocking approval`,
-        `${formatNumber(row.gate_blockers, locale)} חסמים לאישור`,
-      )}
+      {Number(row.gate_blockers) === 1
+        ? pageText(locale, 'one blocker before approval', 'חסם אחד לאישור')
+        : pageText(
+          locale,
+          `${formatNumber(row.gate_blockers, locale)} blocking approval`,
+          `${formatNumber(row.gate_blockers, locale)} חסמים לאישור`,
+        )}
     </Status>
   );
 }
