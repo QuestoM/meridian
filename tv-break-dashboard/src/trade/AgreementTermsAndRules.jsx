@@ -42,14 +42,24 @@ function TermRow({ term, locale }) {
 export function AgreementTermsByFamily({ effects, locale }) {
   const terms = (effects && effects.terms) || [];
   if (terms.length === 0) {
+    // `unread` arrives when the proposal route said this document has no
+    // extraction yet — a known stage, so the sentence states it instead of
+    // hedging between two possibilities.
+    const unread = Boolean(effects && effects.unread);
     return (
       <EmptyState
         title={pageText(locale, 'No terms are held for this agreement', 'לא נשמרים מונחים להסכם הזה')}
-        description={pageText(
-          locale,
-          'Either the document has not been read yet, or every proposed term was rejected in review.',
-          'או שהמסמך עדיין לא נקרא, או שכל מונח מוצע נדחה בסקירה.',
-        )}
+        description={unread
+          ? pageText(
+            locale,
+            'The document is attached but has not been read yet. Opening the review runs the reading.',
+            'המסמך מצורף אך טרם נקרא. פתיחת הסקירה מריצה את הקריאה.',
+          )
+          : pageText(
+            locale,
+            'Either the document has not been read yet, or every proposed term was rejected in review.',
+            'או שהמסמך עדיין לא נקרא, או שכל מונח מוצע נדחה בסקירה.',
+          )}
       />
     );
   }

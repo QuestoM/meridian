@@ -35,6 +35,8 @@ export const CONTEXT_ITEMS = {
   ],
   Broadcast: [
     { id: 'day', en: 'Day timeline', he: 'ציר זמן יומי', target: { view: 'Broadcast', params: { broadcast: 'day' } } },
+    { id: 'versions', en: 'Day versions', he: 'גרסאות היום', target: { view: 'Broadcast', params: { broadcast: 'versions' } } },
+    { id: 'forecast', en: 'Rating forecast', he: 'תחזית רייטינג', target: { view: 'Broadcast', params: { broadcast: 'forecast' } } },
     { id: 'pods', en: 'Traffic pods', he: 'ברייקי טראפיק', target: { view: 'Broadcast', params: { broadcast: 'pods' } } },
     { id: 'library', en: 'Break library', he: 'ספריית ברייקים', target: { view: 'Broadcast', params: { broadcast: 'library' } } },
     { id: 'decisions', en: 'Manual decisions', he: 'החלטות ידניות', target: { view: 'Broadcast', params: { broadcast: 'decisions' } } },
@@ -115,7 +117,7 @@ const PARAM_DOMAIN = {
 const VALID_VALUES = {
   axis: new Set(['day', 'daypart', 'hour', 'type']),
   plan: new Set(['objective', 'run', 'compare', 'publish', 'supply', 'board']),
-  broadcast: new Set(['day', 'pods', 'library', 'decisions']),
+  broadcast: new Set(['day', 'versions', 'forecast', 'pods', 'library', 'decisions']),
   breakView: new Set(['library', 'day', 'pod']),
   clients: new Set(['clients', 'money', 'campaigns', 'pacing', 'advertisers', 'agencies', 'agreements']),
   sources: new Set(['inputs', 'files', 'downloads']),

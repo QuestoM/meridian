@@ -77,20 +77,25 @@ demo store already holds six agreements in every lifecycle state.
    them (supersession is part of the proof script). The optimizer reads these
    from the same stores it always read — no parallel rulebook.
 
-5. **Daily plan versions, Pillar 2** — תכנון → the day board. Several people's
-   competing versions of the same day; open the comparison: placement-level
-   diffs rolled up to a decision summary, the profitability delta with its
-   reasoning exposed (which moves, priced how), effect on contractual
-   standing, inventory consequences, more than two versions side by side; a
-   decision keeps the rejected alternatives in history, attributed and
-   restorable.
+5. **Daily plan versions, Pillar 2** — שידור → גרסאות היום. Three named
+   people's competing versions of 01/11/2024 are already on the table (דנה
+   לוי's untouched engine day, יואב כהן's gold-break variant, מיכל אברהם's
+   two-break extension — all priced by the real engine at creation). Select
+   all three and press השוואה: each side arrives with a one-line decision
+   headline, the revenue delta AND its reasoning (which dayparts, which
+   buckets, how much), revenue net of retention, the effect on contractual
+   standing stated honestly ("unknown: no delivery row for this day" on this
+   dataset), the guardrail verdict, and inventory consequences. Adopting a
+   version demands a written reason, and the rejected alternatives stay in
+   history.
 
-6. **The forecast stage, Pillar 3** — per-programme expected rating with a
-   confidence range and the drivers behind the number, history-vs-forecast so
-   accuracy is visible, and the backtest published below. Say the honest
-   sentence: the model beats the historical mean in log space but loses in
-   arithmetic rating points at current data volume, which is exactly why
-   activation is gated and the number ships with its uncertainty.
+6. **The forecast stage, Pillar 3** — שידור → תחזית רייטינג. Every programme
+   of the day with its expected rating, the honest range, the drivers behind
+   the number (including the families held out, by name), and the pre-model
+   historical mean beside it. The measured verdict is PRINTED at the top of
+   the table: the model beats the historical mean in log space (0.683 vs
+   0.707) and loses in arithmetic rating points (1.188 vs 0.898), which is
+   exactly why activation is gated and the number ships with its uncertainty.
 
 7. **Live extraction, if there is time** — upload the סנו PDF to a fresh
    agreement and let the pipeline run while talking; it takes minutes, not
@@ -104,26 +109,33 @@ From `docs/trade/extraction-accuracy.md`, produced by
 `scripts/trade_extraction_accuracy.py` running the real pipeline against
 ground truth authored independently of it — nothing asserted by hand:
 
-- Full-corpus run (seven documents, 2026-08-17): **185/185 clauses accounted
-  for — 100%**, the completeness guarantee holding mechanically; disposition
-  class 94.1%; term recall 92.8% (142/153); term precision 70.6%; parameter
-  accuracy 64.3% (369/574 leaves); **zero citation-fidelity failures** (every
-  quote the pipeline cites really is in the document); planted conflicts
-  detected 5/6. Cost: ~647k input + ~169k output tokens and ~44 minutes for
-  the whole corpus, per-document rows in the report.
-- The weakest families are named, not hidden: G (process/legal) 16.0% and
+- Full-corpus run (eight documents, 2026-08-17): **every clause the pipeline
+  read carries a disposition — the completeness guarantee holding
+  mechanically**; disposition class 94.4%; term recall 93.8% (152/162); term
+  precision 70.7%; parameter accuracy 65.1% (396/608 leaves); **zero
+  citation-fidelity failures** (every quote the pipeline cites really is in
+  the document); planted conflicts detected 5/6. The eighth document is the
+  live demo's own סנו agreement: recall 88.9%, parameters 71.9%. Cost: ~0.7M
+  input + ~0.2M output tokens and ~50 minutes for the whole corpus,
+  per-document rows in the report.
+- The weakest families are named, not hidden: G (process/legal) 17.0% and
   H (measurement/settlement) 21.7% parameter accuracy — these are the terms
   a reviewer must lean on the source pane for; the review gate is what makes
-  that safe. Strongest: C (discounts/commissions) 80.0%, D (advertiser
-  commitments) 78.3% — the money-bearing families.
+  that safe. Strongest: C (discounts/commissions) 81.5%, D (advertiser
+  commitments) 76.9% — the money-bearing families.
 - Segmentation round-trip on the corpus: clause recovery within ±10% on all
   eight documents, including the scanned document (vision route) and the
   reversed-bare-head form pdftotext produces for flat "1." numbering (caught
   by this corpus, fixed in `kairos/trade/segment.py`, pinned by test).
-- Forecast backtest: log-RMSE 0.6834 vs 0.7066 historical-mean baseline;
-  arithmetic MAE 1.1883 vs 0.8976 (the baseline wins — published as the
-  reason activation stays off); coverage 0.9268 at the 0.8 level.
-  ⟨FILL: smearing-correction attempt result if build-forecast lands one⟩
+- Forecast backtest (walk-forward, 2,867 observations over five folds): the
+  two objectives disagree, and both are published. Log-space RMSE 0.683 vs
+  0.707 — the model wins, four folds of five. Arithmetic MAE 1.188 vs 0.898 —
+  the pre-model historical mean wins, every fold, bias −0.249. The cause is
+  named in the model's own module header: the retransformation shortfall
+  (exp of a log-space level estimates the geometric centre, below the
+  arithmetic mean of a right-skewed rating distribution). Interval coverage
+  0.927 against a nominal 0.80 — the band is conservative, the right
+  direction to err. This is why `audience_model_activation` stays OFF.
 
 ## How the AI layer is routed, and why
 

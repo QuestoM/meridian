@@ -8,8 +8,8 @@ import { Code, Figure, Name, Prose } from '../shell/bidi';
 import { formatDay, formatSpan, formatStamp } from '../shell/dates';
 import { formatNumber, pageText } from '../shell/format';
 import {
-  counterpartyKind, counterpartyKindOf, counterpartyName, levelLabel, openEndedLabel,
-  statusLabel, statusTone, windowOf,
+  counterpartyKind, counterpartyKindOf, counterpartyName, ingestRouteLabel,
+  ingestRouteTone, levelLabel, openEndedLabel, statusLabel, statusTone, windowOf,
 } from './trade-vocabulary';
 import {
   loadAgreement, loadObligations, loadProposal, refusalText, simulateAgreement,
@@ -57,11 +57,9 @@ function DocumentRow({ document, locale, onOpenReview }) {
         <Code className="trd-id-chip">{document.document_id}</Code>
       </span>
       <span className="trd-doc-meta">
-        <span className="trd-chip-quiet">
-          {document.ingest_route === 'scanned'
-            ? pageText(locale, 'Read from a scan', 'נקרא מסריקה')
-            : pageText(locale, 'Read from digital text', 'נקרא מטקסט דיגיטלי')}
-        </span>
+        <Status status={ingestRouteTone(document.ingest_route)}>
+          {ingestRouteLabel(document.ingest_route, locale)}
+        </Status>
         <Figure>
           {pageText(
             locale,
@@ -71,10 +69,14 @@ function DocumentRow({ document, locale, onOpenReview }) {
         </Figure>
         <Figure>{formatStamp(document.attached_at)}</Figure>
       </span>
-      {/* The checksum is not decoration. It is what makes an approved version name
-          the exact bytes that were read, so a document swapped afterwards cannot
-          pass as the one somebody signed off. */}
-      <Code className="trd-sha">{String(document.sha256 || '').slice(0, 16)}</Code>
+      {/* The checksum is not decoration, and unlabelled it reads as a stray hex
+          string. It is what makes an approved version name the exact bytes that
+          were read, so a document swapped afterwards cannot pass as the one
+          somebody signed off — which is worth a word beside it. */}
+      <span className="trd-card-row">
+        <span className="trd-card-label">{pageText(locale, 'Checksum', 'טביעת אצבע')}</span>
+        <Code className="trd-sha">{String(document.sha256 || '').slice(0, 16)}</Code>
+      </span>
       <Button type="button" variant="outlined" onClick={onOpenReview}>
         <FileSearch size={14} aria-hidden="true" />
         {pageText(locale, 'Open the review', 'פתיחת הסקירה')}
@@ -177,7 +179,17 @@ export default function AgreementDetailScreen({
     setEffectsError('');
     loadProposal(agreementId, documents[0].document_id).then(
       (payload) => { if (alive) setEffects(payload.effects || { terms: [] }); },
-      (failure) => { if (alive) setEffectsError(refusalText(failure, locale)); },
+      (failure) => {
+        if (!alive) return;
+        // A document nobody has run extraction on yet is a stage, not a
+        // fault: the route 404s on exactly that, and relaying the server's
+        // English detail into a red box read like a crash on every draft.
+        if (failure && failure.status === 404) {
+          setEffects({ terms: [], unread: true });
+          return;
+        }
+        setEffectsError(refusalText(failure, locale));
+      },
     );
     return () => { alive = false; };
   }, [agreementId, detail, locale]);

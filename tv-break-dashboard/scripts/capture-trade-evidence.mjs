@@ -53,6 +53,8 @@ const ROUTES = [
   { id: 'commercial-clients', path: '/?clients=clients#Commercial' },
   { id: 'plan-board', path: '/?plan=board#Plan' },
   { id: 'plan-compare', path: '/?plan=compare#Plan' },
+  { id: 'day-versions', path: '/?broadcast=versions#Broadcast' },
+  { id: 'forecast-stage', path: '/?broadcast=forecast#Broadcast' },
   { id: 'today', path: '/#Today' },
 ];
 
@@ -166,6 +168,8 @@ async function main() {
 
   for (const size of SIZES) {
     for (const route of allRoutes) {
+      // Filter BEFORE creating a target: a skipped route that already opened
+      // one leaks a blank page per skip and never closes it.
       if (ONLY && !route.id.includes(ONLY)) continue;
       const target = await send(ws, 'Target.createTarget', { url: 'about:blank' });
       const { sessionId } = await send(ws, 'Target.attachToTarget', {
@@ -173,6 +177,11 @@ async function main() {
       });
 
       const problems = { console: [], failed: [] };
+      // Every API round-trip, not only the failed ones: when a page reads
+      // offline the question is always "which request, with what status, in
+      // what order" — a failures-only log cannot answer it.
+      const apiLog = [];
+      const apiPending = {};
       const onEvent = (raw) => {
         const data = JSON.parse(raw.toString());
         if (data.sessionId !== sessionId) return;
@@ -186,7 +195,19 @@ async function main() {
             ?? data.params.exceptionDetails?.text,
           ).slice(0, 300));
         }
+        if (data.method === 'Network.requestWillBeSent' && data.params.request.url.includes('/api/')) {
+          apiPending[data.params.requestId] = data.params.request.url.replace(BASE, '');
+        }
+        if (data.method === 'Network.responseReceived' && apiPending[data.params.requestId]) {
+          apiLog.push(`${data.params.response.status} ${apiPending[data.params.requestId]}`);
+          delete apiPending[data.params.requestId];
+        }
         if (data.method === 'Network.loadingFailed') {
+          const named = apiPending[data.params.requestId];
+          if (named) {
+            apiLog.push(`FAIL(${data.params.errorText}) ${named}`);
+            delete apiPending[data.params.requestId];
+          }
           problems.failed.push(`${data.params.type}: ${data.params.errorText}`);
         }
         if (data.method === 'Network.responseReceived' && data.params.response.status >= 400) {
@@ -203,7 +224,36 @@ async function main() {
       }, sessionId);
 
       await send(ws, 'Page.navigate', { url: `${BASE}${route.path}` }, sessionId);
-      await new Promise((r) => setTimeout(r, 9000));
+
+      // Wait for the app's own liveness signal, not a fixed clock. A fixed
+      // sleep photographed the loading state and the offline chip whenever a
+      // parallel test run starved the API for a few seconds, and reported
+      // success — the requests completed right after the shutter. The shell
+      // states its own condition (the connection chip), so the harness reads
+      // it; the deadline keeps a genuinely stuck page capturable, and the
+      // report says which of the two the picture shows.
+      const waitAlive = async (budgetMs) => {
+        const deadline = Date.now() + budgetMs;
+        while (Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, 700));
+          const probe = await send(ws, 'Runtime.evaluate', {
+            returnByValue: true,
+            expression: `(() => {
+              const chip = (document.querySelector('.connection-state') || {}).textContent || '';
+              const busy = document.body.innerText.includes('טוען סביבת Kairos');
+              return { alive: chip.includes('API חי'), busy };
+            })()`,
+          }, sessionId);
+          const { alive, busy } = probe.result.value || {};
+          if (alive && !busy) return true;
+        }
+        return false;
+      };
+      let settled = await waitAlive(30000);
+      await new Promise((r) => setTimeout(r, 1200));
+      if (!settled) {
+        process.stdout.write(`  ! ${route.id}/${size.id}: page never reported API-alive; capturing as-is\n`);
+      }
 
       // Full page: grow the viewport to the document, capture, then measure the
       // things a picture cannot tell you by itself.
@@ -224,10 +274,20 @@ async function main() {
       await send(ws, 'Emulation.setDeviceMetricsOverride', {
         width: size.width, height: full, deviceScaleFactor: 1, mobile: false,
       }, sessionId);
+      // The grow re-issues layout, so give the page a beat and confirm the
+      // shutter still sees a settled app rather than a mid-flight one.
+      if (settled) settled = await waitAlive(30000);
       await new Promise((r) => setTimeout(r, 900));
 
+      // NO captureBeyondViewport on any shot. That flag resizes the surface
+      // internally for the duration of the capture; the momentary dip crossed
+      // the desktop gate's threshold, the gate replaced the tree, and the
+      // measurement that followed photographed a freshly remounted app that
+      // honestly said it had no data yet. The viewport is already grown to
+      // the full page, so plain screenshots and in-viewport clips see
+      // everything without touching the surface.
       const shot = await send(ws, 'Page.captureScreenshot', {
-        format: 'png', captureBeyondViewport: true,
+        format: 'png',
       }, sessionId);
       const stem = `${route.id}-${size.id}`;
       writeFileSync(join(OUT, `${stem}-full.png`), Buffer.from(shot.data, 'base64'));
@@ -244,7 +304,6 @@ async function main() {
         if (y >= full) break;
         const clipped = await send(ws, 'Page.captureScreenshot', {
           format: 'png',
-          captureBeyondViewport: true,
           clip: { x: 0, y, width: size.width, height: Math.min(size.height, full - y), scale: 1 },
         }, sessionId);
         writeFileSync(join(OUT, `${stem}-section-${String(index + 1).padStart(2, '0')}.png`),
@@ -275,6 +334,9 @@ async function main() {
       report.routes.push({
         route: route.id, size: size.id, url: `${BASE}${route.path}`,
         full_height: full, sections: slices,
+        settled,
+        api_requests: apiLog.slice(0, 40),
+        api_unanswered: Object.values(apiPending).slice(0, 12),
         console_errors: problems.console.slice(0, 8),
         failed_requests: problems.failed.slice(0, 8),
         measured: measured.result.value,

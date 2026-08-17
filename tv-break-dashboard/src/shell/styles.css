@@ -236,7 +236,19 @@ button {
   font-size: var(--text-2xs);
 }
 
-.metric-copy strong .numeric {
+/* A HALF-APPLIED RENAME, measured on the trade simulation at 1728px in Hebrew.
+   `.metric-copy span` above sets display: block, and it is a DESCENDANT selector,
+   so it also catches the figure span nested inside strong. This rule exists to
+   undo that for the figure — but it still names `.numeric`, and `Numeric` now
+   renders `Figure`, whose class is `.bidi-figure`. So the counter-rule stopped
+   matching and every metric figure became a full-width block carrying
+   direction: ltr, which anchors its digits to the LEFT while the label above sits
+   on the reading edge at the right. Measured on one tile: the figure box spanned
+   1121-1608 with the digits at 1121; as an inline-block it is 1591-1608, beside
+   its own label. Both class names are listed so the fix cannot come apart again
+   the same way. */
+.metric-copy strong .numeric,
+.metric-copy strong .bidi-figure {
   display: inline-block;
   font-size: inherit;
   font-weight: inherit;

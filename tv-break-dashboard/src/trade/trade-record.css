@@ -83,7 +83,7 @@
 
 .trd-version-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(24rem, 1fr));
   gap: var(--space-4);
 }
 
@@ -124,9 +124,13 @@
 
 /* ------------------------------------------------------------------ obligations */
 
+/* auto-FIT, not auto-fill. A channel typically carries one to three obligations
+   per agreement, and auto-fill keeps the empty tracks it could have filled, so a
+   single commitment sat in a half-width column beside a void. auto-fit collapses
+   the tracks nothing occupies. */
 .trd-ob-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(26rem, 1fr));
   gap: var(--space-4);
 }
 
@@ -157,11 +161,17 @@
   text-wrap: balance;
 }
 
+/* MEASURED: with a 1fr value track in a full-width card, the label sat at 1423px
+   and its own figure ended at 1407px on the far side of a 1342px-wide track. A
+   label and the number it names have to read as one pair, so both tracks hug
+   their content and the list starts at the reading edge. */
 .trd-ob-figures {
   display: grid;
-  grid-template-columns: minmax(9rem, auto) minmax(0, 1fr);
+  grid-template-columns: minmax(9rem, auto) minmax(0, max-content);
+  justify-content: start;
   gap: var(--space-1-5) var(--space-4);
   margin: 0;
+  max-inline-size: 62ch;
 }
 
 .trd-ob-basis,
@@ -252,11 +262,14 @@
   gap: var(--space-4);
 }
 
+/* Same pair rule as .trd-ob-figures above, and the same measurement. */
 .trd-sim-block {
   display: grid;
-  grid-template-columns: minmax(10rem, auto) minmax(0, 1fr);
+  grid-template-columns: minmax(10rem, auto) minmax(0, max-content);
+  justify-content: start;
   gap: var(--space-1-5) var(--space-4);
   margin: 0;
+  max-inline-size: 62ch;
 }
 
 .trd-sim-basis {

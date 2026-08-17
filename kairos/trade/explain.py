@@ -190,8 +190,12 @@ def _sentence(term_id: str, params: Mapping[str, Any],
                           f"{positions} — נמדד ב{method}")
     if term_id == "makegood-accrual-policy":
         accruals = p.get("accruals") or []
-        levels = ", ".join(sorted({str(a.get("level")) for a in accruals}))
-        return MEASURES, (f"צבירת מייק גוד ברמות: {levels}; "
+        # The ledger levels are storage enums; the sentence speaks Hebrew.
+        level_he = {"campaign": "קמפיין", "advertiser": "מפרסם", "agency": "סוכנות"}
+        levels = ", ".join(sorted(
+            {level_he.get(str(a.get("level")), str(a.get("level"))) for a in accruals}
+        ))
+        return MEASURES, (f"צבירת מייק גוד ברמת {levels}; "
                           f"פקיעה: {p.get('expiry') or 'לא צוינה'}")
     if term_id == "shortfall-cure":
         form = {"bonus_spots": "שידורי בונוס", "credit": "זיכוי כספי",

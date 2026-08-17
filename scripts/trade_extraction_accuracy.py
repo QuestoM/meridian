@@ -101,7 +101,14 @@ def score_document(truth: DocumentExtraction, got: DocumentExtraction) -> dict[s
     truth_disp = {d.clause_id: d for d in truth.dispositions}
     got_disp = {d.clause_id: d for d in got.dispositions}
 
+    # The completeness guarantee is about the PIPELINE's own reading: every
+    # clause it segmented carries a disposition. Its denominator is therefore
+    # the pipeline's clause count, not the truth's — a segmenter that finds 13
+    # where the author wrote 12 (a split table, a glued wrap) must read as
+    # 13/13 accounted, not as 13/12 "104%", which is how the report once
+    # printed a coverage above one hundred percent.
     accounted = len(got_disp)
+    clauses_pipeline = len(got.clauses)
     class_hits = sum(
         1 for cid, d in truth_disp.items()
         if cid in got_disp and got_disp[cid].disposition == d.disposition
@@ -174,6 +181,7 @@ def score_document(truth: DocumentExtraction, got: DocumentExtraction) -> dict[s
 
     return {
         "clauses_truth": len(truth.clauses),
+        "clauses_pipeline": clauses_pipeline,
         "clauses_accounted": accounted,
         "disposition_class_hits": class_hits,
         "instances_truth": len(truth.instances),
@@ -206,7 +214,7 @@ def _pct(value: Any) -> str:
 
 def write_report(records: dict[str, dict[str, Any]], meta: dict[str, Any]) -> None:
     total = {
-        "clauses": sum(r["score"]["clauses_truth"] for r in records.values()),
+        "clauses": sum(r["score"]["clauses_pipeline"] for r in records.values()),
         "accounted": sum(r["score"]["clauses_accounted"] for r in records.values()),
         "class_hits": sum(r["score"]["disposition_class_hits"] for r in records.values()),
         "instances_truth": sum(r["score"]["instances_truth"] for r in records.values()),
@@ -255,7 +263,7 @@ def write_report(records: dict[str, dict[str, Any]], meta: dict[str, Any]) -> No
     for doc_id, record in sorted(records.items()):
         s = record["score"]
         lines.append(
-            f"| `{doc_id}` | {s['clauses_accounted']}/{s['clauses_truth']} | "
+            f"| `{doc_id}` | {s['clauses_accounted']}/{s.get('clauses_pipeline', s['clauses_truth'])} | "
             f"{_pct(s['disposition_class_hits'] / s['clauses_truth'] if s['clauses_truth'] else None)} | "
             f"{_pct(s['recall'])} | {_pct(s['precision'])} | {_pct(s['param_accuracy'])} | "
             f"{s['conflicts_found']}/{s['conflicts_expected']} |"

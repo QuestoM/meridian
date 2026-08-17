@@ -48,9 +48,33 @@ export function useDesktopSupport() {
       media('(pointer: coarse)'),
     ].filter(Boolean);
     let frame = 0;
+    let demotion = 0;
     const measure = () => {
       window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => setSupported(supportedDesktopSnapshot()));
+      frame = window.requestAnimationFrame(() => {
+        if (supportedDesktopSnapshot()) {
+          // Promotion is immediate; a pending demotion is cancelled, because
+          // the dip it was timing has already ended.
+          window.clearTimeout(demotion);
+          demotion = 0;
+          setSupported(true);
+          return;
+        }
+        // Demotion waits until the unsupported state PERSISTS. The gate
+        // replaces the whole tree, so gating on a momentary dip below the
+        // threshold — a window drag passing through, a window-manager
+        // animation, a screenshot tool resizing the surface for one frame —
+        // unmounts the operator's entire workspace and remounts it blank. A
+        // real phone or tablet is unsupported from the first snapshot (the
+        // initial state, which does not wait), and a genuinely narrowed
+        // window is still unsupported when the timer looks again.
+        if (!demotion) {
+          demotion = window.setTimeout(() => {
+            demotion = 0;
+            setSupported(supportedDesktopSnapshot());
+          }, 600);
+        }
+      });
     };
 
     window.addEventListener('resize', measure, { passive: true });
@@ -59,6 +83,7 @@ export function useDesktopSupport() {
     measure();
     return () => {
       window.cancelAnimationFrame(frame);
+      window.clearTimeout(demotion);
       window.removeEventListener('resize', measure);
       window.removeEventListener('orientationchange', measure);
       queries.forEach((query) => query.removeEventListener?.('change', measure));

@@ -59,20 +59,52 @@ def client() -> TestClient:
     return TestClient(app, raise_server_exceptions=False)
 
 
-@pytest.fixture(scope="module")
-def get_routes() -> list[str]:
+def _swept_routes() -> "tuple[list[str], list[tuple[str, list[str]]]]":
+    """``(bare, parameterised)``: routes callable with nothing, and routes that
+    declare a REQUIRED query parameter.
+
+    A route that requires a query parameter cannot be swept blind -- there is no
+    honest default for "which programme" or "which day", and inventing one would
+    make the gate assert against a fabricated target. Such a route is not
+    excluded, it is held to a different and equally strict contract below: a bare
+    call must be a clean 422 naming the missing field, never a 500 and never a
+    200 that answered a question nobody asked.
+    """
     from kairos_api.server import app
 
-    routes = []
+    bare: list[str] = []
+    parameterised: list[tuple[str, list[str]]] = []
     for route in app.routes:
         methods = getattr(route, "methods", None) or set()
         path = getattr(route, "path", "")
-        if "GET" in methods and path.startswith("/api") and "{" not in path:
-            if path in SWEEP_EXCLUDED or path.startswith(SWEEP_EXCLUDED_PREFIXES):
-                continue
-            routes.append(path)
+        if "GET" not in methods or not path.startswith("/api") or "{" in path:
+            continue
+        if path in SWEEP_EXCLUDED or path.startswith(SWEEP_EXCLUDED_PREFIXES):
+            continue
+        dependant = getattr(route, "dependant", None)
+        required = sorted(
+            field.name
+            for field in (getattr(dependant, "query_params", None) or ())
+            if getattr(field, "required", False)
+        )
+        if required:
+            parameterised.append((path, required))
+        else:
+            bare.append(path)
+    return sorted(bare), sorted(parameterised)
+
+
+@pytest.fixture(scope="module")
+def get_routes() -> list[str]:
+    routes, _parameterised = _swept_routes()
     assert len(routes) >= 25, f"route surface shrank unexpectedly: {sorted(routes)}"
-    return sorted(routes)
+    return routes
+
+
+@pytest.fixture(scope="module")
+def parameterised_routes() -> "list[tuple[str, list[str]]]":
+    _bare, parameterised = _swept_routes()
+    return parameterised
 
 
 def test_every_get_endpoint_is_healthy(client, get_routes):
@@ -92,6 +124,46 @@ def test_every_get_endpoint_is_healthy(client, get_routes):
                 json.loads(body)
             except ValueError as exc:
                 failures.append(f"{path}: body is not JSON ({exc})")
+    assert not failures, "\n".join(failures)
+
+
+def test_a_route_that_needs_a_parameter_refuses_cleanly_without_one(
+    client, parameterised_routes
+):
+    """The other half of the sweep: every GET that requires a query parameter.
+
+    These cannot be called blind, but they can still be wrong in the two ways
+    that matter. A 500 means the route trusted an input it never received; a 200
+    means it answered without being told what to answer about. Both are caught
+    here, so no route escapes the gate merely by taking an argument."""
+    assert parameterised_routes, (
+        "no GET route declares a required query parameter; if that is genuinely "
+        "true this test can go, but more likely the introspection stopped working"
+    )
+    failures = []
+    for path, required in parameterised_routes:
+        response = client.get(path)
+        if response.status_code != 422:
+            failures.append(
+                f"{path}: bare call returned {response.status_code}, expected 422 "
+                f"naming the missing {', '.join(required)}"
+            )
+            continue
+        body = response.text
+        if REPLACEMENT_CHAR in body:
+            failures.append(f"{path}: unicode replacement character (mojibake)")
+        try:
+            detail = json.loads(body)["detail"]
+        except (ValueError, KeyError, TypeError) as exc:
+            failures.append(f"{path}: refusal body is not a JSON detail ({exc})")
+            continue
+        named = {
+            str(item.get("loc", ["", ""])[-1])
+            for item in detail if isinstance(item, dict)
+        }
+        missing = [name for name in required if name not in named]
+        if missing:
+            failures.append(f"{path}: refusal does not name {missing}")
     assert not failures, "\n".join(failures)
 
 

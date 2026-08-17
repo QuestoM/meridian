@@ -4,6 +4,8 @@ import { finiteNumber, pageText } from './format';
 const OverviewPage = lazy(() => import('../today/OverviewPage'));
 const PlanWeek = lazy(() => import('../plan/week/PlanWeek'));
 const DayPage = lazy(() => import('../plan/day/DayPage'));
+const DayVersionsWorkspace = lazy(() => import('../plan/day/DayVersionsWorkspace'));
+const ForecastStageWorkspace = lazy(() => import('../plan/week/ForecastStageWorkspace'));
 const PodPage = lazy(() => import('../plan/break/PodPage'));
 const BreakLibraryPage = lazy(() => import('../plan/break/BreakLibraryPage'));
 const OverrideDecisions = lazy(() => import('../plan/day/OverrideDecisions'));
@@ -110,7 +112,24 @@ export function WorkspaceRouter({
     );
   } else if (activeView === 'Broadcast') {
     const broadcastView = currentParam('broadcast', 'day');
-    if (broadcastView === 'pods') {
+    if (broadcastView === 'versions') {
+      workspace = (
+        <DayVersionsWorkspace
+          key={workspaceKey}
+          locale={locale}
+          notify={notify}
+          refreshKey={refreshKey}
+        />
+      );
+    } else if (broadcastView === 'forecast') {
+      workspace = (
+        <ForecastStageWorkspace
+          key={workspaceKey}
+          locale={locale}
+          refreshKey={refreshKey}
+        />
+      );
+    } else if (broadcastView === 'pods') {
       workspace = (
         <section className="page-workspace broadcast-pods-workspace" key={workspaceKey}>
           <PodPage locale={locale} notify={notify} />

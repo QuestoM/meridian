@@ -1,0 +1,296 @@
+/* Competing versions of one day: the list that picks sides, the comparison
+   that carries its own reasoning, and the decision that ends the argument.
+
+   Cards come from the card contract; this sheet owns only the arrangement
+   inside them and the page's own head. Line breaks are the container's
+   business — no manual breaks anywhere here. */
+
+.dvw-workspace {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+}
+
+.dvw-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.dvw-head h2 {
+  margin: 0;
+  font-size: var(--type-title-size);
+  line-height: var(--type-title-line);
+  text-wrap: balance;
+}
+
+.dvw-head p {
+  max-inline-size: 72ch;
+  margin: var(--space-1) 0 0;
+  color: var(--ink-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.dvw-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.dvw-live {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: 44px;
+  color: var(--ink);
+  font-size: var(--type-ui-size);
+  line-height: var(--type-ui-line);
+  cursor: pointer;
+}
+
+.dvw-context {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-ui-size);
+  line-height: var(--type-ui-line);
+}
+
+/* ------------------------------------------------------------------ the list */
+
+.dvw-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A version row is a recessed well inside the card, and the whole row is the
+   checkbox's label so the target is the row rather than a 16px square. */
+.dvw-row {
+  display: flex;
+  align-items: start;
+  gap: var(--space-3);
+  min-block-size: 48px;
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+  cursor: pointer;
+}
+
+.dvw-row[data-checked='true'] {
+  outline: 1px solid var(--accent-line);
+  outline-offset: -1px;
+}
+
+.dvw-row input[type='checkbox'] {
+  margin-block-start: 4px;
+}
+
+.dvw-row-main {
+  display: grid;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.dvw-row-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ink);
+  font-size: var(--type-ui-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-ui-line);
+}
+
+.dvw-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: var(--type-data-line);
+}
+
+.dvw-row-note {
+  max-inline-size: 78ch;
+  margin: 0;
+  color: var(--ink-subtle);
+  font-size: var(--type-data-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+/* ------------------------------------------------------------- the comparison */
+
+.dvw-compare-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  gap: var(--space-4);
+}
+
+.dvw-side[data-adopted='true'] {
+  border-color: var(--positive-line);
+}
+
+.dvw-side .card-body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.dvw-side-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.dvw-side-head h4 {
+  max-inline-size: 26ch;
+  margin: 0;
+  font-size: var(--type-emphasis-size);
+  line-height: var(--type-emphasis-line);
+  text-wrap: balance;
+}
+
+.dvw-side-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+}
+
+.dvw-side-author {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+.dvw-side-headline {
+  max-inline-size: 62ch;
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-ui-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.dvw-side-figures {
+  display: grid;
+  grid-template-columns: minmax(10rem, auto) minmax(0, 1fr);
+  gap: var(--space-1-5) var(--space-4);
+  margin: 0;
+}
+
+.dvw-side-figures dt {
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+.dvw-side-figures dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-data-size);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: var(--type-data-line);
+}
+
+.dvw-quiet {
+  color: var(--ink-subtle);
+}
+
+.dvw-reasons {
+  display: grid;
+  gap: var(--space-1-5);
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+}
+
+.dvw-reasons h5 {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-data-line);
+}
+
+.dvw-reasons ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dvw-reasons li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--ink);
+  font-size: var(--type-data-size);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: var(--type-data-line);
+}
+
+.dvw-side-line {
+  display: flex;
+  align-items: start;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.dvw-side-line svg {
+  flex: 0 0 auto;
+  margin-block-start: 2px;
+}
+
+.dvw-side-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.dvw-decision .card-body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.dvw-decision h4 {
+  margin: 0;
+  font-size: var(--type-emphasis-size);
+  line-height: var(--type-emphasis-line);
+}
+
+.dvw-decision p {
+  max-inline-size: 62ch;
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-body-line);
+}
+
+.dvw-footnote {
+  max-inline-size: 84ch;
+  margin: var(--space-3) 0 0;
+  color: var(--ink-subtle);
+  font-size: var(--type-data-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}

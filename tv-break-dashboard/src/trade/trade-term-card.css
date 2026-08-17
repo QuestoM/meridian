@@ -210,10 +210,14 @@
   min-inline-size: 0;
 }
 
+/* A citation carries a quotation, so it wraps onto a second line, and a control
+   that centres its own text puts that quotation on neither edge. It is aligned to
+   the reading edge on both axes. */
 .trd-citation {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: start;
   gap: var(--space-2);
   max-inline-size: 52ch;
   min-block-size: var(--control-height);

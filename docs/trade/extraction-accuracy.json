@@ -1,12 +1,13 @@
 {
  "meta": {
-  "run_at": "2026-08-17T11:47:43+00:00",
+  "run_at": "2026-08-17T12:53:33+00:00",
   "documents": [
    "heb-amendment-q4-2026",
    "heb-annual-framework-2026",
    "heb-contradictory-2026",
    "heb-direct-advertiser-2026",
    "heb-edge-stress-2026",
+   "heb-sano-annual-2025",
    "heb-scanned-smallbiz-2026",
    "heb-sponsorship-bundle-2026"
   ]
@@ -18,7 +19,7 @@
     "clauses_accounted": 12,
     "disposition_class_hits": 11,
     "instances_truth": 7,
-    "instances_found": 14,
+    "instances_found": 19,
     "matched": 7,
     "missed": [],
     "spurious": [
@@ -32,30 +33,50 @@
      },
      {
       "instance_id": "x-006",
-      "term_id": "brand-scope"
+      "term_id": "amendment-layer"
      },
      {
       "instance_id": "x-007",
       "term_id": "amendment-layer"
      },
      {
+      "instance_id": "x-008",
+      "term_id": "effective-window"
+     },
+     {
+      "instance_id": "x-009",
+      "term_id": "amendment-layer"
+     },
+     {
+      "instance_id": "x-010",
+      "term_id": "agreement-parties"
+     },
+     {
       "instance_id": "x-011",
+      "term_id": "precedence-clause"
+     },
+     {
+      "instance_id": "x-013",
+      "term_id": "payment-indexation"
+     },
+     {
+      "instance_id": "x-016",
       "term_id": "volume-discount-ladder"
      },
      {
-      "instance_id": "x-012",
-      "term_id": "term-effective-windows"
+      "instance_id": "x-018",
+      "term_id": "programme-daypart-restrictions"
      },
      {
-      "instance_id": "x-014",
-      "term_id": "term-effective-windows"
+      "instance_id": "x-019",
+      "term_id": "fixed-spot-pricing"
      }
     ],
     "recall": 1.0,
-    "precision": 0.5,
-    "param_hits": 13,
+    "precision": 0.3684,
+    "param_hits": 14,
     "param_total": 29,
-    "param_accuracy": 0.4483,
+    "param_accuracy": 0.4828,
     "by_family": {
      "A": {
       "hits": 5,
@@ -76,10 +97,10 @@
       "accuracy": 0.75
      },
      "F": {
-      "hits": 1,
+      "hits": 2,
       "total": 3,
       "instances": 1,
-      "accuracy": 0.3333
+      "accuracy": 0.6667
      },
      "H": {
       "hits": 0,
@@ -96,37 +117,37 @@
    },
    "provider": {
     "classify": {
-     "calls": 2,
+     "calls": 12,
      "failed": 0,
-     "input_tokens": 11516,
-     "output_tokens": 1079,
-     "latency_seconds": 11.82,
+     "input_tokens": 61966,
+     "output_tokens": 2451,
+     "latency_seconds": 33.62,
      "models": [
       "claude-haiku-4-5-20251001"
      ]
     },
     "parameterise": {
-     "calls": 14,
+     "calls": 19,
      "failed": 0,
-     "input_tokens": 28902,
-     "output_tokens": 10323,
-     "latency_seconds": 159.04,
+     "input_tokens": 39642,
+     "output_tokens": 14123,
+     "latency_seconds": 214.88,
      "models": [
       "claude-opus-5",
       "claude-sonnet-5"
      ]
     }
    },
-   "elapsed": 179.92917620799562
+   "elapsed": 266.6460915409989
   },
   "heb-annual-framework-2026": {
    "score": {
     "clauses_truth": 50,
     "clauses_accounted": 50,
-    "disposition_class_hits": 48,
+    "disposition_class_hits": 49,
     "instances_truth": 41,
     "instances_found": 54,
-    "matched": 38,
+    "matched": 39,
     "missed": [
      {
       "instance_id": "gt-freq-day",
@@ -135,10 +156,6 @@
      {
       "instance_id": "gt-supersession",
       "term_id": "precedence-clause"
-     },
-     {
-      "instance_id": "gt-jurisdiction",
-      "term_id": "dispute-resolution"
      }
     ],
     "spurious": [
@@ -163,55 +180,51 @@
       "term_id": "precedence-clause"
      },
      {
-      "instance_id": "x-011",
-      "term_id": "brand-scope"
-     },
-     {
-      "instance_id": "x-013",
+      "instance_id": "x-012",
       "term_id": "ratecard-index"
      },
      {
-      "instance_id": "x-019",
-      "term_id": "volume-discount-ladder"
+      "instance_id": "x-020",
+      "term_id": "measurement-source"
      },
      {
       "instance_id": "x-022",
-      "term_id": "measurement-source"
+      "term_id": "fixed-spot-pricing"
      },
      {
-      "instance_id": "x-027",
+      "instance_id": "x-026",
       "term_id": "reporting-obligations"
      },
      {
-      "instance_id": "x-030",
+      "instance_id": "x-029",
       "term_id": "shortfall-cure"
      },
      {
-      "instance_id": "x-040",
+      "instance_id": "x-038",
       "term_id": "creative-constraints"
      },
      {
-      "instance_id": "x-045",
+      "instance_id": "x-044",
       "term_id": "delivery-truth-source"
      },
      {
-      "instance_id": "x-046",
-      "term_id": "measurement-source"
+      "instance_id": "x-045",
+      "term_id": "settlement-mechanics"
      },
      {
-      "instance_id": "x-049",
+      "instance_id": "x-048",
       "term_id": "termination"
      },
      {
-      "instance_id": "x-053",
-      "term_id": "fixed-spot-pricing"
+      "instance_id": "x-050",
+      "term_id": "underspend-true-up"
      }
     ],
-    "recall": 0.9268,
-    "precision": 0.7037,
+    "recall": 0.9512,
+    "precision": 0.7222,
     "param_hits": 112,
-    "param_total": 176,
-    "param_accuracy": 0.6364,
+    "param_total": 177,
+    "param_accuracy": 0.6328,
     "by_family": {
      "A": {
       "hits": 29,
@@ -232,16 +245,16 @@
       "accuracy": 0.8095
      },
      "D": {
-      "hits": 10,
+      "hits": 9,
       "total": 13,
       "instances": 3,
-      "accuracy": 0.7692
+      "accuracy": 0.6923
      },
      "E": {
-      "hits": 13,
+      "hits": 14,
       "total": 26,
       "instances": 7,
-      "accuracy": 0.5
+      "accuracy": 0.5385
      },
      "F": {
       "hits": 15,
@@ -251,9 +264,9 @@
      },
      "G": {
       "hits": 4,
-      "total": 14,
-      "instances": 5,
-      "accuracy": 0.2857
+      "total": 15,
+      "instances": 6,
+      "accuracy": 0.2667
      },
      "H": {
       "hits": 1,
@@ -273,8 +286,8 @@
      "calls": 5,
      "failed": 0,
      "input_tokens": 32918,
-     "output_tokens": 4961,
-     "latency_seconds": 58.52,
+     "output_tokens": 3816,
+     "latency_seconds": 45.47,
      "models": [
       "claude-haiku-4-5-20251001"
      ]
@@ -282,16 +295,16 @@
     "parameterise": {
      "calls": 54,
      "failed": 0,
-     "input_tokens": 171359,
-     "output_tokens": 48272,
-     "latency_seconds": 734.74,
+     "input_tokens": 171090,
+     "output_tokens": 47935,
+     "latency_seconds": 734.77,
      "models": [
       "claude-opus-5",
       "claude-sonnet-5"
      ]
     }
    },
-   "elapsed": 828.3233171669999
+   "elapsed": 815.3201795829955
   },
   "heb-contradictory-2026": {
    "score": {
@@ -299,7 +312,7 @@
     "clauses_accounted": 26,
     "disposition_class_hits": 25,
     "instances_truth": 22,
-    "instances_found": 26,
+    "instances_found": 28,
     "matched": 22,
     "missed": [],
     "spurious": [
@@ -312,16 +325,24 @@
       "term_id": "effective-window"
      },
      {
-      "instance_id": "x-014",
+      "instance_id": "x-006",
+      "term_id": "amendment-layer"
+     },
+     {
+      "instance_id": "x-009",
+      "term_id": "precedence-clause"
+     },
+     {
+      "instance_id": "x-016",
       "term_id": "length-factor-table"
      },
      {
-      "instance_id": "x-024",
+      "instance_id": "x-026",
       "term_id": "target-cpp"
      }
     ],
     "recall": 1.0,
-    "precision": 0.8462,
+    "precision": 0.7857,
     "param_hits": 51,
     "param_total": 71,
     "param_accuracy": 0.7183,
@@ -381,24 +402,24 @@
      "failed": 0,
      "input_tokens": 17829,
      "output_tokens": 1749,
-     "latency_seconds": 18.28,
+     "latency_seconds": 18.54,
      "models": [
       "claude-haiku-4-5-20251001"
      ]
     },
     "parameterise": {
-     "calls": 26,
+     "calls": 28,
      "failed": 0,
-     "input_tokens": 57969,
-     "output_tokens": 17287,
-     "latency_seconds": 281.66,
+     "input_tokens": 62095,
+     "output_tokens": 19654,
+     "latency_seconds": 309.06,
      "models": [
       "claude-opus-5",
       "claude-sonnet-5"
      ]
     }
    },
-   "elapsed": 316.8825163329893
+   "elapsed": 345.7245266250102
   },
   "heb-direct-advertiser-2026": {
    "score": {
@@ -406,13 +427,9 @@
     "clauses_accounted": 32,
     "disposition_class_hits": 31,
     "instances_truth": 30,
-    "instances_found": 36,
-    "matched": 27,
+    "instances_found": 34,
+    "matched": 28,
     "missed": [
-     {
-      "instance_id": "dt-level",
-      "term_id": "agreement-level"
-     },
      {
       "instance_id": "dt-separation-soft",
       "term_id": "competitive-separation"
@@ -436,41 +453,29 @@
       "term_id": "brand-scope"
      },
      {
-      "instance_id": "x-006",
-      "term_id": "agreement-parties"
-     },
-     {
-      "instance_id": "x-015",
+      "instance_id": "x-014",
       "term_id": "target-cpp"
      },
      {
-      "instance_id": "x-027",
+      "instance_id": "x-020",
+      "term_id": "fixed-spot-pricing"
+     },
+     {
+      "instance_id": "x-028",
       "term_id": "measurement-source"
-     },
-     {
-      "instance_id": "x-029",
-      "term_id": "length-factor-table"
-     },
-     {
-      "instance_id": "x-031",
-      "term_id": "target-cpp"
-     },
-     {
-      "instance_id": "x-033",
-      "term_id": "added-value-media"
      }
     ],
-    "recall": 0.9,
-    "precision": 0.75,
-    "param_hits": 58,
-    "param_total": 100,
-    "param_accuracy": 0.58,
+    "recall": 0.9333,
+    "precision": 0.8235,
+    "param_hits": 59,
+    "param_total": 101,
+    "param_accuracy": 0.5842,
     "by_family": {
      "A": {
-      "hits": 20,
-      "total": 22,
-      "instances": 3,
-      "accuracy": 0.9091
+      "hits": 21,
+      "total": 23,
+      "instances": 4,
+      "accuracy": 0.913
      },
      "B": {
       "hits": 11,
@@ -526,25 +531,25 @@
      "calls": 4,
      "failed": 0,
      "input_tokens": 24617,
-     "output_tokens": 2828,
-     "latency_seconds": 32.59,
+     "output_tokens": 2890,
+     "latency_seconds": 32.54,
      "models": [
       "claude-haiku-4-5-20251001"
      ]
     },
     "parameterise": {
-     "calls": 36,
+     "calls": 34,
      "failed": 0,
-     "input_tokens": 82708,
-     "output_tokens": 26033,
-     "latency_seconds": 375.5,
+     "input_tokens": 77981,
+     "output_tokens": 24579,
+     "latency_seconds": 362.12,
      "models": [
       "claude-opus-5",
       "claude-sonnet-5"
      ]
     }
    },
-   "elapsed": 431.6347122080042
+   "elapsed": 417.0128561659949
   },
   "heb-edge-stress-2026": {
    "score": {
@@ -552,7 +557,7 @@
     "clauses_accounted": 28,
     "disposition_class_hits": 26,
     "instances_truth": 23,
-    "instances_found": 30,
+    "instances_found": 26,
     "matched": 21,
     "missed": [
      {
@@ -574,51 +579,35 @@
       "term_id": "effective-window"
      },
      {
-      "instance_id": "x-005",
-      "term_id": "brand-scope"
-     },
-     {
-      "instance_id": "x-008",
-      "term_id": "daypart-mix"
-     },
-     {
-      "instance_id": "x-010",
-      "term_id": "ratecard-index"
-     },
-     {
-      "instance_id": "x-012",
+      "instance_id": "x-009",
       "term_id": "shortfall-cure"
      },
      {
-      "instance_id": "x-017",
-      "term_id": "creative-constraints"
-     },
-     {
-      "instance_id": "x-019",
+      "instance_id": "x-016",
       "term_id": "shortfall-cure"
      },
      {
-      "instance_id": "x-023",
+      "instance_id": "x-020",
       "term_id": "delivery-truth-source"
      }
     ],
     "recall": 0.913,
-    "precision": 0.7,
+    "precision": 0.8077,
     "param_hits": 70,
     "param_total": 98,
     "param_accuracy": 0.7143,
     "by_family": {
      "A": {
-      "hits": 16,
+      "hits": 20,
       "total": 23,
       "instances": 4,
-      "accuracy": 0.6957
+      "accuracy": 0.8696
      },
      "B": {
-      "hits": 14,
+      "hits": 10,
       "total": 20,
       "instances": 3,
-      "accuracy": 0.7
+      "accuracy": 0.5
      },
      "C": {
       "hits": 8,
@@ -662,25 +651,137 @@
      "calls": 3,
      "failed": 0,
      "input_tokens": 19032,
-     "output_tokens": 2507,
-     "latency_seconds": 28.61,
+     "output_tokens": 1767,
+     "latency_seconds": 20.28,
      "models": [
       "claude-haiku-4-5-20251001"
      ]
     },
     "parameterise": {
-     "calls": 30,
+     "calls": 26,
      "failed": 0,
-     "input_tokens": 72259,
-     "output_tokens": 23444,
-     "latency_seconds": 363.39,
+     "input_tokens": 62129,
+     "output_tokens": 20852,
+     "latency_seconds": 333.86,
      "models": [
       "claude-opus-5",
       "claude-sonnet-5"
      ]
     }
    },
-   "elapsed": 411.3266659590008
+   "elapsed": 371.08596837500227
+  },
+  "heb-sano-annual-2025": {
+   "score": {
+    "clauses_truth": 12,
+    "clauses_accounted": 13,
+    "disposition_class_hits": 11,
+    "instances_truth": 9,
+    "instances_found": 15,
+    "matched": 8,
+    "missed": [
+     {
+      "instance_id": "sn-parties",
+      "term_id": "agreement-parties"
+     }
+    ],
+    "spurious": [
+     {
+      "instance_id": "x-001",
+      "term_id": "agreement-level"
+     },
+     {
+      "instance_id": "x-002",
+      "term_id": "effective-window"
+     },
+     {
+      "instance_id": "x-003",
+      "term_id": "agreement-parties"
+     },
+     {
+      "instance_id": "x-004",
+      "term_id": "brand-scope"
+     },
+     {
+      "instance_id": "x-005",
+      "term_id": "channel-scope"
+     },
+     {
+      "instance_id": "x-009",
+      "term_id": "measurement-source"
+     },
+     {
+      "instance_id": "x-010",
+      "term_id": "shortfall-cure"
+     }
+    ],
+    "recall": 0.8889,
+    "precision": 0.5333,
+    "param_hits": 23,
+    "param_total": 32,
+    "param_accuracy": 0.7188,
+    "by_family": {
+     "A": {
+      "hits": 2,
+      "total": 2,
+      "instances": 1,
+      "accuracy": 1.0
+     },
+     "C": {
+      "hits": 11,
+      "total": 12,
+      "instances": 2,
+      "accuracy": 0.9167
+     },
+     "D": {
+      "hits": 4,
+      "total": 5,
+      "instances": 1,
+      "accuracy": 0.8
+     },
+     "E": {
+      "hits": 6,
+      "total": 11,
+      "instances": 2,
+      "accuracy": 0.5455
+     },
+     "G": {
+      "hits": 0,
+      "total": 2,
+      "instances": 2,
+      "accuracy": 0.0
+     }
+    },
+    "citation_failures": [],
+    "conflicts_expected": 0,
+    "conflicts_found": 0,
+    "unmapped_found": 0,
+    "unmapped_truth": 0
+   },
+   "provider": {
+    "classify": {
+     "calls": 2,
+     "failed": 0,
+     "input_tokens": 11093,
+     "output_tokens": 595,
+     "latency_seconds": 6.7,
+     "models": [
+      "claude-haiku-4-5-20251001"
+     ]
+    },
+    "parameterise": {
+     "calls": 15,
+     "failed": 0,
+     "input_tokens": 30396,
+     "output_tokens": 9161,
+     "latency_seconds": 146.55,
+     "models": [
+      "claude-opus-5",
+      "claude-sonnet-5"
+     ]
+    }
+   },
+   "elapsed": 162.95097550000355
   },
   "heb-scanned-smallbiz-2026": {
    "score": {
@@ -720,9 +821,9 @@
     ],
     "recall": 0.75,
     "precision": 0.75,
-    "param_hits": 21,
+    "param_hits": 22,
     "param_total": 32,
-    "param_accuracy": 0.6562,
+    "param_accuracy": 0.6875,
     "by_family": {
      "A": {
       "hits": 2,
@@ -749,10 +850,10 @@
       "accuracy": 0.8571
      },
      "F": {
-      "hits": 5,
+      "hits": 6,
       "total": 6,
       "instances": 3,
-      "accuracy": 0.8333
+      "accuracy": 1.0
      },
      "G": {
       "hits": 0,
@@ -773,7 +874,7 @@
      "failed": 0,
      "input_tokens": 11708,
      "output_tokens": 1360,
-     "latency_seconds": 43.51,
+     "latency_seconds": 38.15,
      "models": [
       "claude-opus-5"
      ]
@@ -782,8 +883,8 @@
      "calls": 2,
      "failed": 0,
      "input_tokens": 10974,
-     "output_tokens": 1006,
-     "latency_seconds": 10.49,
+     "output_tokens": 910,
+     "latency_seconds": 9.42,
      "models": [
       "claude-haiku-4-5-20251001"
      ]
@@ -792,14 +893,14 @@
      "calls": 12,
      "failed": 0,
      "input_tokens": 23579,
-     "output_tokens": 6364,
-     "latency_seconds": 86.28,
+     "output_tokens": 6435,
+     "latency_seconds": 86.31,
      "models": [
       "claude-sonnet-5"
      ]
     }
    },
-   "elapsed": 150.55824724999547
+   "elapsed": 144.12984487500216
   },
   "heb-sponsorship-bundle-2026": {
    "score": {
@@ -807,7 +908,7 @@
     "clauses_accounted": 23,
     "disposition_class_hits": 22,
     "instances_truth": 18,
-    "instances_found": 29,
+    "instances_found": 27,
     "matched": 18,
     "missed": [],
     "spurious": [
@@ -817,11 +918,11 @@
      },
      {
       "instance_id": "x-002",
-      "term_id": "effective-window"
+      "term_id": "agreement-parties"
      },
      {
-      "instance_id": "x-008",
-      "term_id": "channel-scope"
+      "instance_id": "x-003",
+      "term_id": "effective-window"
      },
      {
       "instance_id": "x-009",
@@ -837,30 +938,22 @@
      },
      {
       "instance_id": "x-013",
-      "term_id": "position-entitlements"
-     },
-     {
-      "instance_id": "x-014",
       "term_id": "creative-constraints"
      },
      {
-      "instance_id": "x-016",
+      "instance_id": "x-015",
       "term_id": "package-bundle"
      },
      {
-      "instance_id": "x-017",
+      "instance_id": "x-016",
       "term_id": "measurement-source"
-     },
-     {
-      "instance_id": "x-018",
-      "term_id": "delivery-truth-source"
      }
     ],
     "recall": 1.0,
-    "precision": 0.6207,
-    "param_hits": 44,
+    "precision": 0.6667,
+    "param_hits": 45,
     "param_total": 68,
-    "param_accuracy": 0.6471,
+    "param_accuracy": 0.6618,
     "by_family": {
      "A": {
       "hits": 11,
@@ -893,10 +986,10 @@
       "accuracy": 1.0
      },
      "G": {
-      "hits": 0,
+      "hits": 1,
       "total": 9,
       "instances": 5,
-      "accuracy": 0.0
+      "accuracy": 0.1111
      }
     },
     "citation_failures": [],
@@ -910,25 +1003,25 @@
      "calls": 3,
      "failed": 0,
      "input_tokens": 18534,
-     "output_tokens": 2125,
-     "latency_seconds": 24.76,
+     "output_tokens": 1623,
+     "latency_seconds": 19.26,
      "models": [
       "claude-haiku-4-5-20251001"
      ]
     },
     "parameterise": {
-     "calls": 29,
+     "calls": 27,
      "failed": 0,
-     "input_tokens": 63230,
-     "output_tokens": 20191,
-     "latency_seconds": 269.4,
+     "input_tokens": 58734,
+     "output_tokens": 18792,
+     "latency_seconds": 246.41,
      "models": [
       "claude-opus-5",
       "claude-sonnet-5"
      ]
     }
    },
-   "elapsed": 313.00162795899087
+   "elapsed": 283.209662542009
   }
  }
 }

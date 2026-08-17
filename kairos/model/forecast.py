@@ -33,8 +33,15 @@ beside it.
 History rides on every payload next to the forecast -- the plain historical mean
 is what this product priced on before the model existed, so the two numbers
 together are the honest comparison rather than a claim that the model is better.
-For out-of-sample accuracy the payload points at
-:mod:`kairos.model.forecast_backtest`, which measures it instead of claiming it.
+
+**And on the real window the historical mean is the more accurate of the two in
+points.** :mod:`kairos.model.forecast_backtest` measured it walk-forward: the
+model wins on the log-space objective its gates were scored on (RMSE 0.683
+against 0.707) and loses in arithmetic rating points (MAE 1.188 against 0.898,
+bias -0.249). Read that verdict before quoting a gate's held-out percentage as
+evidence the forecast is more accurate -- the percentage is real and it is about
+a different objective. Nothing here presents the model as the better number; it
+presents both, with the measurement that says which is which.
 """
 
 from __future__ import annotations

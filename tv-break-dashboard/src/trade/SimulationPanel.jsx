@@ -4,10 +4,12 @@ import { Button } from '../studio/actions';
 import { InputControl } from '../studio/dom-controls';
 import { Ban, Coins, Play, TriangleAlert } from 'lucide-react';
 import { Code, Figure, Name, Prose } from '../shell/bidi';
-import { formatNumber, formatPercent, pageText } from '../shell/format';
+import { EMPTY_VALUE, formatNumber, formatPercent, pageText } from '../shell/format';
 import { termName } from './trade-terms';
 import { contractMoney } from './term-language';
-import { blockFieldKind, blockFieldLabel, BLOCK_FIELD_ORDER, moneyLineLabel } from './trade-vocabulary';
+import {
+  blockFieldKind, blockFieldLabel, BLOCK_FIELD_ORDER, moneyLineLabel, scopeResolution,
+} from './trade-vocabulary';
 
 // What this agreement WOULD do to real activity. It writes nothing.
 //
@@ -86,7 +88,7 @@ function BlockDetail({ block, locale }) {
   );
 }
 
-function MoneyLine({ line, value, locale }) {
+function MoneyLine({ line, value, locale, measured = true }) {
   if (value === null || value === undefined) return null;
   if (line.kind === 'block') {
     return (
@@ -96,6 +98,17 @@ function MoneyLine({ line, value, locale }) {
           <BlockDetail block={value} locale={locale} />
         </CardBody>
       </Card>
+    );
+  }
+  // With nothing in scope to measure, a printed ₪0 would be a result the engine
+  // never produced. The tile keeps its label and says it has no value.
+  if (!measured) {
+    return (
+      <Metric
+        label={moneyLineLabel(line.key, locale)}
+        value={EMPTY_VALUE}
+        sub={pageText(locale, 'nothing in scope to measure', 'אין פעילות בהיקף למדידה')}
+      />
     );
   }
   return (
@@ -110,6 +123,15 @@ function MoneyLine({ line, value, locale }) {
 export default function SimulationPanel({ payload, error, locale, busy, onRun, canRun }) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+
+  // The agreement's scope resolved to no campaign on file, so every money figure
+  // is empty for want of anything to measure. Read from the scope rather than
+  // inferred from a zero, because a real zero and an empty scope are different
+  // facts and only one of them is a result.
+  const scopeCampaigns = payload && payload.scope ? payload.scope.campaigns : null;
+  const noActivity = Boolean(
+    payload && payload.available && Array.isArray(scopeCampaigns) && scopeCampaigns.length === 0,
+  );
 
   const controls = (
     <div className="trd-sim-controls">
@@ -178,6 +200,34 @@ export default function SimulationPanel({ payload, error, locale, busy, onRun, c
 
       {payload && payload.available ? (
         <>
+          {/* NOTHING MATCHED IS NOT ZERO REVENUE, and the difference is the whole
+              honesty of this panel. When the agreement's own scope resolves to no
+              campaign on file, every money figure below is 0 because there was
+              nothing to measure — not because the deal moves no money. That is
+              said before the figures, and the scope it resolved to is named so the
+              reader can see what was looked for. */}
+          {noActivity ? (
+            <div className="trd-sim-unknown" role="note">
+              <TriangleAlert size={15} aria-hidden="true" />
+              <span>
+                {pageText(
+                  locale,
+                  'No activity on file falls inside this agreement\'s scope and window, so there is nothing to price. The money figures below are empty for that reason, not because the agreement is worth nothing.',
+                  'אין פעילות בקבצים שנופלת בתוך ההיקף וחלון הזמן של ההסכם הזה, ולכן אין מה לתמחר. נתוני הכסף שלמטה ריקים מהסיבה הזו, לא מפני שההסכם אינו שווה דבר.',
+                )}
+                {payload.scope && payload.scope.resolved ? (
+                  <>
+                    {' '}
+                    {pageText(locale, 'It looked for', 'חיפשנו')}
+                    {': '}
+                    <Name>{scopeResolution(payload.scope.resolved, locale)}</Name>
+                    {'.'}
+                  </>
+                ) : null}
+              </span>
+            </div>
+          ) : null}
+
           {payload.headline_he ? (
             <Card className="trd-sim-headline">
               <CardBody><Prose>{payload.headline_he}</Prose></CardBody>
@@ -191,6 +241,7 @@ export default function SimulationPanel({ payload, error, locale, busy, onRun, c
                 line={{ key, kind: 'money', lead: key === 'net_after_simulated_terms' }}
                 value={payload.money ? payload.money[key] : null}
                 locale={locale}
+                measured={!noActivity}
               />
             ))}
           </div>
@@ -280,8 +331,8 @@ export default function SimulationPanel({ payload, error, locale, busy, onRun, c
 
           {payload.scope && payload.scope.resolved ? (
             <p className="trd-field-hint">
-              <Status status="info">{pageText(locale, 'Scope', 'היקף')}</Status>
-              <Name>{payload.scope.resolved}</Name>
+              <Status status="info">{pageText(locale, 'Measured over', 'נמדד על')}</Status>
+              <Name>{scopeResolution(payload.scope.resolved, locale)}</Name>
             </p>
           ) : null}
         </>

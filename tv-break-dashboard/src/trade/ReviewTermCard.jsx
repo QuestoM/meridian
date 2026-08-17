@@ -218,10 +218,17 @@ export default function ReviewTermCard({
               <p className="trd-conflict-winner">
                 <span className="trd-card-label">{pageText(locale, 'Governing term', 'המונח הקובע')}</span>
                 <Code>{term.conflict.winner}</Code>
+                {/* The verdict is about THIS card, and it sits next to the winning
+                    term's id, so it has to name its subject or it reads as a
+                    statement about the winner. */}
                 {term.conflict.winner === term.instance_id ? (
-                  <Status status="positive">{pageText(locale, 'This one', 'זה')}</Status>
+                  <Status status="positive">
+                    {pageText(locale, 'which is this term', 'כלומר המונח הזה')}
+                  </Status>
                 ) : (
-                  <Status status="neutral">{pageText(locale, 'Not this one', 'לא זה')}</Status>
+                  <Status status="neutral">
+                    {pageText(locale, 'so this term does not govern', 'ולכן המונח הזה אינו קובע')}
+                  </Status>
                 )}
               </p>
             ) : null}
@@ -234,11 +241,35 @@ export default function ReviewTermCard({
           </div>
         ) : null}
 
+        {/* TWO SOURCES, TWO DIFFERENT QUESTIONS, and read side by side they look
+            like a contradiction. The taxonomy status answers "can a term of this
+            KIND drive live machinery"; the mechanism answers "will THIS clause, as
+            extracted, actually do it". A competitive-separation clause with no
+            named competitors is both at once: a binding term class that will not
+            act. Left unexplained, the card says "changes behaviour" and "will not
+            act automatically" in the same breath, so the taxonomy line is framed
+            as being about the class whenever the engine has refused the instance. */}
         <div className="trd-term-meta">
           {taxonomy ? (
             <span className="trd-meta-item">
-              <Status status={taxonomy.tone}>{taxonomy.label}</Status>
-              <Prose as="span" className="trd-meta-note">{taxonomy.note}</Prose>
+              <Status status={inert ? 'neutral' : taxonomy.tone}>
+                {inert
+                  ? pageText(
+                    locale,
+                    `Terms of this kind: ${taxonomy.label}`,
+                    `מונחים מסוג זה: ${taxonomy.label}`,
+                  )
+                  : taxonomy.label}
+              </Status>
+              <Prose as="span" className="trd-meta-note">
+                {inert
+                  ? pageText(
+                    locale,
+                    `${taxonomy.note} This particular clause is the exception named above, and it will not act.`,
+                    `${taxonomy.note} הסעיף המסוים הזה הוא החריג שנקבע למעלה, והוא לא יפעל.`,
+                  )
+                  : taxonomy.note}
+              </Prose>
             </span>
           ) : null}
           {rank ? <span className="trd-chip-quiet">{rank.label}</span> : null}
@@ -322,7 +353,11 @@ export default function ReviewTermCard({
           </Button>
           {canEdit ? (
             <div className="trd-term-actions">
-              <Button type="button" onClick={() => onConfirm(term)} disabled={busy}>
+              {/* Confirming is the action this card exists for, so it is the
+                  filled one. Left at the default text variant it read as weaker
+                  than the two outlined actions beside it, which inverted the
+                  hierarchy of the decision. */}
+              <Button type="button" variant="contained" onClick={() => onConfirm(term)} disabled={busy}>
                 <Check size={14} aria-hidden="true" />
                 {undecided
                   ? pageText(locale, 'Confirm', 'אישור')

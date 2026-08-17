@@ -22,6 +22,43 @@
   gap: var(--space-2);
 }
 
+/* AN ICON AND ITS LABEL NEED A GAP, and nothing upstream supplies one.
+   MUI spaces an icon only when it arrives through the startIcon prop, which
+   applies a margin to a .MuiButton-startIcon wrapper; an icon passed as an
+   ordinary child — which is how every action on this surface is written, and how
+   the rest of the product writes them too — gets no class and no margin. The
+   Kairos theme sets no gap on the button root either. Measured on the built
+   bundle at 1728px: every icon-bearing action came out at EXACTLY 0px of
+   separation, 140-odd of them, and a lucide glyph has no internal padding, so
+   the icon stroke touches the first letter. In Hebrew, whose right sidebearing
+   is tighter than Latin's, that reads as the icon printed on top of the word.
+
+   The gap goes on the icon rather than on the button, deliberately. `gap` on
+   .MuiButton-root would win on specificity over .trd-card's own
+   `display: grid; gap: var(--space-3)` and quietly re-space the whole card
+   layout, since the card is itself a button. So the two structural pressables
+   that are not icon-and-label actions — the agreement card and the filter chip —
+   are excluded by name.
+
+   THERE IS NO :only-child GUARD HERE, and that is the point worth writing down.
+   The first version of this rule carried `:not(:only-child)` to protect an
+   icon-only button from a stray trailing margin, and it silently matched
+   NOTHING: a label is a text node, text nodes are not children for the purposes
+   of :only-child, so the icon is always the only ELEMENT child and the guard
+   excluded every button on the surface. The rebuilt bundle measured 0px exactly
+   as before. What makes the guard unnecessary rather than merely wrong is that
+   this surface has no icon-only Button at all — an icon-only action is an
+   IconButton, which is a different component and is not matched here.
+
+   The real home for this is the theme, because the defect is product-wide rather
+   than local to this surface. That change is out of this surface's ownership; it
+   is recorded in the handover instead of being reached for here. */
+:is(.trd-panel, .trd-detail, .trd-review, .trd-action-dialog, .trd-create-dialog)
+  .MuiButton-root:not(.trd-card, .trd-filter)
+  > svg:first-child {
+  margin-inline-end: var(--space-2);
+}
+
 /* The panel's own band carries the count and the actions and nothing else. The
    destination's title and sentence belong to the workspace chrome; repeating them
    here would put two headings on one screen. */

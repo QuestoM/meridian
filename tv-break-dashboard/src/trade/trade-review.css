@@ -221,23 +221,25 @@
   background: transparent;
 }
 
+/* MEASURED, and the fix is the track rather than the row.
+   A clause row is a <button>, and for intrinsic grid sizing a button contributes
+   its specified minimum block size instead of its content: with 44px minimum and
+   132px of wrapped clause text, every `auto` row resolved to 44px and the row was
+   stretched into it, clipping three quarters of the clause. Asking the track for
+   max-content gives each row the height its own clause needs. */
 .trd-clause-list {
   display: grid;
+  grid-auto-rows: max-content;
   gap: var(--space-2);
   overflow-y: auto;
   padding-block-end: var(--space-2);
 }
 
-/* A clause row is a pressable whose CONTENT decides its height: the clause is two
-   words or it is a paragraph, and the row has to be as tall as the clause. The
-   shared pressable is sized for a control at exactly one row of text, so the fixed
-   height is released here and the 44px target floor is kept as a minimum.
-   Measured before this rule: 42px of visible box against 120px of content, so
-   three quarters of every clause was clipped. */
+/* The row keeps the 44px target floor and takes its height from its own clause;
+   the track above is what lets it. */
 .trd-clause {
   display: grid;
   gap: var(--space-1-5);
-  block-size: auto;
   min-block-size: var(--control-height);
   padding: var(--space-3);
   border: 1px solid var(--line);

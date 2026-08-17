@@ -14,22 +14,29 @@ is refitted on the same training rows. Nothing is reused from the shipped
 artifact, so a fold's band is the band that fold's model would actually have
 published.
 
-**Four numbers, and what each is for.**
+The scoring itself -- what MAE, bias, MAPE and interval coverage mean, and the
+two objectives every metrics block carries -- lives in
+:mod:`kairos.model.forecast_accuracy`. The split is deliberate: a leak is a bug
+in this module, and a flattering statistic is a bug in that one.
 
-``mae`` and ``rmse`` are in rating points, the unit the plan prices in. ``bias``
-is the MEAN SIGNED error, kept separate because a forecast that is 0.4 points
-high on everything is a different failure from one that is 0.4 points off in
-both directions, and only the first is fixable by a constant. ``mape`` is
-reported over observations at or above :data:`MAPE_TVR_FLOOR` only -- a percentage
-error against a measured rating of 0.0 is unbounded, so those rows are excluded,
-COUNTED, and named. ``interval_coverage`` is the honesty check on the band: at
-the published level the observed rating should fall inside it that often, and a
-coverage far below the level means the band is too narrow no matter how good the
-point forecast is.
+**WHAT THE MEASUREMENT FOUND, on the real November 2024 window.** 2867
+observations over five scored folds, and the two objectives DISAGREE:
 
-**The historical mean is scored beside the model, on the same rows.** It is what
-this product priced on before the model existed. Reporting the model's error
-without it would be a number with nothing to be better than.
+  * In log space, the objective the family gates were measured on, the model
+    beats the pre-model historical mean: RMSE 0.683 against 0.707, and it wins
+    on four folds of five.
+  * In arithmetic rating points, the unit the plan prices in, the model LOSES:
+    MAE 1.188 against 0.898, on every fold, with bias -0.249.
+
+The negative bias beside the log-space win is the retransformation shortfall:
+``exp`` of a log-space level estimates the geometric centre, which sits below
+the arithmetic mean of a right-skewed rating distribution. So the gates were not
+wrong about what they measured; the gate percentages simply do not license a
+claim about points. This is why ``audience_model_activation`` staying OFF is the
+honest default, and why :func:`kairos.model.forecast_accuracy.verdict_for` puts
+both objectives on the payload instead of only the flattering one. Interval
+coverage came out 0.927 against a nominal 0.80: the published band is
+CONSERVATIVE rather than narrow, which is the right direction to err.
 
 **What this measurement cannot cover, and says so.** The first block has no prior
 data and reports UNAVAILABLE rather than a number. The competitor family is

@@ -324,15 +324,21 @@ export default function AgreementsPanel({ locale = 'he', notify = () => {}, canE
           destination's heading reads as two screens stacked by mistake. What this
           band owns is the count and the two actions. */}
       <header className="trd-panel-bar">
+        {/* A COUNT IS ONLY A COUNT WHEN THE READ SUCCEEDED. Measured on the
+            refused read: this band said "0 agreements on file" beside an alert
+            saying the store could not be reached, which is the one confusion this
+            surface must never create. A failed read has no count. */}
         <p className="trd-count" role="status">
           <Handshake size={14} aria-hidden="true" />
-          {rows
-            ? pageText(
-              locale,
-              `${formatNumber(rows.length, locale)} agreements on file`,
-              `${formatNumber(rows.length, locale)} הסכמים במאגר`,
-            )
-            : pageText(locale, 'Reading the agreements', 'קורא את ההסכמים')}
+          {error
+            ? pageText(locale, 'The count is unknown while the store cannot be read', 'המספר אינו ידוע כל עוד לא ניתן לקרוא את המאגר')
+            : rows
+              ? pageText(
+                locale,
+                `${formatNumber(rows.length, locale)} agreements on file`,
+                `${formatNumber(rows.length, locale)} הסכמים במאגר`,
+              )
+              : pageText(locale, 'Reading the agreements', 'קורא את ההסכמים')}
         </p>
         <div className="trd-header-actions">
           <Button type="button" variant="outlined" onClick={reload}>

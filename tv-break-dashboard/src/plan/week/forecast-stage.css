@@ -1,0 +1,244 @@
+/* The rating-forecast stage: the measured-accuracy verdict on top, the day's
+   programmes as a dense table, and the opened row's drivers beside it.
+
+   The table scrolls inside its own container; the page never scrolls
+   sideways. Wrapping is the container's business — no manual breaks. */
+
+.fcs-workspace {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+}
+
+.fcs-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.fcs-head h2 {
+  margin: 0;
+  font-size: var(--type-title-size);
+  line-height: var(--type-title-line);
+  text-wrap: balance;
+}
+
+.fcs-head p {
+  max-inline-size: 76ch;
+  margin: var(--space-1) 0 0;
+  color: var(--ink-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.fcs-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.fcs-context {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-ui-size);
+  line-height: var(--type-ui-line);
+}
+
+/* ------------------------------------------------------------- accuracy strip */
+
+.fcs-accuracy .card-body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.fcs-accuracy-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-4);
+}
+
+.fcs-accuracy-figures > div {
+  display: grid;
+  gap: var(--space-half);
+  color: var(--ink);
+  font-size: var(--type-ui-size);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: var(--type-ui-line);
+}
+
+.fcs-cell-label {
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+.fcs-verdict {
+  max-inline-size: 92ch;
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-ui-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.fcs-verdict-quiet {
+  color: var(--ink-muted);
+}
+
+/* --------------------------------------------------------------------- layout */
+
+.fcs-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .fcs-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------------------------------------------------------------------- table */
+
+.fcs-table-scroll {
+  overflow-x: auto;
+}
+
+.fcs-table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--type-data-size);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: var(--type-data-line);
+}
+
+.fcs-table th {
+  padding: var(--space-2) var(--space-3);
+  border-block-end: 1px solid var(--line-soft);
+  color: var(--ink-muted);
+  font-weight: var(--weight-semibold);
+  text-align: start;
+}
+
+.fcs-table td {
+  padding: var(--space-2) var(--space-3);
+  border-block-end: 1px solid var(--line-faint);
+  color: var(--ink);
+}
+
+.fcs-table tbody tr {
+  cursor: pointer;
+}
+
+.fcs-table tbody tr:hover td {
+  background: var(--surface-muted);
+}
+
+.fcs-table tbody tr[data-open='true'] td {
+  background: var(--surface-muted);
+}
+
+.fcs-title {
+  max-inline-size: 30ch;
+  overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------------- detail */
+
+.fcs-detail .card-body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.fcs-detail h4 {
+  margin: 0;
+  font-size: var(--type-emphasis-size);
+  line-height: var(--type-emphasis-line);
+  text-wrap: balance;
+}
+
+.fcs-detail h5 {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-data-line);
+}
+
+.fcs-detail-figures {
+  display: grid;
+  grid-template-columns: minmax(9rem, auto) minmax(0, 1fr);
+  gap: var(--space-1-5) var(--space-4);
+  margin: 0;
+}
+
+.fcs-detail-figures dt {
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+.fcs-detail-figures dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-data-size);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: var(--type-data-line);
+}
+
+.fcs-drivers {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fcs-drivers li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--ink);
+  font-size: var(--type-data-size);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: var(--type-data-line);
+}
+
+.fcs-method {
+  max-inline-size: 44ch;
+  margin: 0;
+  color: var(--ink-subtle);
+  font-size: var(--type-data-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.fcs-quiet {
+  color: var(--ink-subtle);
+  font-size: var(--type-data-size);
+  line-height: var(--type-body-line);
+}
+
+.fcs-footnote {
+  display: flex;
+  align-items: start;
+  gap: var(--space-2);
+  max-inline-size: 96ch;
+  margin: 0;
+  color: var(--ink-subtle);
+  font-size: var(--type-data-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.fcs-footnote svg {
+  flex: 0 0 auto;
+  margin-block-start: 2px;
+}

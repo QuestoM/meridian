@@ -6,7 +6,9 @@ import { formatDay, formatSpan } from '../shell/dates';
 import { formatNumber, formatPercent, pageText } from '../shell/format';
 import { termName } from './trade-terms';
 import { contractMoney } from './term-language';
-import { alarmLabel, ALARM_ORDER, alarmTone, windowOf } from './trade-vocabulary';
+import {
+  alarmLabel, ALARM_ORDER, alarmTone, scopeResolution, windowOf,
+} from './trade-vocabulary';
 
 // What the agreement committed the channel to, measured continuously.
 //
@@ -141,7 +143,7 @@ function ObligationRow({ obligation, locale }) {
           <p className="trd-field-hint">
             {pageText(locale, 'Measured over', 'נמדד על')}
             {': '}
-            <Name>{obligation.resolution.resolved}</Name>
+            <Name>{scopeResolution(obligation.resolution.resolved, locale)}</Name>
             {obligation.resolution.campaigns && obligation.resolution.campaigns.length > 0 ? (
               <>
                 {' · '}
