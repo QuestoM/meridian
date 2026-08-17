@@ -41,6 +41,31 @@
   outline-offset: 3px;
 }
 
+/* An icon passed to Button as a CHILD is spaced by nobody, so it prints
+   against the first letter of the label.
+
+   MUI only margins an icon passed through the startIcon prop (it wraps it in
+   .MuiButton-startIcon); this product passes icons as ordinary children, and a
+   lucide glyph has no internal padding, so the stroke touches the word.
+   Hebrew's tighter right sidebearing makes it read as the icon printed ON the
+   word. Measured on the plan board before this rule: 14 of 17 icon-bearing
+   actions at 0px separation, and one on the day-versions surface.
+
+   GAP ON THE ROOT, not a margin on the icon, and the difference is not
+   stylistic. A margin has to be suppressed for a button whose only child is an
+   icon or the glyph goes off-centre - and it cannot be, because a text label is
+   not an element child, so :not(:only-child) matches nothing. Gap simply has
+   nothing to act on when there is one item: measured, the two icon-only buttons
+   (the timeline's zoom pair) stayed at 15px on both sides.
+
+   The exclusions are the structural pressables - a card, a filter chip, a
+   citation chip and a tab are buttons that are not actions, and they carry
+   their own layout, which an inherited gap would silently re-space. */
+:is(.kairos-shell, .studio-modal)
+  .MuiButton-root:not(.trd-card, .trd-filter, .trd-citation, [role='tab']) {
+  gap: var(--space-2);
+}
+
 /* MUI exposes focus on the component root. Suppress the nested native input's
    browser ring so an outlined field changes to one quiet 1px boundary, never
    an added thick frame or a double ring. */
