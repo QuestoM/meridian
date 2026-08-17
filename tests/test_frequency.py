@@ -239,6 +239,29 @@ def test_shipped_csv_loads_a_conservative_default():
     assert any(r.scope == "default" and r.value == 1 for r in by_break)
 
 
+def test_a_byte_order_mark_does_not_rename_every_rule(tmp_path: Path) -> None:
+    # pandas to_csv(encoding="utf-8-sig") — the trade binder's writer — stamps
+    # a BOM. Under a plain utf-8 read the first header becomes "﻿rule_id",
+    # every rule_id lookup silently misses, and the `rule_id or limit_type`
+    # fallback renames EVERY rule to its limit type, the shipped default
+    # included. That exact chain broke rule attribution on the money board.
+    target = tmp_path / "frequency_rules.csv"
+    target.write_bytes(
+        b"\xef\xbb\xbf"  # the BOM, spelled in bytes so it cannot hide
+        + (
+            "rule_id,limit_type,scope,advertiser_id,campaign,ad,pair_lead,"
+            "pair_closer,competing_group,members,value,value_max,unit,enabled,notes\n"
+            "DEFAULT_ONE_PER_BREAK,max_per_break,default,,,,,,,,1,,,True,\n"
+            "TRD:agr-x:v-y:sc-freq-day,max_per_day,advertiser,מאפיית שדות,,,,,,,3,,,True,\n"
+        ).encode("utf-8")
+    )
+    ruleset = load_frequency_rules(target)
+    assert ruleset.skipped == []
+    assert [rule.rule_id for rule in ruleset.rules] == [
+        "DEFAULT_ONE_PER_BREAK", "TRD:agr-x:v-y:sc-freq-day",
+    ]
+
+
 # --- real-data wiring through price_daily_spots ------------------------------
 
 

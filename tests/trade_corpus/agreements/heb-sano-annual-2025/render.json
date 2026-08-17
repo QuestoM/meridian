@@ -1,0 +1,9 @@
+{
+  "document_id": "heb-sano-annual-2025",
+  "ingest_route": "digital",
+  "pages": {
+    "1": ["pre-1", "pre-2", "1", "2", "3", "4"],
+    "2": ["5", "6", "7", "8", "9", "sig-1"]
+  },
+  "tables": ["5"]
+}

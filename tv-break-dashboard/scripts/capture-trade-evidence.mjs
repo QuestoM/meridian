@@ -56,6 +56,49 @@ const ROUTES = [
   { id: 'today', path: '/#Today' },
 ];
 
+// Deep states are addressed through the same query-string law: the panel reads
+// `agreement=<id>` and derives the screen from the record's status (in_review
+// with a document opens review; anything else opens the record). Ids are
+// store-generated, so they are DISCOVERED from the live API rather than
+// hardcoded: a reseeded store keeps the harness honest instead of breaking it.
+async function discoverAgreementRoutes(apiBase) {
+  try {
+    const res = await fetch(`${apiBase}/api/trade/agreements`);
+    if (!res.ok) return [];
+    const body = await res.json();
+    const rows = body.agreements || [];
+    const routes = [];
+    const reviewRow = rows.find((r) => r.status === 'in_review' && Number(r.documents) > 0);
+    if (reviewRow) {
+      routes.push({
+        id: 'agreement-review',
+        path: `/?clients=agreements&agreement=${reviewRow.agreement_id}#Commercial`,
+      });
+    }
+    const approvedRow = rows.find((r) => r.status === 'approved');
+    if (approvedRow) {
+      routes.push({
+        id: 'agreement-record-approved',
+        path: `/?clients=agreements&agreement=${approvedRow.agreement_id}#Commercial`,
+      });
+    }
+    const draftRow = rows.find((r) => r.status === 'draft');
+    if (draftRow) {
+      routes.push({
+        id: 'agreement-record-draft',
+        path: `/?clients=agreements&agreement=${draftRow.agreement_id}#Commercial`,
+      });
+    }
+    routes.push({
+      id: 'agreement-not-found',
+      path: '/?clients=agreements&agreement=agr-000000dead#Commercial',
+    });
+    return routes;
+  } catch {
+    return [];
+  }
+}
+
 let messageId = 0;
 function send(ws, method, params = {}, sessionId) {
   const id = ++messageId;
@@ -116,8 +159,13 @@ async function main() {
 
   const report = { base: BASE, captured_at: new Date().toISOString(), routes: [] };
 
+  // The preview server proxies /api to the engine, so discovery rides the
+  // same origin the screenshots use.
+  const allRoutes = [...ROUTES, ...(await discoverAgreementRoutes(BASE))];
+  process.stdout.write(`routes: ${allRoutes.map((r) => r.id).join(', ')}\n`);
+
   for (const size of SIZES) {
-    for (const route of ROUTES) {
+    for (const route of allRoutes) {
       if (ONLY && !route.id.includes(ONLY)) continue;
       const target = await send(ws, 'Target.createTarget', { url: 'about:blank' });
       const { sessionId } = await send(ws, 'Target.attachToTarget', {
@@ -159,8 +207,20 @@ async function main() {
 
       // Full page: grow the viewport to the document, capture, then measure the
       // things a picture cannot tell you by itself.
+      //
+      // The viewport MUST be grown to the real height before any capture:
+      // captureBeyondViewport does not paint far past the layout viewport, so
+      // clipping a region beyond it photographs the background and reports
+      // success. Caught on the review screen (16,712px): the harness showed a
+      // beige void where four thousand pixels of term cards actually render.
+      // The cap exists only to bound the PNG; a page that exceeds it is
+      // reported so the void is never mistaken for the page.
       const metrics = await send(ws, 'Page.getLayoutMetrics', {}, sessionId);
-      const full = Math.min(Math.ceil(metrics.cssContentSize.height), 12000);
+      const trueHeight = Math.ceil(metrics.cssContentSize.height);
+      const full = Math.min(trueHeight, 24000);
+      if (trueHeight > full) {
+        process.stdout.write(`  ! ${route.id}/${size.id}: page ${trueHeight}px exceeds capture cap ${full}px\n`);
+      }
       await send(ws, 'Emulation.setDeviceMetricsOverride', {
         width: size.width, height: full, deviceScaleFactor: 1, mobile: false,
       }, sessionId);
@@ -173,9 +233,14 @@ async function main() {
       writeFileSync(join(OUT, `${stem}-full.png`), Buffer.from(shot.data, 'base64'));
 
       // Section slices, so a long page is readable rather than a thumbnail.
+      // Slices are spread over the WHOLE page — first slice at the top, last
+      // at the bottom — because a tall page's defects live at its end as often
+      // as its start, and consecutive-from-the-top slices never reach it.
       const slices = Math.min(4, Math.max(1, Math.ceil(full / size.height)));
       for (let index = 0; index < slices; index += 1) {
-        const y = index * size.height;
+        const y = slices === 1
+          ? 0
+          : Math.round((full - size.height) * (index / (slices - 1)));
         if (y >= full) break;
         const clipped = await send(ws, 'Page.captureScreenshot', {
           format: 'png',

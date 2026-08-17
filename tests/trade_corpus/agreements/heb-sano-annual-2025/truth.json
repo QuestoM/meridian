@@ -1,0 +1,122 @@
+{
+  "document_id": "heb-sano-annual-2025",
+  "title": "הסכם מסגרת שנתי — סנו 2025—2026",
+  "agreement_level": "advertiser",
+  "instances": [
+    {
+      "instance_id": "sn-parties",
+      "term_id": "agreement-parties",
+      "params": {
+        "counterparty_type": "advertiser_via_agency",
+        "advertiser": "סנו",
+        "direct_client": false
+      },
+      "notes": "השם המשפטי במסמך הוא סנו אינטרנשיונל בע\"מ; המונח המוגדר בהסכם — \"סנו\" — הוא שם המפרסם כפי שהוא נצפה בקובצי השידור של המנוע",
+      "cite": [{"clause_id": "pre-1", "quote": "באמצעות סוכנות המדיה המייצגת אותו"}]
+    },
+    {
+      "instance_id": "sn-window",
+      "term_id": "effective-window",
+      "params": {
+        "starts_on": "2025-04-01",
+        "ends_on": "2026-12-31"
+      },
+      "cite": [{"clause_id": "1", "quote": "מיום 01.04.2025 ועד ליום 31.12.2026"}]
+    },
+    {
+      "instance_id": "sn-budget",
+      "term_id": "budget-commitment",
+      "params": {
+        "amount": {"amount": 480000, "currency": "ILS", "basis": "gross"},
+        "period": "custom",
+        "tolerance_percent": 5
+      },
+      "notes": "התחייבות המפרסם למלוא תקופת המסגרת; period=custom כי החלון הוא תקופת ההסכם ולא שנה קלנדרית",
+      "cite": [{"clause_id": "2", "quote": "היקף רכישות מצטבר של 480,000 ₪ ברוטו"}]
+    },
+    {
+      "instance_id": "sn-trp",
+      "term_id": "trp-delivery-guarantee",
+      "params": {
+        "points": 500,
+        "audience": "כלל צופים",
+        "vintage": "כולל צפייה נדחית +1",
+        "window": "custom",
+        "tolerance_percent": 10,
+        "checkpoints": "אחת לרבעון"
+      },
+      "cite": [{"clause_id": "3", "quote": "500 נקודות רייטינג (כלל צופים, כולל צפייה נדחית +1)"}]
+    },
+    {
+      "instance_id": "sn-makegood",
+      "term_id": "makegood-accrual-policy",
+      "params": {
+        "accruals": [
+          {"trigger": "חוסר אספקה מצטבר מול התחייבות הרייטינג שבסעיף 3", "rate_percent": 8, "level": "advertiser"}
+        ],
+        "utilisation": "בתיאום מול הערוץ בתוך 60 יום מתום הרבעון שבו נצבר החוסר",
+        "expiry": "תוקף ההשלמות פוקע בתום תקופת המסגרת"
+      },
+      "cite": [{"clause_id": "4", "quote": "השלמות שידור בשווי מדיה בשיעור 8% מערך החוסר"}]
+    },
+    {
+      "instance_id": "sn-ladder",
+      "term_id": "volume-discount-ladder",
+      "params": {
+        "tiers": [
+          {"threshold": 300000, "discount_percent": 8},
+          {"threshold": 400000, "discount_percent": 10},
+          {"threshold": 480000, "discount_percent": 12}
+        ],
+        "basis": "actual",
+        "mechanics": "retroactive",
+        "period": "custom"
+      },
+      "cite": [
+        {"clause_id": "5", "quote": "רטרואקטיבית על מלוא הפעילות בתקופת המסגרת"},
+        {"clause_id": "5", "quote": "300,000"}
+      ]
+    },
+    {
+      "instance_id": "sn-commission",
+      "term_id": "agency-commission",
+      "params": {
+        "percent": 15,
+        "base": "net_of_discount",
+        "form": "invoice_deduction"
+      },
+      "cite": [{"clause_id": "6", "quote": "עמלה בשיעור 15% מהמחזור נטו לאחר הנחות"}]
+    },
+    {
+      "instance_id": "sn-payment",
+      "term_id": "payment-terms",
+      "params": {
+        "terms": "שוטף + 60 מיום הוצאת החשבונית, באמצעות הסוכנות"
+      },
+      "cite": [{"clause_id": "7", "quote": "שוטף + 60 מיום הוצאת החשבונית"}]
+    },
+    {
+      "instance_id": "sn-jurisdiction",
+      "term_id": "dispute-resolution",
+      "params": {
+        "summary": "סמכות שיפוט ייחודית לבתי המשפט המוסמכים בתל אביב—יפו"
+      },
+      "cite": [{"clause_id": "9", "quote": "לבתי המשפט המוסמכים בתל אביב—יפו"}]
+    }
+  ],
+  "dispositions": {
+    "pre-1": {"disposition": "mapped", "instance_ids": ["sn-parties"]},
+    "pre-2": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "סעיף הואיל — מבוא הצהרתי ללא תוכן אופרטיבי"},
+    "1": {"disposition": "mapped", "instance_ids": ["sn-window"]},
+    "2": {"disposition": "mapped", "instance_ids": ["sn-budget"]},
+    "3": {"disposition": "mapped", "instance_ids": ["sn-trp"]},
+    "4": {"disposition": "mapped", "instance_ids": ["sn-makegood"]},
+    "5": {"disposition": "mapped", "instance_ids": ["sn-ladder"]},
+    "6": {"disposition": "mapped", "instance_ids": ["sn-commission"]},
+    "7": {"disposition": "mapped", "instance_ids": ["sn-payment"]},
+    "8": {"disposition": "irrelevant", "irrelevant_class": "notice-addresses", "reason": "מנגנון מסירת הודעות בלבד"},
+    "9": {"disposition": "mapped", "instance_ids": ["sn-jurisdiction"]},
+    "sig-1": {"disposition": "irrelevant", "irrelevant_class": "signature-block", "reason": "חתימות הצדדים"}
+  },
+  "expected_conflicts": []
+}

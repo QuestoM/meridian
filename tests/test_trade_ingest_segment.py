@@ -284,6 +284,28 @@ def test_preamble_chapters_and_numbering() -> None:
     assert by_id["sig-1"].text.endswith("____")
 
 
+def test_reversed_bare_heads_recovered() -> None:
+    # pdftotext mirrors a flat "1." head inside an RTL line to ".1" once the
+    # bidi controls are stripped. Caught live by heb-sano-annual-2025, whose
+    # nine flat clauses segmented into four glued blocks. A sentence-final
+    # period wrapping onto the next line must still not open a clause: the
+    # strictly-increasing acceptance is what separates the two.
+    clauses = segment_pages([
+        _page(
+            1,
+            'בין :רשת 13 בע"מ (להלן: "הערוץ")',
+            "הואיל והצדדים מעוניינים בכך; הוסכם כדלקמן:",
+            ".1תקופת המסגרת :מיום  01.04.2025ועד ליום  31.12.2026",
+            ".2התחייבות היקף :המפרסם מתחייב להיקף רכישות מצטבר",
+            ".5סטייה של עד חמישה אחוזים לא תיחשב הפרה",  # out of sequence: debris
+            ".3אספקת רייטינג :הערוץ מתחייב לאספקה מצטברת",
+        ),
+    ])
+    assert [c.clause_id for c in clauses] == ["pre-1", "pre-2", "1", "2", "3"]
+    by_id = {c.clause_id: c for c in clauses}
+    assert "חמישה אחוזים" in by_id["2"].text  # debris attached, not a clause
+
+
 def test_false_heads_rejected() -> None:
     clauses = segment_pages([
         _page(

@@ -94,13 +94,21 @@ def test_removing_a_flight_is_confirmed_and_says_the_campaign_stays():
 
 
 def test_the_client_name_on_the_campaign_board_opens_the_client():
-    """The same name is a button on the tree and the money board, so it is here."""
+    """The same name is a button on the tree and the money board, so it is here.
+
+    The wiring is now two hops: the workspace binds its own setter into the
+    `on` bundle, and ClientsPanels (the markup half of the file-size split)
+    hands that bundle's opener to the board.
+    """
     board = read("CampaignBoard.jsx")
     assert "onClick={() => onOpenClient(campaign.advertiser)}" in board
     workspace = read("ClientsWorkspace.jsx")
-    assert "onOpenClient={setOpenClient}" in workspace
-    campaign_block = workspace.split("<CampaignBoard")[1].split("/>")[0]
-    assert "onOpenClient=" in campaign_block, "the board is handed the workspace's own opener"
+    assert "openClient: setOpenClient" in workspace
+    panels = read("ClientsPanels.jsx")
+    campaign_block = panels.split("<CampaignBoard")[1].split("/>")[0]
+    assert "onOpenClient={on.openClient}" in campaign_block, (
+        "the board is handed the workspace's own opener"
+    )
 
 
 def test_the_agency_column_reads_as_a_name_with_the_id_underneath():
@@ -111,7 +119,11 @@ def test_the_agency_column_reads_as_a_name_with_the_id_underneath():
     assert "<small className=\"clients-campaign-id\">{campaign.agency_id}</small>" in board
     assert "name not on file" in board, "an id with no agency behind it is a stated state"
     workspace = read("ClientsWorkspace.jsx")
-    assert "agencyIndex" in workspace and "agencies={agencies}" in workspace
+    assert "agencyIndex" in workspace, "the workspace still owns the name index"
+    panels = read("ClientsPanels.jsx")
+    assert "agencies={data.agencies}" in panels, (
+        "the board receives the index through the panels' data bundle"
+    )
 
 
 def test_the_weekday_chips_keep_the_order_the_endpoint_sends():

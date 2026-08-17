@@ -177,12 +177,19 @@ def _delivery_slice(ob: Obligation, inputs: Inputs,
 
 
 def _floor_sums(sliced: pd.DataFrame) -> dict[str, Any]:
+    # A slice born of an empty world (a bare DataFrame carries no columns at
+    # all) must sum to nothing rather than crash on the missing air_state.
+    if "air_state" not in sliced.columns:
+        sliced = sliced.iloc[0:0].assign(air_state=pd.Series(dtype=str))
     aired = sliced[sliced["air_state"] == "aired"]
     scheduled = sliced[sliced["air_state"] == "scheduled"]
     unknown = sliced[sliced["air_state"] == "unknown"]
 
     def _sum(frame: pd.DataFrame, column: str) -> float:
-        return float(pd.to_numeric(frame.get(column), errors="coerce").fillna(0).sum())
+        series = frame.get(column)
+        if series is None:  # column absent entirely: nothing to sum
+            return 0.0
+        return float(pd.to_numeric(series, errors="coerce").fillna(0).sum())
 
     return {
         "aired_spend": round(_sum(aired, "spend_ils"), 2),
@@ -196,6 +203,31 @@ def _floor_sums(sliced: pd.DataFrame) -> dict[str, Any]:
 
 
 # --------------------------------------------------------------- pace & alarm
+
+def no_basis_pace(w_from: Optional[date], w_to: Optional[date], today: date,
+                  reason: str) -> dict[str, Any]:
+    """The pace block for an obligation with nothing on file to measure.
+
+    The same law as the day floor, one level up: a counterparty with no
+    resolved campaigns, or campaigns with no delivery ledger in the window,
+    has NO measurement — not a measured zero. Reporting zero here would alarm
+    a commitment as materially behind pace on the strength of an absence.
+    """
+    return {
+        "expected_to_date": None,
+        "window_fraction": None,
+        "ratio": None,
+        "window_closed": bool(w_to and today > w_to),
+        "alarm": UNKNOWN,
+        "alarm_reason": reason,
+        "used_default_bands": False,
+        "projection": None,
+        "projection_method": None,
+    }
+
+
+NO_DELIVERY_REASON = "אין רשומות אספקה בחלון המדידה; היעדר מקור אינו אפס"
+
 
 def _expected_fraction(w_from: Optional[date], w_to: Optional[date], today: date) -> Optional[float]:
     if not w_from or not w_to or w_to < w_from:

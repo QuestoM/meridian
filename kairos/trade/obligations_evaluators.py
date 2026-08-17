@@ -21,6 +21,7 @@ from typing import Any, Callable, Mapping, Optional
 from kairos.trade.obligations import (
     AT_RISK,
     DEFAULT_RISK_RATIO,
+    NO_DELIVERY_REASON,
     ON_TRACK,
     UNKNOWN,
     WATCH,
@@ -30,6 +31,7 @@ from kairos.trade.obligations import (
     _floor_sums,
     _pace_block,
     campaigns_for,
+    no_basis_pace,
 )
 
 # The audience wording the planned-break-rating basis can honestly serve.
@@ -42,9 +44,16 @@ def _eval_budget(ob: Obligation, inputs: Inputs, agreement_window: Mapping[str, 
     amount = ob.params.get("amount", {})
     target = float(amount.get("amount") or 0) or None
     w_from, w_to = ob.window_dates(agreement_window)
-    counted = sums["aired_spend"]
-    pace = _pace_block(counted, sums["scheduled_spend"], target, w_from, w_to,
-                       inputs.today, _tolerance(ob))
+    if sliced.empty:
+        # No ledger rows resolve for this side in this window. That is an
+        # absence of measurement, not a measured zero: alarming "materially
+        # behind pace" off nothing on file would be an invented number.
+        counted = None
+        pace = no_basis_pace(w_from, w_to, inputs.today, NO_DELIVERY_REASON)
+    else:
+        counted = sums["aired_spend"]
+        pace = _pace_block(counted, sums["scheduled_spend"], target, w_from, w_to,
+                           inputs.today, _tolerance(ob))
     return {
         "target": {"value": target, "unit": "ILS",
                    "basis": str(amount.get("basis", "unstated"))},
@@ -89,6 +98,23 @@ def _eval_trp(ob: Obligation, inputs: Inputs, agreement_window: Mapping[str, Any
             "used_default_bands": False,
         }
     w_from, w_to = ob.window_dates(agreement_window)
+    if sliced.empty:
+        # Same law as the budget floor: no ledger rows is no measurement.
+        counted = None
+        pace = no_basis_pace(w_from, w_to, inputs.today, NO_DELIVERY_REASON)
+        return {
+            "target": {"value": target, "unit": "rating_points", "audience": audience,
+                       "incomplete": target is None},
+            "standing": {
+                "counted": counted, "unit": "rating_points",
+                "scheduled_ahead": sums["scheduled_points"],
+                "floor_note": "רצפת מדידה: ימים ללא מקור אינם נספרים כאפס",
+                "unknown_days": sums["unknown_days"],
+                "basis": "רייטינג ברייק מתוכנן מיומן השידור, בסיס כלל הצופים",
+            },
+            "resolution": resolution,
+            **pace,
+        }
     counted = sums["aired_points"]
     forecast_forward = None
     if inputs.forecast_points is not None:

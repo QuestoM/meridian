@@ -87,10 +87,19 @@ def a_spot(key: int, house: str, break_id: str = "b1", campaign: str = CAMPAIGN)
 # --------------------------------------------------------------------------
 
 def test_the_shipped_rule_file_parses_with_the_wider_vocabulary():
-    """Widening the rule file must not have cost the rule already in it."""
+    """Widening the rule file must not have cost the rule already in it.
+
+    The file is no longer the default row alone: approving a trade agreement
+    binds TRD:-prefixed frequency rules into this same store — that is the
+    point of binding. The invariant is that nothing is skipped, the
+    conservative default survives under its own name, and none of it smuggles
+    in a pair rule.
+    """
     ruleset = load_frequency_rules()
     assert ruleset.skipped == []
-    assert [rule.rule_id for rule in ruleset.rules] == ["DEFAULT_ONE_PER_BREAK"]
+    ids = [rule.rule_id for rule in ruleset.rules]
+    assert "DEFAULT_ONE_PER_BREAK" in ids
+    assert all(name == "DEFAULT_ONE_PER_BREAK" or name.startswith("TRD:") for name in ids)
     assert pair_rules(ruleset.rules) == []
 
 

@@ -263,7 +263,9 @@ def test_the_record_no_longer_carries_a_control_that_leads_to_the_grid() -> None
 def test_the_records_tab_is_only_ever_entered_with_a_row_id_in_hand() -> None:
     """The tab now receives the row, so it can open one card rather than all."""
     workspace = WORKSPACE.read_text(encoding="utf-8")
-    assert "openAdvertiserId={openRuleId}" in workspace
+    assert "ruleId: openRuleId" in workspace, "the workspace binds the row id into the open bundle"
+    panels = (WORKSPACE.parent / "ClientsPanels.jsx").read_text(encoding="utf-8")
+    assert "openAdvertiserId={open.ruleId}" in panels, "the records panel receives it"
     assert "function openRuleCard(advertiserId)" in workspace
     panel = PANEL.read_text(encoding="utf-8")
     assert "openAdvertiserId" in panel

@@ -38,6 +38,27 @@ NET_BAND = 0.10          # shipped plan repriced under a draw: net within +/-10%
 BREAKS_BAND = 0.15       # re-optimized total breaks within +/-15% of the shipped total
 
 
+@pytest.fixture(autouse=True)
+def _real_inventory(monkeypatch):
+    """This suite honours the real inventory, against the suite-wide neutral.
+
+    The repo conftest points DEFAULT_INVENTORY_PATH at a "not uploaded"
+    sentinel so thousands of unit tests stop depending on the ambient operator
+    file. This suite is the exception by definition: it replays the SHIPPED
+    plan against the same inputs the plan's freshness stamp names, and the
+    stamp was written by a real recompute that read the real file. Under the
+    neutral sentinel the inventory fingerprint resolves ABSENT, every stamped
+    plan reads stale on 'inventory data', and the suite fails for an input
+    that never moved.
+    """
+    from kairos.optimize import inventory
+
+    monkeypatch.setattr(
+        inventory, "DEFAULT_INVENTORY_PATH",
+        inventory.ROOT / "data" / "Spots - inventory.csv",
+    )
+
+
 @pytest.fixture(scope="module")
 def ctx():
     return lib.load_context()

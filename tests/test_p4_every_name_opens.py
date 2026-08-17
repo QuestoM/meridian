@@ -386,10 +386,16 @@ def test_a_break_the_ledger_does_not_rank_stays_a_label(rendered, payload):
 
 
 def test_the_workspace_supplies_both_openers(payload):
-    """The other half: the two callbacks are handed down by the surface itself."""
+    """The other half: the two callbacks are handed down by the surface itself.
+
+    Two hops since the file-size split: the workspace binds openAgencyRecord
+    into the `on` bundle, and ClientsPanels hands it to the board.
+    """
     workspace = (CLIENTS / "ClientsWorkspace.jsx").read_text(encoding="utf-8")
-    board = workspace.split("<CampaignBoard")[1].split("/>")[0]
-    assert "onOpenAgency={openAgencyRecord}" in board
+    assert "openAgency: openAgencyRecord" in workspace
+    panels = (CLIENTS / "ClientsPanels.jsx").read_text(encoding="utf-8")
+    board = panels.split("<CampaignBoard")[1].split("/>")[0]
+    assert "onOpenAgency={on.openAgency}" in board
     assert "setActive('agencies')" in workspace, "the opener has to reach the agency records view"
     money = (CLIENTS / "MoneyBoard.jsx").read_text(encoding="utf-8")
     assert "onOpenCampaign={(name) => onDrill({ group: 'campaigns', key: name })}" in money

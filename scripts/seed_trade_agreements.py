@@ -152,34 +152,43 @@ def _compile_and_bind(agreement_id: str, manifest: dict) -> None:
     print(f"    approved {manifest['version_id']}: bound {bound}")
 
 
-def main() -> None:
+def main(only: str | None = None) -> None:
     print(f"Seeding into {trade_store.agreements_root()}")
+
+    def seed_if(**kwargs: object) -> None:
+        # --only <corpus_id> seeds one agreement into an existing store; the
+        # store generates fresh ids on every create, so a blind rerun of the
+        # whole list would duplicate every agreement already there.
+        if only and kwargs.get("corpus_id") != only:
+            return
+        seed(**kwargs)  # type: ignore[arg-type]
+
     # Windows use starts_on/ends_on because that is what the store normalises
     # and what every agreement created through the API carries. One agreement
     # below is deliberately open-ended, so the surface is exercised against the
     # FOREVER marker rather than only against closed windows.
-    seed(
+    seed_if(
         corpus_id="heb-annual-framework-2026",
         title="הסכם מסגרת שנתי — אופק מדיה 2026",
         level="agency_framework",
         counterparty={"counterparty_type": "agency", "agency": "אופק מדיה בע\"מ"},
         window={"starts_on": "2026-01-01", "ends_on": "2026-12-31"},
     )
-    seed(
+    seed_if(
         corpus_id="heb-contradictory-2026",
         title="הסכם מסגרת — קבוצת ריטייל 2026",
         level="agency_framework",
         counterparty={"counterparty_type": "agency", "agency": "קבוצת ריטייל מדיה"},
         window={"starts_on": "2026-01-01", "ends_on": "2026-12-31"},
     )
-    seed(
+    seed_if(
         corpus_id="heb-edge-stress-2026",
         title="הסכם מפרסם — נובה פארם 2026",
         level="advertiser",
         counterparty={"counterparty_type": "advertiser", "advertiser": "Nova Pharm בע\"מ"},
         window={"starts_on": "2026-03-01", "ends_on": "2027-02-28"},
     )
-    seed(
+    seed_if(
         corpus_id="heb-scanned-smallbiz-2026",
         title="הסכם מפרסם — מאפיית שדות 2026",
         level="advertiser",
@@ -188,7 +197,7 @@ def main() -> None:
         review_all=True,
         approve=True,
     )
-    seed(
+    seed_if(
         corpus_id="heb-sponsorship-bundle-2026",
         title="חבילת חסויות — בנק הבירה 2026",
         level="advertiser",
@@ -196,7 +205,28 @@ def main() -> None:
         window={"starts_on": "2026-05-01", "ends_on": None},
         extract=False,
     )
+    # The one agreement whose counterparty is a REAL engine advertiser: סנו
+    # has measured campaigns and As-Run delivery on file, so its approved
+    # commitments track live standing (delivered, pace, projected shortfall)
+    # instead of the delivered-nothing every invented counterparty shows. The
+    # advertiser string must match the campaign store exactly — that is the
+    # obligations join key; the document's legal name (סנו אינטרנשיונל בע"מ)
+    # defines "סנו" as its shorthand for exactly this reason.
+    seed_if(
+        corpus_id="heb-sano-annual-2025",
+        title="הסכם מסגרת שנתי — סנו 2025—2026",
+        level="advertiser",
+        counterparty={"counterparty_type": "advertiser_via_agency",
+                      "advertiser": "סנו", "agency": "AGY_04"},
+        window={"starts_on": "2025-04-01", "ends_on": "2026-12-31"},
+        review_all=True,
+        approve=True,
+    )
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--only", help="seed a single corpus document by id")
+    main(only=parser.parse_args().only)

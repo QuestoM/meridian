@@ -289,7 +289,12 @@ def load_frequency_rules(path: str | Path | None = None) -> FrequencyRuleSet:
     result = FrequencyRuleSet()
     if not target.exists():
         return result
-    with target.open("r", encoding="utf-8", newline="") as handle:
+    # utf-8-sig, not utf-8: a writer that stamps a byte-order mark (pandas
+    # to_csv with utf-8-sig, Excel) turns the first header into "﻿rule_id"
+    # under a plain utf-8 read, every rule_id lookup silently misses, and the
+    # `rule_id or limit_type` fallback then renames EVERY rule to its limit
+    # type — the default included. utf-8-sig reads both forms.
+    with target.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
         for row in reader:
             rule, reason = rule_from_row(row)

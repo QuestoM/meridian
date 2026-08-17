@@ -1,5 +1,5 @@
 import React from 'react';
-import { Code, Figure, Name } from '../shell/bidi';
+import { Code, Figure, Name, isolate } from '../shell/bidi';
 import { formatDay, formatDayList } from '../shell/dates';
 import { pageText } from '../shell/surface-helpers';
 import './advertiser-airings-result.css';
@@ -93,7 +93,7 @@ export default function AdvertiserAiringsResult({ toolTrace, locale }) {
             ))}</tbody>
           </table>
           {result.trace_airings_omitted > 0 ? (
-            <p>{pageText(locale, `${result.trace_airings_omitted} more sourced airings are omitted from this compact card.`, `עוד ${result.trace_airings_omitted} שידורים ממקורות אינם מוצגים בכרטיס המקוצר.`)}</p>
+            <p>{pageText(locale, `${isolate(result.trace_airings_omitted)} more sourced airings are omitted from this compact card.`, `עוד ${isolate(result.trace_airings_omitted)} שידורים ממקורות אינם מוצגים בכרטיס המקוצר.`)}</p>
           ) : null}
         </div>
       ) : null}

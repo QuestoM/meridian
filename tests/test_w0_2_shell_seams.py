@@ -35,6 +35,11 @@ DESTINATION_TREES = (
     "model",
     "history",
     "kai",
+    # The trade-agreement surface arrived after the shell split: a tree of its
+    # own because it is a destination (documents, review, obligations,
+    # simulation) rather than a widget of Commercial's — Commercial mounts it
+    # lazily by design.
+    "trade",
 )
 
 # Two paths stay at the top level of src/ and each has a reason.

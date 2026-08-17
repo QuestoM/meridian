@@ -44,6 +44,12 @@ _RECITALS = re.compile(r"^הואיל\b")
 # usually glued straight onto the Hebrew text (" 1.2נקודת רייטינג").
 _DOTTED_HEAD = re.compile(r"^[\"']?\s*(\d{1,3}(?:\.\d{1,3})+)(?=\D|$)")
 _BARE_HEAD = re.compile(r"^(\d{1,3})[.)](?=\s|[א-ת\"'])")
+# pdftotext mirrors a flat clause head inside an RTL line: the LTR run "1."
+# comes back as ".1" — dot before digit — once the bidi controls are
+# stripped. Dotted heads (1.1) survive because a digits-dot-digits run is
+# extracted as one atomic number, so only the bare form needs the mirrored
+# pattern; the same strictly-increasing acceptance keeps decimals out.
+_BARE_HEAD_REVERSED = re.compile(r"^\.(\d{1,3})(?=\s|[א-ת\"'])")
 _SAIF_HEAD = re.compile(r"^סעיף\s+:?\s*(\d{1,3})(?![\d.])")
 
 _PIPE_ROW = re.compile(r"^\|.+\|$")
@@ -208,7 +214,8 @@ class _Segmenter:
                     self.parties_open = False
                     self._open(m.group(1), page, stripped)
                     return
-            m = _BARE_HEAD.match(stripped) or _SAIF_HEAD.match(stripped)
+            m = (_BARE_HEAD.match(stripped) or _BARE_HEAD_REVERSED.match(stripped)
+                 or _SAIF_HEAD.match(stripped))
             if m and self._bare_ok(int(m.group(1))):
                 self.last_bare = int(m.group(1))
                 self.in_preamble = False

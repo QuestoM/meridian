@@ -92,7 +92,13 @@ def test_the_restore_set_and_the_vocabulary_are_not_the_same_register():
     # reason the other two do, only more so: the decision ledger records what a
     # channel owes a client, and rolling that back because somebody restored a
     # settings version would erase a debt nobody decided to erase.
-    assert added == {"campaigns", "plan_targets", "make_goods"}
+    #
+    # frequency_rules joined when trade-agreement approval began binding TRD:
+    # rules into that store. It stays out of the restore set for the same
+    # reason again: those rows exist because an agreement was approved, and
+    # they leave only when the agreement is superseded or withdrawn — never
+    # because somebody restored an unrelated settings version.
+    assert added == {"campaigns", "plan_targets", "make_goods", "frequency_rules"}
     for name in added:
         assert name not in version_store._LOGICAL_ORDER, (
             f"{name} joined the full restore set, so restoring any version now "

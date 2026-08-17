@@ -333,8 +333,12 @@ def test_the_workspace_owns_the_drill_and_refuses_a_row_that_is_not_there():
     assert "const [drill, setDrill] = useState(NO_DRILL);" in source
     assert "const target = moneyTarget(rows.find((row) => row.advertiser === advertiser));" in source
     assert "if (!target) {\n      return;\n    }" in source
-    assert "drill={drill}" in source
-    assert "onDrill={setDrill}" in source
+    # The drill reaches the board through the panels split: the workspace binds
+    # its state and setter into the bundles, and ClientsPanels wires them on.
+    assert "drill: setDrill" in source
+    panels = (WORKSPACE.parent / "ClientsPanels.jsx").read_text(encoding="utf-8")
+    assert "drill={data.drill}" in panels
+    assert "onDrill={on.drill}" in panels
 
 
 def test_the_record_offers_the_control_only_where_there_are_rows_behind_it():
