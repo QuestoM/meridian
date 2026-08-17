@@ -159,8 +159,31 @@ def test_status_machine_refuses_illegal_moves_and_documents_freeze(store):
     trade_review.decide_instance(aid, doc_id, "i-commission", "confirmed", "dana")
     trade_review.acknowledge_unmapped(aid, doc_id, "3.1", "dana", note="מנוהל ידנית")
     trade_review.approve(aid, actor="dana")
-    with pytest.raises(ValueError, match="editable"):
-        trade_store.attach_document(aid, filename="late.pdf", payload=b"x", actor="dana")
+    # An amendment arriving on an APPROVED agreement is legal - that is how
+    # appendices and mid-flight changes arrive in this market - and it sends
+    # the agreement back to review while the approved version keeps governing.
+    late = trade_store.attach_document(
+        aid, filename="amendment.pdf", payload=b"%PDF-1.4 amendment", actor="dana",
+    )
+    head = trade_store.load_head(aid)
+    assert head["status"] == trade_store.IN_REVIEW
+    assert head["current_version_id"], "the approved version keeps governing until superseded"
+    assert any(d["document_id"] == late["document_id"] for d in head["documents"])
+
+
+def test_non_pdf_uploads_are_refused_by_content_not_filename(store):
+    head = trade_store.create(
+        title="הסכם בדיקה", level="advertiser", actor="dana",
+        window={"starts_on": "2026-01-01", "ends_on": "2026-12-31"},
+    )
+    aid = head["agreement_id"]
+    # An xlsx renamed to .pdf is still an xlsx: refusal reads the bytes.
+    xlsx_magic = b"PK\x03\x04 not a pdf at all"
+    with pytest.raises(ValueError, match="PDF"):
+        trade_store.attach_document(aid, filename="deal.pdf", payload=xlsx_magic, actor="dana")
+    with pytest.raises(ValueError, match="PDF"):
+        trade_store.attach_document(aid, filename="deal.xlsx", payload=xlsx_magic, actor="dana")
+    assert trade_store.load_head(aid).get("documents", []) == []
 
 
 def test_a_new_extraction_resets_review_and_archives_the_old(store):

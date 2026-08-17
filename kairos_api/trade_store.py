@@ -269,15 +269,34 @@ def attach_document(
     actor: str,
     ingest_route: str = "digital",
 ) -> dict[str, Any]:
-    """Attach an immutable source document to a draft/in-review agreement."""
+    """Attach an immutable source document to an agreement.
+
+    Draft and in-review agreements accept documents directly. An APPROVED
+    agreement accepts one too - that is how an amendment or an appendix
+    arrives in this market - and the arrival sends the agreement back to
+    review: the new document's clauses must pass the completeness gate like
+    any others, while the approved version KEEPS GOVERNING until a new
+    approval supersedes it (binding moves only on approve/supersede, never
+    on attach).
+    """
     head = load_head(agreement_id)
-    if head["status"] not in (DRAFT, IN_REVIEW):
+    if head["status"] not in (DRAFT, IN_REVIEW, APPROVED):
         raise ValueError(
-            f"documents attach while an agreement is editable; {agreement_id} is "
-            f"{head['status']!r}"
+            "הסכם במצב "
+            f"{head['status']!r} "
+            "אינו מקבל מסמכים; מסמך מצטרף לטיוטה, לסקירה, או כתיקון להסכם מאושר"
         )
     if not payload:
-        raise ValueError("an empty upload is not a document")
+        raise ValueError("קובץ ריק אינו מסמך")
+    # The reading pipeline consumes PDFs (digital or scanned). Anything else -
+    # a spreadsheet, a Word file, an image - would be stored happily and fail
+    # confusingly at extraction, so the refusal happens here, at the boundary,
+    # by content rather than by filename: a renamed .xlsx is still an xlsx.
+    if not bytes(payload[:5]) == b"%PDF-":
+        raise ValueError(
+            "הקובץ אינו PDF. המערכת קוראת הסכמים חתומים כקובצי PDF בלבד - "
+            "גם סרוקים; גיליון אלקטרוני או מסמך וורד יש לייצא ל־PDF תחילה"
+        )
     doc_id = "doc-" + uuid.uuid4().hex[:8]
     suffix = Path(str(filename or "")).suffix.lower() or ".pdf"
     target = _dir_for(agreement_id) / "documents" / f"{doc_id}{suffix}"
@@ -294,6 +313,14 @@ def attach_document(
     }
     head.setdefault("documents", []).append(entry)
     save_head(head, actor)
+    if head["status"] == APPROVED:
+        set_status(
+            agreement_id, IN_REVIEW, actor,
+            note=(
+                "מסמך נוסף הועלה (נספח או תיקון) וההסכם חזר לסקירה. "
+                "הגרסה המאושרת ממשיכה לחול עד שאישור חדש יחליף אותה."
+            ),
+        )
     return entry
 
 
