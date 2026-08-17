@@ -242,6 +242,14 @@ from kairos_api.trade_api import router as trade_router  # noqa: E402
 
 app.include_router(trade_router)
 
+# Competing versions of one broadcast day: several people propose, the versions
+# are compared N at a time with the reasoning behind every figure exposed, and
+# exactly one is adopted into the plan of record with its annotation on the
+# record beside the alternatives it beat.
+from kairos_api.day_proposal_api import router as day_proposal_router  # noqa: E402
+
+app.include_router(day_proposal_router)
+
 # Catalog and scenario endpoints live in their own domain routers. The moved
 # builders are imported back under their original names so existing references
 # (tests, the startup warm-up below) keep working against the SAME objects,
@@ -344,6 +352,9 @@ app.include_router(pacing_alerts_router)
 
 from kairos_api.model_console_api import router as model_console_router  # noqa: E402
 app.include_router(model_console_router)
+
+from kairos_api.forecast_api import router as forecast_router  # noqa: E402
+app.include_router(forecast_router)
 
 from kairos_api.history_api import timeline_router as history_timeline_router  # noqa: E402
 app.include_router(history_timeline_router)

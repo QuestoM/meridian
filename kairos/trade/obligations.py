@@ -67,6 +67,14 @@ class Inputs:
     agency_links: pd.DataFrame
     today: date
     preferred_rate: Optional[Callable[..., dict[str, Any]]] = None
+    # Optional forecast provider, called as ``forecast_points(counted=,
+    # scheduled=)`` with the obligation's measured points and its own
+    # not-yet-aired delivery rows. It returns the block
+    # kairos.trade.obligations_forecast.forward_line builds, so a TRP standing
+    # can carry a third projection line beside booked-forward and pace-forward.
+    # Absent (the default) nothing changes: no line appears and every existing
+    # figure is byte-identical.
+    forecast_points: Optional[Callable[..., dict[str, Any]]] = None
 
 
 @dataclass
@@ -222,7 +230,8 @@ def _alarm(ratio: Optional[float], window_closed: bool, tolerance_percent: Optio
 
 def _pace_block(counted: float, scheduled: float, target: Optional[float],
                 w_from: Optional[date], w_to: Optional[date], today: date,
-                tolerance_percent: Optional[float]) -> dict[str, Any]:
+                tolerance_percent: Optional[float],
+                forecast_forward: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     fraction = _expected_fraction(w_from, w_to, today)
     expected = (target * fraction) if (target and fraction is not None) else None
     ratio = (counted / expected) if expected else None
@@ -241,6 +250,12 @@ def _pace_block(counted: float, scheduled: float, target: Optional[float],
             "pace_forward": round(pace_forward, 2),
             "note": "התחזית המחייבת היא מדוד + מתוזמן; קצב-קדימה מוצג לצידה",
         }
+        # A third line, only when a forecast was actually available for these
+        # days (see kairos.trade.obligations_forecast). It rides BESIDE the two
+        # above and replaces neither: the committed projection stays booked
+        # points, because a model's expectation is not a booking.
+        if forecast_forward and forecast_forward.get("available"):
+            method["forecast_forward"] = forecast_forward
     return {
         "expected_to_date": round(expected, 2) if expected is not None else None,
         "window_fraction": round(fraction, 4) if fraction is not None else None,
@@ -310,8 +325,16 @@ def _eval_trp(ob: Obligation, inputs: Inputs, agreement_window: Mapping[str, Any
         }
     w_from, w_to = ob.window_dates(agreement_window)
     counted = sums["aired_points"]
+    forecast_forward = None
+    if inputs.forecast_points is not None:
+        try:
+            forecast_forward = inputs.forecast_points(
+                counted=counted, scheduled=sliced[sliced["air_state"] == "scheduled"],
+            )
+        except Exception as exc:  # noqa: BLE001 - a broken forecast must not break a standing
+            forecast_forward = {"available": False, "reason_en": str(exc)}
     pace = _pace_block(counted, sums["scheduled_points"], target, w_from, w_to,
-                       inputs.today, _tolerance(ob))
+                       inputs.today, _tolerance(ob), forecast_forward)
     return {
         "target": {"value": target, "unit": "rating_points", "audience": audience,
                    "incomplete": target is None},
