@@ -319,8 +319,20 @@ def main() -> None:
         caller = extract_provider.StageCaller(client=client, stats=stats,
                                              auth_mode=auth_mode)
         started = time.monotonic()
-        print(f"running {doc_id} ...", flush=True)
-        got = extract_run.run_pdf(pdf, caller, document_id=doc_id, agreement_id=doc_id)
+        # The corpus DECLARES each document's route. Detection cannot be trusted
+        # to rediscover it: the scanned agreement's PDF carries a text layer, so
+        # detection called it digital, read a layer nobody should trust, and
+        # scored zero. A declared scan is fed its page images.
+        declared = json.loads((directory / "render.json").read_text(encoding="utf-8"))
+        route = str(declared.get("ingest_route", "digital"))
+        images = sorted((directory / "pages").glob("page-*.png")) \
+            if route == "scanned-vision" else []
+        print(f"running {doc_id} ({route}) ...", flush=True)
+        got = extract_run.run_pdf(
+            pdf, caller, document_id=doc_id, agreement_id=doc_id,
+            force_route=route if route != "digital" else None,
+            page_images=images or None,
+        )
         elapsed = time.monotonic() - started
         records[doc_id] = {
             "score": score_document(truth, got),

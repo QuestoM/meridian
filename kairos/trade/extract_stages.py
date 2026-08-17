@@ -121,11 +121,23 @@ def classify_clauses(clauses: list[Clause], call: CallFn) -> dict[str, dict[str,
             tool_schema=CLASSIFY_TOOL_SCHEMA,
         )
         answered = set()
+        batch_ids = {c.clause_id for c in batch}
+        # A forced tool schema constrains the SHAPE the model aims at, not what
+        # a degraded turn actually emits: measured on the corpus, one batch came
+        # back as a list of bare strings instead of objects and killed a whole
+        # run. A malformed entry is skipped so the clause simply stays
+        # unanswered and falls to the single-clause retry, then to an honest
+        # unmapped disposition — never to a crash that loses the other 40
+        # clauses already paid for.
         for entry in result.get("classifications", []):
+            if not isinstance(entry, Mapping):
+                continue
             cid = str(entry.get("clause_id", ""))
-            labels = [str(l) for l in entry.get("labels", [])]
-            kept = [l for l in labels if l in valid]
-            if cid in {c.clause_id for c in batch} and kept:
+            raw_labels = entry.get("labels", [])
+            if not isinstance(raw_labels, (list, tuple)):
+                continue
+            kept = [str(l) for l in raw_labels if str(l) in valid]
+            if cid in batch_ids and kept:
                 out[cid] = {"labels": kept, "note": str(entry.get("note", ""))}
                 answered.add(cid)
         return [c for c in batch if c.clause_id not in answered]

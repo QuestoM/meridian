@@ -268,18 +268,33 @@ def run_pdf(
     document_id: str,
     agreement_id: str = "",
     progress: Optional[Callable[[str, dict[str, Any]], None]] = None,
+    force_route: Optional[str] = None,
+    page_images: Optional[list[Any]] = None,
 ) -> DocumentExtraction:
     """Ingest a PDF (or image set) and extract it end to end.
 
     ``caller`` is a StageCaller (extract_provider). The scanned route
     transcribes each page through the vision tier first and then follows the
     same segmentation path, so the completeness contract holds identically.
+
+    ``force_route`` and ``page_images`` exist because route DETECTION reads the
+    file it is given, and a scan that arrives with a text layer (a re-printed
+    fax, a PDF wrapped around images by a scanner's own software) will be
+    detected as digital and quietly read through a layer nobody should trust.
+    Measured on the corpus: the scanned agreement's PDF carried a text layer,
+    took the digital path, and scored zero. A caller that KNOWS the document is
+    a scan passes ``force_route="scanned-vision"`` with the page images.
     """
     from . import ingest as ingest_mod
     from . import segment as segment_mod
     from .extract_provider import image_block
 
-    result = ingest_mod.ingest_pdf(path)
+    if force_route == "scanned-vision" and page_images:
+        result = ingest_mod.ingest_images(page_images)
+    else:
+        result = ingest_mod.ingest_pdf(path)
+        if force_route == "scanned-vision":
+            result.route = "scanned-vision"
     if progress is not None:
         progress("ingest", {"route": result.route, "pages": result.page_count})
     if result.route == "scanned-vision":
