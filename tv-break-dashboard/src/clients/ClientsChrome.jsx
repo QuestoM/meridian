@@ -22,6 +22,7 @@ export const VIEW_LABELS = [
   { key: 'pacing', en: 'Delivery pace', he: 'קצב אספקה' },
   { key: 'advertisers', en: 'Pricing rules', he: 'כללי תמחור' },
   { key: 'agencies', en: 'Agency records', he: 'כרטיסי סוכנות' },
+  { key: 'agreements', en: 'Trade agreements', he: 'הסכמי סחר' },
 ];
 
 const VIEW_HEADERS = {
@@ -60,6 +61,12 @@ const VIEW_HEADERS = {
     he: 'כרטיסי סוכנות',
     descriptionEn: 'Agency terms, contacts and the clients linked to each commercial account.',
     descriptionHe: 'תנאי סוכנות, אנשי קשר והלקוחות המקושרים לכל חשבון מסחרי.',
+  },
+  agreements: {
+    en: 'Trade agreements',
+    he: 'הסכמי סחר',
+    descriptionEn: 'Signed commercial agreements read into reviewable rules, approved into versions, and measured as living commitments.',
+    descriptionHe: 'הסכמים מסחריים חתומים שנקראו לכללים לסקירה, אושרו לגרסאות, ונמדדים כהתחייבויות חיות.',
   },
 };
 

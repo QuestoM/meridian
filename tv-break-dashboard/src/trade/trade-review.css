@@ -1,0 +1,468 @@
+/* The review: the signed document beside the engine's reading of it.
+
+   The two-pane split is the whole point of the screen, so it is expressed as a
+   grid whose columns size themselves and whose panes scroll independently. The
+   coverage band sticks because a reviewer must never lose the count while
+   working down a fifty-clause agreement. */
+
+.trd-review-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.trd-review-title {
+  display: flex;
+  align-items: start;
+  gap: var(--space-3);
+  min-inline-size: 0;
+}
+
+.trd-review-title h2 {
+  max-inline-size: 46ch;
+  margin: 0;
+  font-size: var(--type-section-size);
+  line-height: var(--type-section-line);
+  text-wrap: balance;
+}
+
+.trd-review-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block: var(--space-1) 0;
+  color: var(--ink-subtle);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+.trd-doc-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* ------------------------------------------------------------- coverage band */
+
+.trd-coverage {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--z-sticky);
+  box-shadow: var(--shadow-1);
+}
+
+.trd-coverage-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.trd-coverage-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  min-inline-size: 0;
+}
+
+.trd-cov {
+  display: grid;
+  gap: var(--space-half);
+  min-inline-size: 0;
+}
+
+.trd-cov-label {
+  color: var(--ink-subtle);
+  font-size: var(--type-micro-size);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-micro-line);
+}
+
+.trd-cov-value {
+  color: var(--ink);
+  font-size: var(--type-section-size);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-section-line);
+  white-space: nowrap;
+}
+
+.trd-cov[data-complete='true'] .trd-cov-value {
+  color: var(--positive);
+}
+
+.trd-coverage-act {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.trd-gate-ready,
+.trd-gate-blocked {
+  margin-block: var(--space-4) 0;
+}
+
+.trd-gate-blocked {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--warning-line);
+  border-radius: var(--radius-control);
+  background: var(--warning-soft);
+}
+
+.trd-gate-lead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--warning);
+  font-size: var(--type-ui-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-ui-line);
+}
+
+.trd-blocker-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trd-blocker-list li {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.trd-blocker-ids {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* ---------------------------------------------------------------- the two panes */
+
+.trd-review-body {
+  display: grid;
+  grid-template-columns: minmax(24rem, 2fr) minmax(30rem, 3fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.trd-doc-pane {
+  position: sticky;
+  inset-block-start: 9rem;
+  max-block-size: calc(100vh - 12rem);
+  overflow: hidden;
+}
+
+.trd-doc-pane .card-body {
+  display: grid;
+  gap: var(--space-3);
+  max-block-size: calc(100vh - 14rem);
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.trd-pane-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.trd-pane-head h3,
+.trd-pane-head h4 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--type-section-size);
+  line-height: var(--type-section-line);
+}
+
+.trd-tabs,
+.trd-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.trd-clause-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.trd-search {
+  display: flex;
+  flex: 1 1 12rem;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  padding-inline: var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink-subtle);
+}
+
+.trd-search input {
+  min-block-size: var(--control-height);
+  border: 0;
+  background: transparent;
+}
+
+.trd-clause-list {
+  display: grid;
+  gap: var(--space-2);
+  overflow-y: auto;
+  padding-block-end: var(--space-2);
+}
+
+.trd-clause {
+  display: grid;
+  gap: var(--space-1-5);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  text-align: start;
+  cursor: pointer;
+}
+
+.trd-clause:hover {
+  background: var(--surface-raised);
+}
+
+.trd-clause[data-selected='true'] {
+  border-color: var(--accent);
+  background: var(--info-wash);
+}
+
+.trd-clause[data-disposition='unmapped'] {
+  border-color: var(--warning-line);
+  background: var(--warning-soft);
+}
+
+.trd-clause-head,
+.trd-clause-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.trd-clause-id {
+  font-family: var(--font-mono);
+  font-size: var(--type-data-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-data-line);
+}
+
+.trd-clause-seen {
+  display: flex;
+  align-items: center;
+  gap: var(--space-half);
+  color: var(--positive);
+  font-size: var(--type-micro-size);
+  line-height: var(--type-micro-line);
+}
+
+.trd-clause-unseen {
+  color: var(--ink-subtle);
+  font-size: var(--type-micro-size);
+  line-height: var(--type-micro-line);
+}
+
+.trd-clause-heading {
+  color: var(--ink);
+  font-size: var(--type-ui-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-ui-line);
+}
+
+.trd-clause-text {
+  display: block;
+  max-inline-size: 64ch;
+  color: var(--ink-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.trd-clause-reason {
+  display: block;
+  color: var(--ink-subtle);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+.trd-clause-page {
+  font-family: var(--font-mono);
+  font-size: var(--type-micro-size);
+}
+
+.trd-pdf {
+  inline-size: 100%;
+  min-block-size: 28rem;
+  block-size: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+}
+
+.trd-window-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+/* ------------------------------------------------------------- the proposal */
+
+.trd-proposal {
+  display: grid;
+  gap: var(--space-4);
+  min-inline-size: 0;
+  align-content: start;
+}
+
+.trd-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.trd-filter-count,
+.trd-group-count {
+  padding-inline: var(--space-1-5);
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  color: var(--ink-muted);
+  font-size: var(--type-micro-size);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: var(--type-micro-line);
+}
+
+.trd-selected-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--info-wash);
+  color: var(--info);
+  font-size: var(--type-ui-size);
+  line-height: var(--type-ui-line);
+}
+
+.trd-unmapped h4,
+.trd-family h5,
+.trd-bound-store h5,
+.trd-sim-line h5,
+.trd-sim-placement h5,
+.trd-sim-exposure h5,
+.trd-sim-skipped h5 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-block: 0 var(--space-2);
+  font-size: var(--type-emphasis-size);
+  line-height: var(--type-emphasis-line);
+  text-wrap: balance;
+}
+
+.trd-unmapped-list,
+.trd-skipped-list,
+.trd-bound-list,
+.trd-term-rows {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trd-unmapped-list li,
+.trd-skipped-list li,
+.trd-bound-list li,
+.trd-term-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  padding-block-end: var(--space-2);
+  border-block-end: 1px solid var(--line);
+}
+
+.trd-unmapped-list li:last-child,
+.trd-skipped-list li:last-child,
+.trd-bound-list li:last-child,
+.trd-term-rows li:last-child {
+  padding-block-end: 0;
+  border-block-end: 0;
+}
+
+.trd-unmapped-text,
+.trd-skipped-reason,
+.trd-term-row-sentence {
+  flex: 1 1 20ch;
+  min-inline-size: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.trd-term-row-inert {
+  flex: 1 1 100%;
+  color: var(--danger);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+.trd-group {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.trd-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--type-ui-size);
+  line-height: var(--type-ui-line);
+}
+
+.trd-conflict-summary .card-body {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.trd-conflict-summary p {
+  max-inline-size: 78ch;
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}

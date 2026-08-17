@@ -1,0 +1,315 @@
+/* The agreement record: identity, documents, approved versions, the terms it
+   holds, the live rules it owns, commitment standing, and the simulation.
+
+   Every group here is a bounded surface from the card contract, so the inset is
+   the contract's and not this sheet's. What this sheet owns is the arrangement
+   inside those surfaces and nothing else. */
+
+.trd-identity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--space-4);
+}
+
+.trd-identity-note {
+  max-inline-size: 78ch;
+  margin-block: var(--space-4) 0;
+  color: var(--ink-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.trd-line {
+  display: grid;
+  gap: var(--space-half);
+}
+
+/* -------------------------------------------------------------------- documents */
+
+.trd-doc-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A document row sits INSIDE a card, so it is a recessed well rather than a
+   second card floating on the first: muted surface, no outer hairline. The card
+   guard is right to refuse the surface+border+radius recipe here — a box that
+   looks like a card but knows nothing about the card's inset is exactly how a
+   row comes to run flush against a border. */
+.trd-doc-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+}
+
+.trd-doc-main {
+  display: flex;
+  flex: 1 1 18rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.trd-doc-name {
+  min-inline-size: 0;
+  color: var(--ink);
+  font-size: var(--type-ui-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-ui-line);
+  overflow-wrap: anywhere;
+}
+
+.trd-doc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: var(--type-data-line);
+}
+
+/* --------------------------------------------------------------------- versions */
+
+.trd-version-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr));
+  gap: var(--space-4);
+}
+
+.trd-version .card-body,
+.trd-obligation .card-body,
+.trd-family .card-body,
+.trd-bound-store .card-body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.trd-version[data-current='true'] {
+  border-color: var(--positive-line);
+}
+
+/* --------------------------------------------------------- terms and live rules */
+
+.trd-families,
+.trd-bound,
+.trd-obligations,
+.trd-sim {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.trd-term-row-name {
+  display: flex;
+  flex: 1 1 16rem;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  color: var(--ink);
+  font-size: var(--type-ui-size);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-ui-line);
+}
+
+/* ------------------------------------------------------------------ obligations */
+
+.trd-ob-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr));
+  gap: var(--space-4);
+}
+
+.trd-obligation[data-alarm='breached'] {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+}
+
+.trd-obligation[data-alarm='at_risk'],
+.trd-obligation[data-alarm='watch'] {
+  border-color: var(--warning-line);
+  background: var(--warning-soft);
+}
+
+.trd-ob-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.trd-ob-head h5 {
+  max-inline-size: 34ch;
+  margin: 0;
+  font-size: var(--type-emphasis-size);
+  line-height: var(--type-emphasis-line);
+  text-wrap: balance;
+}
+
+.trd-ob-figures {
+  display: grid;
+  grid-template-columns: minmax(9rem, auto) minmax(0, 1fr);
+  gap: var(--space-1-5) var(--space-4);
+  margin: 0;
+}
+
+.trd-ob-basis,
+.trd-ob-reason {
+  max-inline-size: 62ch;
+  margin: 0;
+  font-size: var(--type-data-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.trd-ob-basis {
+  color: var(--ink-subtle);
+}
+
+.trd-ob-reason {
+  color: var(--ink-muted);
+}
+
+.trd-ob-method {
+  display: grid;
+  gap: var(--space-1-5);
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+}
+
+.trd-ob-method-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  color: var(--ink-muted);
+  font-size: var(--type-ui-size);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: var(--type-ui-line);
+}
+
+.trd-ob-default {
+  display: flex;
+  align-items: start;
+  gap: var(--space-2);
+  max-inline-size: 68ch;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--info-line);
+  border-radius: var(--radius-control);
+  background: var(--info-soft);
+  color: var(--info);
+  font-size: var(--type-data-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.trd-ob-default svg {
+  flex: 0 0 auto;
+}
+
+/* ------------------------------------------------------------------ simulation */
+
+.trd-sim-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.trd-sim-headline p {
+  max-inline-size: 74ch;
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-emphasis-size);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-emphasis-line);
+  text-wrap: pretty;
+}
+
+.trd-sim-money {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-4);
+}
+
+.trd-sim-blocks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+  gap: var(--space-4);
+}
+
+.trd-sim-block {
+  display: grid;
+  grid-template-columns: minmax(10rem, auto) minmax(0, 1fr);
+  gap: var(--space-1-5) var(--space-4);
+  margin: 0;
+}
+
+.trd-sim-basis {
+  max-inline-size: 74ch;
+  margin: 0;
+  color: var(--ink-subtle);
+  font-size: var(--type-data-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.trd-sim-unknown,
+.trd-sim-refused {
+  display: flex;
+  align-items: start;
+  gap: var(--space-2);
+  max-inline-size: 74ch;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--warning-line);
+  border-radius: var(--radius-control);
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: var(--type-data-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.trd-sim-unknown svg,
+.trd-sim-refused svg {
+  flex: 0 0 auto;
+}
+
+.trd-sim-exposure ul {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding-inline-start: var(--space-5);
+}
+
+.trd-sim-exposure li {
+  display: grid;
+  gap: var(--space-half);
+  max-inline-size: 74ch;
+  color: var(--ink);
+  font-size: var(--type-ui-size);
+  line-height: var(--type-ui-line);
+}
+
+.trd-skipped-name {
+  flex: 0 0 auto;
+  color: var(--ink);
+  font-size: var(--type-ui-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-ui-line);
+}

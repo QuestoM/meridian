@@ -1,0 +1,327 @@
+/* One proposed term as a reviewable card.
+
+   The strongest visual statement on this surface belongs to a term that will NOT
+   act. That is deliberate: everything else on the card describes a rule that is
+   going to do something, and a rule that looks binding and moves nothing is the
+   only failure here that costs real money quietly. It gets the danger family in
+   full — foreground, boundary and wash together — never a stripe down one edge. */
+
+.trd-term {
+  scroll-margin-block-start: 10rem;
+}
+
+.trd-term[data-highlighted='true'] {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-1);
+}
+
+.trd-term .card-body {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.trd-term-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.trd-term-title {
+  display: grid;
+  gap: var(--space-half);
+  min-inline-size: 0;
+}
+
+.trd-term-title h4 {
+  max-inline-size: 40ch;
+  margin: 0;
+  font-size: var(--type-emphasis-size);
+  line-height: var(--type-emphasis-line);
+  text-wrap: balance;
+}
+
+.trd-term-id,
+.trd-ob-id {
+  color: var(--ink-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--type-micro-size);
+  line-height: var(--type-micro-line);
+  overflow-wrap: anywhere;
+}
+
+.trd-term-marks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  justify-content: end;
+}
+
+.trd-term-sentence {
+  max-inline-size: 68ch;
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-body-size);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.trd-term-scope {
+  max-inline-size: 68ch;
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-ui-size);
+  line-height: var(--type-ui-line);
+}
+
+/* ------------------------------------------------------- a term that will not act */
+
+.trd-inert {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--danger-line);
+  border-radius: var(--radius-control);
+  background: var(--danger-soft);
+}
+
+.trd-inert-lead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--type-ui-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-ui-line);
+}
+
+.trd-inert ul {
+  display: grid;
+  gap: var(--space-1-5);
+  margin: 0;
+  padding-inline-start: var(--space-5);
+}
+
+.trd-inert li {
+  max-inline-size: 68ch;
+  color: var(--danger);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.trd-missing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--warning-line);
+  border-radius: var(--radius-control);
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: var(--type-ui-size);
+  line-height: var(--type-ui-line);
+}
+
+.trd-missing svg {
+  flex: 0 0 auto;
+}
+
+/* ---------------------------------------------------------------- a contradiction */
+
+.trd-conflict {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+}
+
+.trd-conflict.open {
+  border-color: var(--warning-line);
+  background: var(--warning-soft);
+}
+
+.trd-conflict-lead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-ui-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-ui-line);
+}
+
+.trd-conflict.open .trd-conflict-lead {
+  color: var(--warning);
+}
+
+.trd-conflict-body {
+  max-inline-size: 72ch;
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.trd-conflict-winner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+/* ------------------------------------------------------------ provenance and meta */
+
+.trd-term-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.trd-meta-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.trd-term-rules,
+.trd-term-window,
+.trd-term-reason,
+.trd-citations {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  min-inline-size: 0;
+}
+
+.trd-citation {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  max-inline-size: 52ch;
+  min-block-size: var(--control-height);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+  text-align: start;
+  text-transform: none;
+}
+
+.trd-citation:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.trd-citation-quote {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.trd-scope {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.trd-scope dt,
+.trd-params dt,
+.trd-ob-figures dt,
+.trd-sim-block dt {
+  color: var(--ink-subtle);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+.trd-scope dd,
+.trd-params dd,
+.trd-ob-figures dd,
+.trd-sim-block dd {
+  min-inline-size: 0;
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-ui-size);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: var(--type-ui-line);
+  overflow-wrap: anywhere;
+}
+
+.trd-term-note,
+.trd-term-edited {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-inline-size: 72ch;
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+  text-wrap: pretty;
+}
+
+.trd-term-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-block-start: var(--space-2);
+  border-block-start: 1px solid var(--line);
+}
+
+.trd-term-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.trd-fields {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+}
+
+.trd-params {
+  display: grid;
+  grid-template-columns: minmax(8rem, auto) minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+}
+
+.trd-param-missing {
+  color: var(--ink-subtle);
+}
+
+.trd-param-json {
+  display: block;
+  max-block-size: 12rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--type-data-size);
+  line-height: var(--type-body-line);
+}

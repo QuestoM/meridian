@@ -46,6 +46,7 @@ export const CONTEXT_ITEMS = {
     { id: 'pacing', en: 'Delivery', he: 'אספקה', target: { view: 'Commercial', params: { clients: 'pacing' } } },
     { id: 'advertisers', en: 'Advertisers', he: 'מפרסמים', target: { view: 'Commercial', params: { clients: 'advertisers' } } },
     { id: 'agencies', en: 'Agencies', he: 'סוכנויות', target: { view: 'Commercial', params: { clients: 'agencies' } } },
+    { id: 'agreements', en: 'Trade agreements', he: 'הסכמי סחר', target: { view: 'Commercial', params: { clients: 'agreements' } } },
   ],
   Sources: [
     { id: 'inputs', en: 'Inputs', he: 'קלטים', target: { view: 'Sources', params: { sources: 'inputs' } } },
@@ -116,7 +117,7 @@ const VALID_VALUES = {
   plan: new Set(['objective', 'run', 'compare', 'publish', 'supply', 'board']),
   broadcast: new Set(['day', 'pods', 'library', 'decisions']),
   breakView: new Set(['library', 'day', 'pod']),
-  clients: new Set(['clients', 'money', 'campaigns', 'pacing', 'advertisers', 'agencies']),
+  clients: new Set(['clients', 'money', 'campaigns', 'pacing', 'advertisers', 'agencies', 'agreements']),
   sources: new Set(['inputs', 'files', 'downloads']),
   source: new Set(['all', 'in_use', 'shadowed', 'not_read', 'empty', 'invalid', 'missing']),
   sourceView: new Set(['inputs', 'files', 'downloads']),

@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { LoadingState } from '../studio';
 import { WALLS, fetchSession, payloadCanEdit } from '../session';
 import { pageText } from '../shell/format';
 import { MousePointerClick } from 'lucide-react';
@@ -9,6 +10,10 @@ import CampaignRollupPanel from './CampaignRollupPanel';
 import ClientRecord from './ClientRecord';
 import ClientTree from './ClientTree';
 import { ClientsHeader, ClientsLoadFailure, ClientsViewStrip, VIEW_LABELS } from './ClientsChrome';
+// The trade-agreement surface is the heaviest context this destination holds (a
+// PDF pane, the term language, the review machinery), and most sessions never
+// open it, so it loads on demand rather than riding in the Commercial chunk.
+const AgreementsPanel = lazy(() => import('../trade/AgreementsPanel'));
 import MoneyBoard from './MoneyBoard';
 import OnboardClientFlow from './OnboardClientFlow';
 import PacingWorkspace from './pacing/PacingWorkspace';
@@ -383,6 +388,19 @@ export default function ClientsWorkspace({
                 onOpened={() => setOpenAgencyId('')}
                 onGlobalRefresh={onGlobalRefresh}
               />
+            </div>
+          ) : null}
+          {active === 'agreements' ? (
+            <div id="commercial-panel-agreements" role="tabpanel" aria-labelledby="commercial-tab-agreements" tabIndex={0}>
+              <Suspense fallback={<LoadingState title={copy.loading} />}>
+                <AgreementsPanel
+                  locale={locale}
+                  notify={notify}
+                  canEdit={gate.canEdit}
+                  editRefusal={gate.reason}
+                  refreshKey={refreshKey}
+                />
+              </Suspense>
             </div>
           ) : null}
         </div>

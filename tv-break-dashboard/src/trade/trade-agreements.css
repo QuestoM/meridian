@@ -1,0 +1,362 @@
+/* The trade-agreement surface: the list, the intake dialog, and the field and
+   chip vocabulary the review and record screens share.
+
+   Layout only. Every colour, radius, target size and step of spacing is a role
+   token, so a change to the system reaches this surface without being retyped
+   here. Line breaking is never drawn: measures are set in ch, grids size their
+   own columns, flex children that must wrap carry min-inline-size: 0, and long
+   machine strings break inside themselves rather than pushing a column wide. */
+
+.trd-panel,
+.trd-detail,
+.trd-review {
+  display: grid;
+  gap: var(--space-6);
+  align-content: start;
+}
+
+.trd-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.trd-count {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+.trd-refusal p {
+  margin: 0;
+  color: var(--warning);
+}
+
+/* ------------------------------------------------------------ the agreement card
+
+   The card is a pressable: the whole record opens, so the whole surface is the
+   target. It therefore owns its inset explicitly rather than inheriting the
+   card recipe, which is the condition the card contract actually cares about. */
+.trd-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  gap: var(--space-4);
+}
+
+.trd-card {
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+  padding: var(--card-inset);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-surface);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: start;
+  text-transform: none;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard);
+}
+
+.trd-card:hover,
+.trd-card:focus-visible {
+  border-color: var(--line-strong);
+  background: var(--surface-raised);
+}
+
+.trd-card-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.trd-card-title {
+  min-inline-size: 0;
+  max-inline-size: 34ch;
+  color: var(--ink);
+  font-size: var(--type-emphasis-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-emphasis-line);
+  text-wrap: pretty;
+}
+
+.trd-card-caret {
+  flex: 0 0 auto;
+  color: var(--ink-subtle);
+}
+
+.trd-card-chips,
+.trd-alarm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.trd-chip-quiet {
+  padding: var(--space-half) var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
+  color: var(--ink-muted);
+  font-size: var(--type-micro-size);
+  line-height: var(--type-micro-line);
+  white-space: nowrap;
+}
+
+.trd-card-rows {
+  display: grid;
+  gap: var(--space-1-5);
+}
+
+.trd-card-row,
+.trd-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.trd-card-label {
+  flex: 0 0 auto;
+  color: var(--ink-subtle);
+  font-size: var(--type-micro-size);
+  font-weight: var(--weight-medium);
+  line-height: var(--type-micro-line);
+}
+
+.trd-card-value,
+.trd-line-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  color: var(--ink);
+  font-size: var(--type-ui-size);
+  line-height: var(--type-ui-line);
+}
+
+.trd-card-gate,
+.trd-card-alarms {
+  display: grid;
+  gap: var(--space-1-5);
+}
+
+.trd-card-open {
+  color: var(--accent);
+  font-size: var(--type-ui-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-ui-line);
+}
+
+.trd-card-id,
+.trd-sha,
+.trd-id-chip {
+  color: var(--ink-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--type-micro-size);
+  line-height: var(--type-micro-line);
+  overflow-wrap: anywhere;
+}
+
+.trd-id-chip {
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-xs);
+  background: var(--surface-muted);
+}
+
+.trd-unknown {
+  color: var(--info);
+  font-size: var(--type-ui-size);
+  line-height: var(--type-ui-line);
+}
+
+/* -------------------------------------------------------------- the quiet note */
+
+.trd-boundary .card-body {
+  display: flex;
+  align-items: start;
+  gap: var(--space-3);
+}
+
+.trd-boundary p {
+  max-inline-size: 78ch;
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
+
+.trd-boundary svg {
+  flex: 0 0 auto;
+  color: var(--ink-subtle);
+}
+
+/* ------------------------------------------------------------ fields and forms */
+
+.trd-form {
+  display: grid;
+  gap: var(--space-4);
+  max-inline-size: 72ch;
+}
+
+.trd-field {
+  display: grid;
+  gap: var(--space-1-5);
+  min-inline-size: 0;
+}
+
+.trd-field-inline {
+  align-content: start;
+}
+
+.trd-field-label {
+  color: var(--ink);
+  font-size: var(--type-ui-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-ui-line);
+}
+
+.trd-field-hint,
+.trd-meta-note {
+  max-inline-size: 68ch;
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+  text-wrap: pretty;
+}
+
+.trd-field-hint {
+  margin: 0;
+}
+
+.trd-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: var(--control-height);
+  color: var(--ink);
+  font-size: var(--type-ui-size);
+  line-height: var(--type-ui-line);
+}
+
+.trd-json {
+  min-block-size: 14rem;
+  font-family: var(--font-mono);
+  font-size: var(--type-data-size);
+  line-height: var(--type-body-line);
+}
+
+.trd-form-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+.trd-form-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--danger-line);
+  border-radius: var(--radius-control);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: var(--type-ui-size);
+  line-height: var(--type-ui-line);
+}
+
+.trd-form-error svg {
+  flex: 0 0 auto;
+}
+
+/* --------------------------------------------------------------- intake dialog */
+
+.trd-job-line,
+.trd-done {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.trd-done {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+
+.trd-kv {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: var(--space-1-5) var(--space-4);
+  margin: 0;
+}
+
+.trd-kv dt {
+  color: var(--ink-muted);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+.trd-kv dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-ui-size);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: var(--type-ui-line);
+}
+
+.trd-error-detail {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--type-ui-size);
+  line-height: var(--type-ui-line);
+}
+
+.trd-dialog-subject {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-emphasis-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-emphasis-line);
+}
+
+.trd-dialog-subject-clause {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+}
+
+.trd-dialog-subject-clause p,
+.trd-dialog-body {
+  max-inline-size: 72ch;
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  text-wrap: pretty;
+}
