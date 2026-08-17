@@ -6,8 +6,7 @@ import { Code, Name } from '../shell/bidi';
 import { pageText } from '../shell/format';
 import {
   acknowledgeClause, decideInstance, addInstance, approveAgreement, loadAgreement,
-  loadJob, loadProposal, markClausesSeen, refusalText, resolveConflict,
-  startExtraction,
+  loadProposal, markClausesSeen, refusalText, resolveConflict,
 } from './trade-api';
 import {
   buildClauses, buildConflicts, buildTerms, coverageOf, groupByMechanism,
@@ -17,6 +16,7 @@ import ReviewCoverageHeader from './ReviewCoverageHeader';
 import ReviewDocumentPane from './ReviewDocumentPane';
 import ReviewDialogs from './ReviewDialogs';
 import ReviewProposalPane from './ReviewProposalPane';
+import ReviewUnreadDocument, { useDocumentReading } from './ReviewUnreadDocument';
 import './trade-agreements.css';
 import './trade-review.css';
 import './trade-lists.css';
@@ -52,9 +52,8 @@ export default function AgreementReviewScreen({
   const [marking, setMarking] = useState(false);
   const [approving, setApproving] = useState(false);
   // A document with no extraction yet is a STAGE, not a failure: the reading
-  // has not been run. This screen offers to run it and watches the job.
+  // has not been run. ReviewUnreadDocument offers it and watches the job.
   const [unread, setUnread] = useState(false);
-  const [reading, setReading] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const reload = useCallback(() => setReloadKey((key) => key + 1), []);
   const Back = locale === 'he' ? ChevronRight : ChevronLeft;
@@ -99,44 +98,9 @@ export default function AgreementReviewScreen({
     return () => { alive = false; };
   }, [agreementId, documentId, reloadKey]);
 
-  // Run the reading and watch the job to completion, then reload into the
-  // review the extraction just created. Progress is stated rather than hidden:
-  // a real agreement takes minutes, and a spinner with no words reads as a hang.
-  const runReading = useCallback(async () => {
-    setReading(pageText(locale, 'Starting the reading', 'מתחיל את הקריאה'));
-    try {
-      const started = await startExtraction(agreementId, documentId);
-      const jobId = started.job_id;
-      for (let tick = 0; tick < 240; tick += 1) {
-        await new Promise((resolve) => setTimeout(resolve, 2500));
-        const job = await loadJob(jobId);
-        const status = String(job.status || '');
-        if (status === 'done') {
-          setReading('');
-          notify('The document was read. The proposal is ready for review.',
-            'המסמך נקרא. ההצעה מוכנה לסקירה.');
-          reload();
-          return;
-        }
-        if (status === 'failed') {
-          setReading('');
-          setError(new Error(job.error || 'extraction failed'));
-          return;
-        }
-        setReading(pageText(
-          locale,
-          `Reading the document (${Math.round(tick * 2.5)}s)`,
-          `קורא את המסמך (${Math.round(tick * 2.5)} שניות)`,
-        ));
-      }
-      setReading('');
-      notify('The reading is still running. Reopen the review in a moment.',
-        'הקריאה עדיין מתבצעת. יש לפתוח את הסקירה מחדש בעוד רגע.');
-    } catch (failure) {
-      setReading('');
-      setActionError(refusalText(failure, locale));
-    }
-  }, [agreementId, documentId, locale, notify, reload]);
+  const { reading, failure: readingFailure, run: runReading } = useDocumentReading({
+    agreementId, documentId, locale, notify, onRead: reload,
+  });
 
   const terms = useMemo(() => (proposal ? buildTerms(proposal) : []), [proposal]);
   const clauses = useMemo(() => (proposal ? buildClauses(proposal) : []), [proposal]);
@@ -305,42 +269,19 @@ export default function AgreementReviewScreen({
     );
   }
 
-  // The document is attached but never read. Offer the reading rather than an
-  // error: nothing is wrong, a step simply has not happened yet.
+  // The document is attached but never read: a stage, not a failure.
   if (unread && !proposal) {
-    const current = documents.find((d) => d.document_id === documentId);
     return (
-      <EmptyState
-        title={pageText(locale, 'This document has not been read yet', 'המסמך הזה טרם נקרא')}
-        description={pageText(
-          locale,
-          'The signed document is on file; the engine has not read it into proposed terms yet. Reading a full agreement takes minutes, and every clause it produces still has to pass a person before anything binds.',
-          'המסמך החתום מצורף; המנוע עדיין לא קרא אותו למונחים מוצעים. קריאה של הסכם שלם אורכת דקות, וכל סעיף שייצא ממנה עובר אדם לפני שדבר מחייב.',
-        )}
-        action={(
-          <div className="trd-header-actions">
-            <Button type="button" variant="outlined" onClick={onClose}>
-              {pageText(locale, 'Back to the agreements', 'חזרה לרשימת ההסכמים')}
-            </Button>
-            <Button
-              type="button"
-              variant="contained"
-              onClick={runReading}
-              disabled={Boolean(reading) || !canEdit}
-              title={canEdit ? undefined : editRefusal}
-            >
-              {reading || pageText(locale, 'Read the document now', 'קריאת המסמך עכשיו')}
-            </Button>
-          </div>
-        )}
-      >
-        {current ? (
-          <p className="trd-field-hint">
-            <Name>{current.filename}</Name>
-            {actionError ? ` · ${actionError}` : ''}
-          </p>
-        ) : null}
-      </EmptyState>
+      <ReviewUnreadDocument
+        document={documents.find((d) => d.document_id === documentId)}
+        locale={locale}
+        reading={reading}
+        failure={readingFailure}
+        onRun={runReading}
+        onClose={onClose}
+        canEdit={canEdit}
+        editRefusal={editRefusal}
+      />
     );
   }
 

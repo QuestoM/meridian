@@ -51,18 +51,39 @@ button {
    language: a figure, a date, an identifier. Isolate protects that order without
    re-anchoring anything, and direction only ever sits on this inline box, so the
    block that contains it keeps the document direction and text-align: start
-   keeps meaning "the reading edge". */
+   keeps meaning "the reading edge".
+
+   FIT-CONTENT IS LOAD-BEARING, and it closes the one hole in the sentence
+   above: "direction only ever sits on this inline box" stops being true the
+   moment the span is a flex or grid ITEM, because such an item is blockified.
+   The box then fills its column, `text-align: start` resolves against the
+   box's OWN direction - ltr, ours - and the number paints at the LEFT edge of
+   a Hebrew field while the Hebrew note beside it sits at the right. Measured
+   on the agency terms strip: a 200px dd with "4%" at x=1396 and its own note
+   at x=1596, the two ends of one field.
+
+   A content-sized box cannot have that gap: with a definite inline size, both
+   flex stretch and grid stretch fall back to start, which is the CONTAINER's
+   reading edge. Measured across all four shapes - flex column, grid cell, flex
+   row, inline - the ink now ends exactly on the container's edge, and the
+   inline case is untouched because an inline box ignores width. fit-content is
+   also capped by the available space, so a long run still cannot overflow.
+   `text-align: match-parent` would say this more directly and was tried first;
+   this Chrome does not support it (CSS.supports returns false), so it computed
+   to nothing and fixed nothing. */
 .bidi-figure {
   direction: ltr;
   unicode-bidi: isolate;
+  width: fit-content;
   font-variant-numeric: tabular-nums;
 }
 
 /* The same run, for a path or URL long enough that it must break inside itself
-   rather than push its container wide. */
+   rather than push its container wide. Same blockification hazard, same answer. */
 .bidi-code {
   direction: ltr;
   unicode-bidi: isolate;
+  width: fit-content;
   overflow-wrap: anywhere;
 }
 
