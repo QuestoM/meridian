@@ -75,7 +75,21 @@ export function SourceFilesView({ files, inputs, locale, highlight }) {
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.path} className={highlight && row.path === highlight ? 'highlighted' : undefined}>
+              <tr
+                key={row.path}
+                className={[
+                  highlight && row.path === highlight ? 'highlighted' : '',
+                  openable.has(row.path) ? 'opens-rows' : '',
+                ].filter(Boolean).join(' ') || undefined}
+                onClick={openable.has(row.path) ? (event) => {
+                  // The file name already opens the rows; this only forwards the
+                  // clicks it did not take, so the size and the date open the
+                  // same thing the name does.
+                  if (event.target.closest('button, a, input, [role=button]')) return;
+                  if (String(window.getSelection() || '')) return;
+                  setRowsFor(openable.get(row.path));
+                } : undefined}
+              >
                 <td>
                   {openable.has(row.path) ? (
                     <Tooltip title={text('openRowsForFile', locale)} arrow placement="top">

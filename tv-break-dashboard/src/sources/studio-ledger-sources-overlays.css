@@ -105,9 +105,19 @@
   color: var(--ink);
 }
 
-.source-files-table tr:hover td,
+/* Only rows that open something light up when the pointer crosses them. Every
+ * row used to, including the ones with nothing behind them — the row lit, the
+ * click landed on a size or a date, and nothing happened. A tint is a promise
+ * about what a click will do, so it is made only where there is something to
+ * keep. The highlight is different and stays on any row: it marks the file
+ * somebody arrived here to find, and says nothing about clicking. */
+.source-files-table tr.opens-rows:hover td,
 .source-files-table tr.highlighted td {
   background: var(--surface-muted);
+}
+
+.source-files-table tr.opens-rows {
+  cursor: pointer;
 }
 
 .report-grid {
