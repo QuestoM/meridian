@@ -387,3 +387,34 @@ def test_the_judge_divides_its_contests_so_no_answer_can_be_cut_in_half():
     for content in sent:
         # the judge's whole value is holding the document while it decides
         assert "עמלת הסוכנות" in content, "a batch went out without the document"
+
+
+def test_a_truncated_classify_batch_falls_to_the_retry_instead_of_killing_the_run():
+    """The guard must not turn a recoverable batch into a dead run.
+
+    classify_clauses climbs a ladder on purpose: a batch the model answers badly
+    is retried one clause at a time, and a clause still unanswered lands as an
+    honest ``unmapped`` disposition. Its own comment says why — never a crash
+    that loses the other forty clauses already paid for.
+
+    A truncated answer is exactly the case that ladder is for: the provider's
+    remedy for it is "send less work", which is what the next rung does. So the
+    refusal is caught here rather than propagating.
+    """
+    from kairos.trade import extract_provider, extract_stages
+
+    seen = []
+
+    def call(**kwargs):
+        seen.append(kwargs["content"])
+        # The whole batch truncates; a single clause answers.
+        if kwargs["content"].count("<clause") > 1:
+            raise extract_provider.TruncatedAnswer("ceiling")
+        clause_id = kwargs["content"].split('id="')[1].split('"')[0]
+        return {"classifications": [
+            {"clause_id": clause_id, "labels": ["agency-commission"], "note": ""}]}
+
+    labels = extract_stages.classify_clauses(CLAUSES, call)
+    assert set(labels) == {"1", "2", "3"}, "a truncated batch lost clauses instead of retrying them"
+    assert all(entry["labels"] == ["agency-commission"] for entry in labels.values())
+    assert len(seen) == 4, "expected one batch call, then one call per clause"

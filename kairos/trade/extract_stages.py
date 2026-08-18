@@ -25,6 +25,29 @@ CallFn = Callable[..., dict[str, Any]]
 
 CLASSIFY_BATCH = 10
 
+
+def _truncated_answer_type() -> type:
+    """The provider's truncation failure, or a type nothing raises.
+
+    Imported through a function so this module keeps working when the provider
+    seam is absent (tests hand these stages a plain callable and never touch the
+    SDK). The fallback is a private exception class no caller can raise, so the
+    ``except`` below is simply never taken rather than accidentally swallowing
+    something else.
+    """
+    try:
+        from .extract_provider import TruncatedAnswer
+
+        return TruncatedAnswer
+    except Exception:  # noqa: BLE001 - no provider, no truncation to catch
+        class _NeverRaised(Exception):
+            pass
+
+        return _NeverRaised
+
+
+_TruncatedAnswer = _truncated_answer_type()
+
 # Families whose parameterisation is genuine interpretation work: conditional
 # obligations, cures, precedence/definitions/amendment meta, ladder mechanics,
 # measurement bases. Routed to the reasoning tier; everything else to mid.
@@ -113,13 +136,25 @@ def classify_clauses(clauses: list[Clause], call: CallFn) -> dict[str, dict[str,
             heading = f" (תחת: {clause.heading})" if clause.heading else ""
             prompt_lines.append(f"\n<clause id=\"{clause.clause_id}\"{heading}>\n"
                                 f"{clause.text}\n</clause>")
-        result = call(
-            stage="classify", tier="small",
-            system=CLASSIFY_SYSTEM,
-            content="\n".join(prompt_lines),
-            tool_name="record_classifications",
-            tool_schema=CLASSIFY_TOOL_SCHEMA,
-        )
+        try:
+            result = call(
+                stage="classify", tier="small",
+                system=CLASSIFY_SYSTEM,
+                content="\n".join(prompt_lines),
+                tool_name="record_classifications",
+                tool_schema=CLASSIFY_TOOL_SCHEMA,
+            )
+        except _TruncatedAnswer:
+            # The provider refuses an answer that stopped at the output ceiling,
+            # and the remedy it asks for — send less work — is the ladder this
+            # function already climbs. So a truncated batch is simply an
+            # unanswered batch: every clause in it falls to the single-clause
+            # retry below, and anything still unanswered lands as an honest
+            # unmapped disposition. Without this the guard would turn a
+            # recoverable batch into a dead run and lose the forty clauses
+            # already paid for, which is the outcome the comment below this one
+            # was written to prevent.
+            return list(batch)
         answered = set()
         batch_ids = {c.clause_id for c in batch}
         # A forced tool schema constrains the SHAPE the model aims at, not what
