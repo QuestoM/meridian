@@ -93,3 +93,9 @@ guide/
 # regenerates the fixture; real signed agreements must never enter git.
 data/agreements/
 data/trade_credit_ledger.csv
+
+# The rival's schedule, pulled fresh by kairos.model.keshet_feed. Deliberately
+# untracked: it is a licensed third party's data, it is rewritten every day, and
+# nothing is lost by its absence — the competitor stack answers honestly that it
+# has no schedule and contributes exactly zero until the next pull.
+data/reference/CompetitorProgrammes.csv

@@ -59,6 +59,73 @@ class EpgShapeError(ValueError):
     """The publication did not have the shape this converter was built for."""
 
 
+class UnknownChannel(ValueError):
+    """A channel name this engine's own history has never used."""
+
+
+def _normalised(name: str) -> str:
+    """A name stripped of everything that is presentation rather than identity.
+
+    Directional marks arrive invisibly from anything copied out of a Hebrew
+    page, and a name that differs only by one of them looks identical in every
+    log, every error message and every screenshot of the two side by side.
+    """
+    text = "".join(ch for ch in str(name or "") if ch not in "‎‏‪‫‬")
+    return " ".join(text.split()).casefold()
+
+
+def resolve_channel(proposed: str, known: Iterable[str]) -> str:
+    """The engine's own spelling of a channel, or a refusal naming the options.
+
+    The competitor schedule joins to history BY CHANNEL NAME. A name that is
+    close but not equal — a stray space, an invisible direction mark, "קשת"
+    without its number — produces a file that loads cleanly, validates cleanly,
+    and contributes exactly zero to every decision, because the audience lookup
+    finds no history under it. :mod:`kairos.model.future_epg` is explicit that
+    an unmatched rival adds 0.0 strength, which is the right behaviour for a
+    channel that genuinely has no history and a catastrophe for one that has a
+    typo. Nothing downstream can tell those apart. This is the only place that
+    can, so it refuses here rather than writing a schedule that means nothing.
+    """
+    names = [str(n) for n in known if str(n).strip()]
+    if not names:
+        raise UnknownChannel(
+            "this engine has no channel names to check against, so a competitor "
+            "schedule cannot be attributed to a channel at all"
+        )
+    for name in names:
+        if str(proposed) == name:
+            return name
+    wanted = _normalised(proposed)
+    for name in names:
+        if wanted == _normalised(name):
+            return name
+    # Spacing is presentation, not identity: "קשת12" names the same channel.
+    compact = wanted.replace(" ", "")
+    for name in names:
+        if compact == _normalised(name).replace(" ", ""):
+            return name
+    # Finally the loose reading — a name, a number, or both in either order.
+    # It must land on exactly ONE channel. A guess that picks the first of
+    # several matches would be this function committing the very error it
+    # exists to prevent, only with more confidence.
+    parts = [p for p in wanted.replace("-", " ").split() if p]
+    if parts:
+        fits = [n for n in names if all(part in _normalised(n) for part in parts)]
+        if len(fits) == 1:
+            return fits[0]
+        if len(fits) > 1:
+            raise UnknownChannel(
+                f"'{proposed}' could be any of {', '.join(fits)}. Name the channel "
+                f"the way this engine's own history spells it."
+            )
+    raise UnknownChannel(
+        f"'{proposed}' is not a channel this engine has history for. "
+        f"It knows: {', '.join(names)}. A competitor schedule filed under an "
+        f"unknown name loads without complaint and moves nothing."
+    )
+
+
 def programmes_of(payload: Any) -> list[dict[str, Any]]:
     """The programme records inside a capture, whatever wrapper carries them.
 

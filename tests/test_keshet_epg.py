@@ -267,3 +267,81 @@ def test_a_slot_the_broadcaster_finally_named_reads_as_announced(payload, tmp_pa
     result = refresh.refresh(fetch=lambda: named, channel="ק", target=target)
     assert len(result["changes"]["announced"]) == 1
     assert not result["changes"]["added"]
+
+
+# ------------------------------------------------------- the channel's name
+
+def test_the_engines_own_spelling_is_what_gets_written():
+    from kairos.data.loaders import CHANNELS
+
+    for probe in ("קשת 12", " קשת  12 ", "קשת12", "‏קשת 12", "קשת"):
+        assert epg.resolve_channel(probe, CHANNELS) == "קשת 12", probe
+
+
+def test_a_channel_this_engine_has_no_history_for_is_refused():
+    """The failure this prevents is silent, which is why it is refused loudly.
+
+    A schedule filed under an unknown name loads cleanly, validates cleanly and
+    contributes exactly zero: future_epg gives an unmatched rival 0.0 strength,
+    correctly, and nothing downstream can tell a channel with no history from a
+    channel whose name was mistyped.
+    """
+    from kairos.data.loaders import CHANNELS
+
+    with pytest.raises(epg.UnknownChannel) as caught:
+        epg.resolve_channel("ערוץ 12", CHANNELS)
+    assert "קשת 12" in str(caught.value), "the refusal does not say what is allowed"
+
+
+def test_a_name_that_could_be_two_channels_is_refused_rather_than_guessed():
+    with pytest.raises(epg.UnknownChannel) as caught:
+        epg.resolve_channel("ערוץ", ("ערוץ 12", "ערוץ 13"))
+    assert "ערוץ 12" in str(caught.value) and "ערוץ 13" in str(caught.value)
+
+
+def test_with_no_registry_at_all_nothing_is_attributed():
+    with pytest.raises(epg.UnknownChannel):
+        epg.resolve_channel("קשת 12", ())
+
+
+# --------------------------------------------------------------- the feed
+
+def test_the_feed_refuses_to_file_a_rival_under_the_operators_own_channel(tmp_path):
+    """Both names are real, both resolve, and the result would be silence.
+
+    counterprogramming_features_for_window drops the operator's channel from
+    the rival list. A competitor schedule stamped with it therefore leaves NO
+    rivals, returns None, and every counter-programming adjustment becomes
+    exactly zero — with a valid file on disk and nothing to see.
+    """
+    from kairos.model import keshet_feed
+
+    result = keshet_feed.pull(channel="רשת 13", operator_channel="רשת 13",
+                              target=tmp_path / "x.csv")
+    assert result["refreshed"] is False
+    assert "own channel" in result["reason"]
+    assert not (tmp_path / "x.csv").exists(), "a schedule was written anyway"
+
+
+def test_the_feed_stops_on_an_unknown_channel_before_it_signs_in(tmp_path):
+    from kairos.model import keshet_feed
+
+    result = keshet_feed.pull(channel="Channel 12", target=tmp_path / "x.csv")
+    assert result["refreshed"] is False
+    assert result["needs_human"] is True
+    assert not (tmp_path / "x.csv").exists()
+
+
+def test_the_feed_reports_a_missing_session_as_stale_and_not_as_quiet(monkeypatch, tmp_path):
+    """'We could not sign in' must never read as 'the rival changed nothing'."""
+    from kairos.model import keshet_feed
+
+    monkeypatch.setattr(keshet_feed.kway_session, "current", lambda **_: (None, {
+        "state": "needs_human", "reason": "Google is asking for a person",
+        "do_this": "sign in once",
+    }))
+    result = keshet_feed.pull(channel="קשת 12", target=tmp_path / "x.csv")
+    assert result["refreshed"] is False
+    assert result["needs_human"] is True
+    assert "לא רוענן" in keshet_feed.headline(result, "he")
+    assert "sign in once" in keshet_feed.headline(result, "he")
