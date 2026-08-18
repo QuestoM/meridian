@@ -64,15 +64,14 @@ CODE_CLASS = "bidi-code"
 ISOLATED_CLASSES = (FIGURE_CLASS, CODE_CLASS, "bidi-name")
 
 # The join the bound state depends on, and the mutation that removes it.
-SHIPPED_JOIN = """  return (rows || []).find((row) => {
-    if (isUnboundRow(row)) {
-      return false;
-    }
-    return rowTokens(row).some((token) => wanted.has(token));
-  }) || null;
-"""
+#
+# The join has two paths now - the row id the SERVER resolved, and the token
+# match kept as the fallback for an older payload - so the mutation neutralises
+# BOTH. Cutting only one would leave the other producing the bound state and the
+# mutation would prove nothing.
+SHIPPED_JOIN = """  const resolvedId = normalizeName(client?.rules_row_id);"""
 NO_JOIN = """  return null;
-"""
+  const resolvedId = normalizeName(client?.rules_row_id);"""
 
 
 ENTRY = """

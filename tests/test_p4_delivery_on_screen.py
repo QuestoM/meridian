@@ -49,7 +49,12 @@ FLIGHTS = CLIENTS / "CampaignFlights.jsx"
 # The two files allowed to know what a raw ledger field is called. Everything
 # else on the destination reads delivery through them, which is what makes "a
 # figure without its state" unwritable rather than merely absent today.
-DELIVERY_OWNERS = {"delivery-helpers.js", "DeliveryState.jsx"}
+# Three files, because the display outgrew two. DeliveryState.jsx held both the
+# figures and the sentences that say what they were counted on, and passed this
+# destination's 450-line cap; the sentences moved to DeliveryBasisNotes.jsx. The
+# seam did not widen: these three may name the ledger's raw fields and every
+# other surface in this directory still may not.
+DELIVERY_OWNERS = {"delivery-helpers.js", "DeliveryState.jsx", "DeliveryBasisNotes.jsx"}
 
 # Raw ledger fields. A surface that names one of these is formatting a delivery
 # figure by hand, which is exactly how the state and the basis get dropped.
@@ -84,15 +89,14 @@ FALSE_CLAIMS = (
 )
 
 # The cell as it shipped: a literal with no dependence on the payload.
-HARD_CODED_CELL = """                  <td>
-                    <DeliveryCell
+HARD_CODED_CELL = """                    <DeliveryCell
                       delivery={delivery}
                       window={{ starts_on: flight.starts_on, ends_on: flight.ends_on }}
                       vocabulary={airStates}
+                      goal={{ kind: flight.goal_kind, unit: vocabularyLabel(goalWords, flight.goal_kind, locale) }}
                       locale={locale}
-                    />
-                  </td>"""
-MUTANT_CELL = """                  <td><span className="clients-unknown">{pageText(locale, 'unknown', 'לא ידוע')}</span></td>"""
+                    />"""
+MUTANT_CELL = """                    <span className="clients-unknown">{pageText(locale, 'unknown', 'לא ידוע')}</span>"""
 
 ENTRY = """
 export {{ default as CampaignBoard }} from '{board}';

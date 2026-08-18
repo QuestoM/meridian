@@ -7,7 +7,8 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { changedFields, goalLabel, refusalText, vocabularyLabel, windowLabel } from './clients-money-helpers';
 import { addFlight, removeFlight, updateFlight } from './clients-api';
-import { DeliveryBasis, DeliveryCell } from './DeliveryState';
+import { DeliveryCell } from './DeliveryState';
+import { DeliveryBasis } from './DeliveryBasisNotes';
 import DemoBadge from './DemoBadge';
 
 // The flights of one campaign, as rows that can be changed in place. A flight
@@ -184,10 +185,15 @@ export default function CampaignFlights({
                   <td className="numeric"><Figure>{windowLabel(flight.starts_on, flight.ends_on, locale)}</Figure></td>
                   <td className="numeric"><Figure>{goalLabel(flight, locale, goalWords)}</Figure></td>
                   <td>
+                    {/* In the unit of the Booked column beside it. Two adjacent
+                        columns headed Booked and Delivered, one reading 100 GRP
+                        and the other 3 spots, invite a comparison that cannot be
+                        made from what is on the screen. */}
                     <DeliveryCell
                       delivery={delivery}
                       window={{ starts_on: flight.starts_on, ends_on: flight.ends_on }}
                       vocabulary={airStates}
+                      goal={{ kind: flight.goal_kind, unit: vocabularyLabel(goalWords, flight.goal_kind, locale) }}
                       locale={locale}
                     />
                   </td>
@@ -264,7 +270,11 @@ export default function CampaignFlights({
       ) : null}
 
       {error ? <p className="clients-error" role="alert">{error}</p> : null}
-      <DeliveryBasis delivery={delivery} locale={locale} />
+      <DeliveryBasis
+        delivery={delivery}
+        locale={locale}
+        ratingBasis={(campaign.flights || []).some((flight) => flight.goal_kind === 'grp')}
+      />
     </div>
   );
 }

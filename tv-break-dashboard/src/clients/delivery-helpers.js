@@ -13,6 +13,11 @@
 // counted in and whether it is a floor, so no surface can print the figure and
 // drop the word that says what the figure is.
 
+// The one import here, and it is a pure locale switch out of the shell's
+// framework-free helpers rather than the JSX one, so this file stays testable
+// without a renderer.
+import { pageText } from '../shell/surface-helpers';
+
 export const AIRED = 'aired';
 export const SCHEDULED = 'scheduled';
 export const UNKNOWN = 'unknown';
@@ -166,6 +171,20 @@ export function deliverySlice(delivery, window = null) {
   return window ? oneWindow(delivery, window) : wholeCampaign(delivery);
 }
 
+// The two word helpers both halves of the display need — the figures module and
+// the basis module. They live here rather than in either of them so neither has
+// to import the other, and so a spot is called a spot in one place.
+export function decimals(value, places, locale) {
+  return new Intl.NumberFormat(locale === 'he' ? 'he-IL' : 'en-US', {
+    maximumFractionDigits: places,
+    minimumFractionDigits: 0,
+  }).format(Number(value));
+}
+
+export function spotWord(count, locale) {
+  return pageText(locale, count === 1 ? 'spot' : 'spots', count === 1 ? 'תשדיר' : 'תשדירים');
+}
+
 // Which files the counted days were read out of, named so the reader can go and
 // look. Distinct and in the order the ledger holds them.
 export function sourceFilesOf(slice) {
@@ -179,18 +198,30 @@ export function sourceFilesOf(slice) {
   return files;
 }
 
-// Which rules removed a spot from the counted days. A dropped spot is a real
-// spot the engine refused to place, so the count above it is short by exactly
-// that many and the rule that did it is named rather than summarised.
-export function droppedRulesOf(slice) {
-  const rules = [];
+// Which rules removed a spot from the counted days, in the words of what they
+// capped. A dropped spot is a real spot the engine refused to place, so the
+// count above it is short by exactly that many and the rule that did it is
+// named rather than summarised.
+//
+// Named in a sentence, not by its id. The ledger records the cause as
+// `dropped_rule_id` alone, an engine key, and this surface used to print it
+// bare: a reader was told four spots were removed and handed
+// DEFAULT_ONE_PER_BREAK to act on. The sentence is composed on the server from
+// the rule's own row, by the same single translator the pacing drill uses, and
+// arrives on the delivery block keyed by that id.
+//
+// A rule the rule file does not hold keeps its line and says so, with the path
+// that would fix it. A cause this product cannot name is a third state, not an
+// absence, and dropping the line would turn "unavailable" into "nothing here".
+export function droppedRulesOf(slice, booking = null) {
+  const seen = [];
   ((slice && slice.days) || []).forEach((day) => {
-    const rule = String(day.dropped_rule_id || '').trim();
-    if (rule && number(day.spots_dropped_by_rule) > 0 && !rules.includes(rule)) {
-      rules.push(rule);
+    const id = String(day.dropped_rule_id || '').trim();
+    if (id && number(day.spots_dropped_by_rule) > 0 && !seen.includes(id)) {
+      seen.push(id);
     }
   });
-  return rules;
+  return seen.map((id) => ({ id, block: (booking || {})[id] || null }));
 }
 
 // One goal's progress, read so that the percent can never travel without the

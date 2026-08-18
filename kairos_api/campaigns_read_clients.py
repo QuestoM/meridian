@@ -98,6 +98,15 @@ def _client_record(
         "source": (record or {}).get("source", ""),
         "aliases": (record or {}).get("aliases", []),
         "bound_to_rules_row": bool(((record or {}).get("rules") or {}).get("bound", False)),
+        # The row the SERVER resolved this client to, by name, display name and
+        # every alias. It is sent because the surface used to re-derive it and
+        # the two matchers drifted: the shipped rows carry their identity in
+        # advertiser_id and leave the name column empty, the surface treated an
+        # empty name as "binds nothing", found no row, and printed a data-
+        # integrity warning about a client whose row was sitting right there.
+        # An identity resolved twice is an identity that will disagree with
+        # itself.
+        "rules_row_id": ((record or {}).get("rules") or {}).get("advertiser_id"),
         "effective_premium": ((record or {}).get("rules") or {}).get("effective_premium"),
         "link_source": link_source,
         "gross": (money_row or {}).get("gross"),

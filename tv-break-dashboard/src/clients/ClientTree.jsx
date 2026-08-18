@@ -237,8 +237,8 @@ export default function ClientTree({ tree, locale, onOpenClient }) {
   const countsLine = demoCampaignCount > 0
     ? pageText(
       locale,
-      `${agencyCount} ${agencyWord}, ${clientCount} ${clientsWord(clientCount, locale)}, ${campaignCount} ${campaignWord} (${demoCampaignCount} demo seed data)`,
-      `${isolate(agencyCount)} ${agencyWord}, ${isolate(clientCount)} ${clientsWord(clientCount, locale)}, ${isolate(campaignCount)} ${campaignWord} (${isolate(demoCampaignCount)} נתוני זרע הדגמה)`,
+      `${agencyCount} ${agencyWord}, ${clientCount} ${clientsWord(clientCount, locale)}, ${campaignCount} ${campaignWord} (${demoCampaignCount} of them demo data)`,
+      `${isolate(agencyCount)} ${agencyWord}, ${isolate(clientCount)} ${clientsWord(clientCount, locale)}, ${isolate(campaignCount)} ${campaignWord} (${isolate(demoCampaignCount)} מהם נתוני הדגמה)`,
     )
     : pageText(
       locale,

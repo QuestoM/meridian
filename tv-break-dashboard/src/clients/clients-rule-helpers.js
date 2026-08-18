@@ -53,14 +53,35 @@ export function rowTokens(row) {
 }
 
 // True when nothing binds this row to an advertiser, so it prices nothing.
+//
+// A row is identified by ANY of its tokens, not by the name column alone. The
+// shipped rows carry their identity in advertiser_id and leave name empty, so
+// the old test called every one of them unbound - and the client drawer then
+// told the operator that the pricing store and the name store were out of
+// step about a client whose row was sitting in the file.
 export function isUnboundRow(row) {
-  return !String(row?.name ?? '').trim();
+  return rowTokens(row).length === 0;
 }
 
 // The rules row bound to this client, or null when no row carries its name.
-// The client's own observed spellings are tried too, so a row bound to an alias
-// of the client is still the client's rule.
+//
+// THE SERVER'S ANSWER WINS when it has one. It resolves identity through the
+// name store - id, name, display name, every alias - and it sends the row it
+// landed on as ``rules_row_id``. Matching here as well was how the surface
+// came to contradict the server and report the contradiction as a data fault;
+// an identity resolved twice is an identity that will disagree with itself.
+// The token match below stays as the fallback for a client record that predates
+// the field, so an older payload still finds its row.
 export function ruleRowFor(client, rows) {
+  const resolvedId = normalizeName(client?.rules_row_id);
+  if (resolvedId) {
+    const named = (rows || []).find(
+      (row) => normalizeName(row?.advertiser_id) === resolvedId,
+    );
+    if (named) {
+      return named;
+    }
+  }
   const wanted = new Set(
     [client?.advertiser, client?.shown_name, ...(client?.aliases || [])]
       .map(normalizeName)

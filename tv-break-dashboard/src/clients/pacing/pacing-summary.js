@@ -68,7 +68,7 @@ export function seededSentence(board, locale) {
   const base = pick(
     locale,
     `${counts.demo} of the ${counts.total || 0} are demo rows the seed wrote against the real traffic log, not campaigns an operator booked. Their goals and flight dates are the seed's.`,
-    `${isolate(counts.demo)} מתוך ${isolate(counts.total || 0)} הן שורות הדגמה שנכתבו על בסיס יומן השידור האמיתי ולא קמפיינים שמפעיל הזמין. היעדים ותאריכי הטיסה שלהן הם של זרע ההדגמה.`,
+    `${isolate(counts.demo)} מתוך ${isolate(counts.total || 0)} הן שורות הדגמה שנכתבו על בסיס יומן השידור האמיתי ולא קמפיינים שמפעיל הזמין. היעדים ותאריכי הטיסה שלהן הם של ההדגמה עצמה.`,
   );
   // The sentence above is about the board and the one below is about the count
   // in front of it. Measured on the shipped data, every row that needs a

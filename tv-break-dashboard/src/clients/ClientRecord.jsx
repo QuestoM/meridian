@@ -5,7 +5,8 @@ import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { pageText } from '../shell/format';
 import ClientRuleCard from './ClientRuleCard';
 import { exactMoney, goToView, goalLabel, hasLedgerRow, localized, positionOf, sourceLabel, step, vocabularyLabel, windowLabel } from './clients-money-helpers';
-import { DeliveryBasis, DeliveryCell } from './DeliveryState';
+import { DeliveryCell } from './DeliveryState';
+import { DeliveryBasis, DeliveryLedgerNote } from './DeliveryBasisNotes';
 import DemoBadge from './DemoBadge';
 import { isolate } from '../shell/bidi';
 import { formatDay } from '../shell/dates';
@@ -101,10 +102,14 @@ function Flights({ campaign, delivery, airStates, locale, goalWords }) {
           </span>
           <span className="clients-goal">
             <small>{pageText(locale, 'delivered', 'סופק')}</small>
+            {/* Answered in the unit on the line above it. "Booked 100 GRP"
+                beside "delivered 3 spots" is two units and one invited
+                comparison that cannot be made. */}
             <DeliveryCell
               delivery={delivery}
               window={{ starts_on: flight.starts_on, ends_on: flight.ends_on }}
               vocabulary={airStates}
+              goal={{ kind: flight.goal_kind, unit: vocabularyLabel(goalWords, flight.goal_kind, locale) }}
               locale={locale}
             />
           </span>
@@ -119,6 +124,9 @@ export default function ClientRecord({
   rows,
   locale,
   basis = null,
+  // The payload-level delivery block: one read's instant, its floor rule and
+  // its vocabulary. Absent, every row states its own basis inline instead.
+  ledger = null,
   deliveryByCampaign = {},
   airStates = [],
   statuses = [],
@@ -142,6 +150,12 @@ export default function ClientRecord({
   const found = positionOf(rows, client.advertiser);
   const opensRows = hasLedgerRow(client);
   const demoCampaignCount = (client.campaigns || []).filter((campaign) => campaign.is_demo).length;
+  // A counted rating point may not reach a reader without the ledger's own
+  // sentence about what its rating column is, so the caveat rides on whether a
+  // flight below is actually booked in rating points.
+  const showsRating = (client.campaigns || []).some(
+    (campaign) => (campaign.flights || []).some((flight) => flight.goal_kind === 'grp'),
+  );
   // The agency record is one tab away with all of its terms on it, so the line
   // that names the agency is the way to it. It stays a plain line when there is
   // no id to open, because a control that opens nothing is worse than a label.
@@ -172,7 +186,10 @@ export default function ClientRecord({
               <Button type="button" onClick={() => onStep(step(rows, client.advertiser, -1))} aria-label={pageText(locale, 'Previous client', 'הלקוח הקודם')}>
                 <ChevronRight size={14} aria-hidden="true" />
               </Button>
-              <Figure className="numeric">{`${found.position} / ${found.total}`}</Figure>
+              {/* "20 / 42" is one run and must not break: wrapped across two
+                  lines in a narrow drawer header it reads as two numbers
+                  stacked, and in RTL the halves swap besides. */}
+              <Figure className="numeric figure-nowrap">{`${found.position} / ${found.total}`}</Figure>
               <Button type="button" onClick={() => onStep(step(rows, client.advertiser, 1))} aria-label={pageText(locale, 'Next client', 'הלקוח הבא')}>
                 <ChevronLeft size={14} aria-hidden="true" />
               </Button>
@@ -232,26 +249,43 @@ export default function ClientRecord({
         onOpenRuleCard={onOpenRuleCard}
       />
 
-      <dl className="clients-properties">
-        <Property
-          label={pageText(locale, 'Campaigns booked', 'קמפיינים שהוזמנו')}
-          value={client.campaign_count
-            ? pageText(
-              locale,
-              demoCampaignCount > 0 ? `${client.campaign_count} (${demoCampaignCount} demo seed data)` : String(client.campaign_count),
-              demoCampaignCount > 0 ? `${isolate(client.campaign_count)} (${isolate(demoCampaignCount)} נתוני זרע הדגמה)` : String(client.campaign_count),
-            )
-            : ''}
-          action={canEdit
-            ? pageText(locale, 'Book the first campaign', 'הזמינו קמפיין ראשון')
-            : pageText(locale, 'Nothing is booked yet', 'לא הוזמן דבר עדיין')}
-          onAction={canEdit ? onBookCampaign : null}
-          locale={locale}
-        />
-      </dl>
-
+      {/* The count and the list say the same thing, so they are one thing. This
+          was a property row reading "קמפיינים שהוזמנו: 2" immediately above a
+          section heading reading "קמפיינים שהוזמנו" - two labels, identical
+          words, one screen. The heading carries the count now, and the action
+          lives with the empty state, which is where somebody who has nothing
+          booked is actually looking. */}
       <section className="clients-record-campaigns">
-        <h4>{pageText(locale, 'Booked campaigns', 'קמפיינים שהוזמנו')}</h4>
+        <h4>
+          {pageText(locale, 'Booked campaigns', 'קמפיינים שהוזמנו')}
+          {client.campaign_count ? (
+            <span className="clients-record-count">
+              <Figure className="numeric">{client.campaign_count}</Figure>
+              {/* Parenthesised, the way the workspace header states the same
+                  fact about the same kind of count. Two adjacent numbers with
+                  nothing between them - the total, then how many are demo -
+                  read as one number: on this client both are 2 and the heading
+                  said "2 2 of them demo data". */}
+              {demoCampaignCount > 0 ? (
+                <span className="clients-record-demo">
+                  {pageText(
+                    locale,
+                    `(${demoCampaignCount} of them demo data)`,
+                    `(${isolate(demoCampaignCount)} מהם נתוני הדגמה)`,
+                  )}
+                </span>
+              ) : null}
+            </span>
+          ) : null}
+        </h4>
+        {/* The ledger's own sentences, once for this drawer. Every campaign
+            below was counted on the same read, at the same instant, out of the
+            same tri-state, so stating that under each of them was the same two
+            paragraphs repeated per row. What stays on the row is what differs
+            per row: its unsourced days, its file and the rule that capped it. */}
+        {client.campaigns.length ? (
+          <DeliveryLedgerNote ledger={ledger} locale={locale} ratingBasis={showsRating} />
+        ) : null}
         {client.campaigns.length ? (
           client.campaigns.map((campaign) => (
             <article key={campaign.campaign_id} className="clients-campaign">
@@ -269,12 +303,21 @@ export default function ClientRecord({
                 locale={locale}
                 goalWords={goalWords}
               />
-              <DeliveryBasis delivery={deliveryByCampaign[campaign.campaign_id] || null} locale={locale} />
+              <DeliveryBasis
+                delivery={deliveryByCampaign[campaign.campaign_id] || null}
+                locale={locale}
+                ledgerNote={!ledger || !ledger.available}
+              />
             </article>
           ))
         ) : (
           <p className="clients-reason">
             {pageText(locale, 'Nothing is booked for this client yet.', 'לא הוזמן דבר עבור הלקוח הזה עדיין.')}
+            {canEdit ? (
+              <Button type="button" className="clients-link" onClick={onBookCampaign}>
+                {pageText(locale, 'Book the first campaign', 'הזמינו קמפיין ראשון')}
+              </Button>
+            ) : null}
           </p>
         )}
       </section>

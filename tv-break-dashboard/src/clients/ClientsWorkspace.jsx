@@ -35,6 +35,7 @@ import {
 import './clients-workspace.css';
 import './clients-tree.css';
 import './clients-record.css';
+import './clients-onboard-form.css';
 import './clients-rule-card.css';
 import './clients-delivery.css';
 import './studio-ledger-commercial.css';
@@ -325,6 +326,7 @@ export default function ClientsWorkspace({
             rows={rows}
             locale={locale}
             basis={tree ? tree.basis : null}
+            ledger={board && board.delivery ? board.delivery : null}
             deliveryByCampaign={deliveryByCampaign}
             airStates={board && board.delivery ? board.delivery.air_state_vocabulary : []}
             statuses={board ? board.status_vocabulary : []}

@@ -1,6 +1,7 @@
-/* The Clients record drawer, its detail panels and the onboarding form.
-   Split from clients-workspace.css to keep every source file under the line
-   cap. Reads the tokens, defines none. */
+/* The Clients record drawer and its detail panels. Split from
+   clients-workspace.css to keep every source file under the line cap, and split
+   again when it passed the cap itself: the onboarding form's own styles are in
+   clients-onboard-form.css. Reads the tokens, defines none. */
 
 .clients-record,
 .clients-onboard {
@@ -236,148 +237,6 @@
   color: var(--teal-ink);
 }
 
-.clients-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.clients-form fieldset {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin: 0;
-}
-
-.clients-form legend {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  color: var(--muted);
-  padding-inline: var(--space-1);
-}
-
-.clients-field {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: var(--text-sm);
-  color: var(--muted);
-}
-
-.clients-field input,
-.clients-field select {
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  padding: var(--space-2);
-  font-size: var(--text-base);
-  color: var(--ink);
-  background: var(--surface);
-}
-
-.clients-field small {
-  font-size: var(--text-xs);
-  color: var(--subtle);
-}
-
-.clients-field-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: var(--space-2);
-}
-
-.clients-radio-row,
-.clients-checkbox {
-  display: flex;
-  gap: var(--space-4);
-  font-size: var(--text-sm);
-  color: var(--ink);
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.clients-weekdays {
-  display: flex;
-  gap: var(--space-1);
-  flex-wrap: wrap;
-}
-
-.clients-weekdays button {
-  border: 1px solid var(--line-strong);
-  background: var(--surface);
-  border-radius: var(--radius-pill);
-  padding: 1px var(--space-2);
-  font-size: var(--text-xs);
-  cursor: pointer;
-  color: var(--muted);
-}
-
-.clients-weekdays button.active {
-  background: var(--teal-soft);
-  border-color: var(--teal);
-  color: var(--teal-ink);
-}
-
-.clients-flight-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: var(--space-2);
-  align-items: end;
-}
-
-.clients-form-actions {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.clients-result {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  font-size: var(--text-base);
-}
-
-.clients-result li {
-  display: flex;
-  gap: var(--space-2);
-  align-items: baseline;
-  flex-wrap: wrap;
-}
-
-.clients-result span {
-  color: var(--muted);
-  font-size: var(--text-sm);
-}
-
-.clients-confirm {
-  display: inline-flex;
-  gap: var(--space-2);
-  align-items: baseline;
-  flex-wrap: wrap;
-}
-
-.clients-confirm small {
-  color: var(--muted);
-  font-size: var(--text-xs);
-}
-
-.clients-back {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  background: transparent;
-  border: 0;
-  color: var(--blue);
-  cursor: pointer;
-  font-size: var(--text-sm);
-  padding: 0;
-}
-
 .clients-subrow td {
   background: var(--surface-muted);
 }
@@ -397,6 +256,53 @@
   font-size: var(--text-sm);
   color: var(--muted);
   font-weight: var(--weight-medium);
+}
+
+/* The section stacks a heading, the ledger's preamble and one block per
+   campaign, none of which had a gap of their own before this. */
+.clients-record-campaigns {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.clients-record-campaigns h4 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+/* The ledger's own sentences, gathered as a preamble to the rows they describe.
+   Marked as an aside by a rule down its leading edge and spaced apart from each
+   other, because four paragraphs of muted small text with no gap between them
+   is a grey wall, and a wall is read as decoration rather than as the basis
+   every figure below it was counted on. */
+.clients-ledger-note {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-inline-start: var(--space-3);
+  border-inline-start: 2px solid var(--line);
+}
+
+/* The count that folded into this heading when the duplicate property row was
+   removed. It arrived as two bare spans with no rule of their own, so the
+   heading rendered as one run of glyphs: "קמפיינים שהוזמנו" then 2 then 2, which
+   a reader sees as twenty-two. A number that sits beside words needs the gap
+   that separates them, and the gap belongs to the layout rather than to a space
+   character inside the string. */
+.clients-record-count {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  color: var(--ink);
+}
+
+.clients-record-demo {
+  color: var(--muted);
+  font-weight: var(--weight-regular);
 }
 
 .clients-terms {

@@ -266,12 +266,18 @@ export default function ClientRuleCard({
 
       <h5>{pageText(locale, 'Known as', 'ידוע גם כ')}</h5>
       {spellings.length ? <Spellings entries={spellings} locale={locale} /> : null}
+      {/* One line, where there were two. The empty state used to answer a
+          question nobody had asked — where observed spellings come from, and
+          under what condition a second would appear — every time a client
+          simply had one name. The fact a reader needs is that one spelling has
+          been seen and where it was seen; the path to a second is the button
+          under this, not a paragraph above it. */}
       {!spellings.length ? (
         <p className="clients-reason">
           {pageText(
             locale,
-            'Only one spelling of this client has ever been seen. The observed spellings are written from the daily files themselves, so a second one appears here when a file carries it.',
-            'נצפה רק כתיב אחד של הלקוח הזה. הכתיבים הנצפים נכתבים מתוך הקבצים היומיים עצמם, ולכן כתיב נוסף מופיע כאן כאשר קובץ נושא אותו.',
+            'Only one spelling has been seen in the daily files.',
+            'בקבצים היומיים נצפה כתיב אחד בלבד.',
           )}
         </p>
       ) : null}

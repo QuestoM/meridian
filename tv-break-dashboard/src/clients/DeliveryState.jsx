@@ -1,43 +1,30 @@
 import React from 'react';
-import { Figure, Code } from '../shell/bidi';
+import { Figure, isolate } from '../shell/bidi';
 import { pageText } from '../shell/format';
 import { localized, vocabularyLabel } from './clients-money-helpers';
-import { isolate } from '../shell/bidi';
-import { formatDayList, formatStamp } from '../shell/dates';
 import {
   AIRED,
   COUNTED_EMPTY,
   SCHEDULED,
   UNKNOWN,
+  decimals,
   deliverySlice,
-  droppedRulesOf,
   progressReading,
-  sourceFilesOf,
+  spotWord,
 } from './delivery-helpers';
 
-// The three ways this destination is allowed to print delivery, and the only
-// three. The ledger behind them is tri-state, and each of these keeps all three
-// states apart on the screen: what aired is real and says how much of the flight
-// it was counted over, what is unknown reads as unknown with its own days named,
-// and a percent computed over a partial flight is labelled a floor rather than
-// presented as a finished figure.
+// The FIGURES half of this destination's delivery display, and the only ways it
+// is allowed to print one. The ledger behind them is tri-state, and each of
+// these keeps all three states apart on the screen: what aired is real and says
+// how much of the flight it was counted over, what is unknown reads as unknown
+// with its own days named, and a percent computed over a partial flight is
+// labelled a floor rather than presented as a finished figure.
 //
-// They travel together on purpose. A figure is rendered by DeliveryCell or
-// DeliveryProgress, and the basis that figure was counted on is rendered by
-// DeliveryBasis on the same surface, so no count can reach a reader without the
-// instant it was taken at, the file it came from and the days nobody has a
-// source for.
-
-function decimals(value, places, locale) {
-  return new Intl.NumberFormat(locale === 'he' ? 'he-IL' : 'en-US', {
-    maximumFractionDigits: places,
-    minimumFractionDigits: 0,
-  }).format(Number(value));
-}
-
-function spotWord(count, locale) {
-  return pageText(locale, count === 1 ? 'spot' : 'spots', count === 1 ? 'תשדיר' : 'תשדירים');
-}
+// The sentences that say what these figures were counted ON are in
+// DeliveryBasisNotes.jsx, and the two ship together on purpose: a figure is
+// rendered by DeliveryCell or DeliveryProgress and its basis by DeliveryBasis on
+// the same surface, so no count can reach a reader without the instant it was
+// taken at, the file it came from and the days nobody has a source for.
 
 // The counted figure, with the word that says what kind of count it is. A floor
 // reads as a floor here and nowhere else has to remember to say it.
@@ -47,6 +34,45 @@ function countedText(slice, count, locale) {
     return pageText(locale, `at least ${count} ${unit}`, `לפחות ${isolate(count)} ${unit}`);
   }
   return pageText(locale, `${count} ${unit}`, `${isolate(count)} ${unit}`);
+}
+
+// The counted figure in the unit the flight was BOOKED in, or null when this
+// ledger cannot count that unit.
+//
+// Why this exists: the drawer printed "booked 100 GRP" and, under the word
+// delivered, "at least 3 spots". Two units, one comparison, and the comparison
+// the labels invite cannot be made. Measured on the shipped store: every one of
+// the 51 booked flights carries a GRP goal, so the pairing was never once
+// answered in its own currency.
+//
+// The ledger holds four of the five bookable units — spots, seconds, rating
+// points and priced spend — and does not hold impressions. That fifth case
+// returns null and says so on the surface rather than quietly answering the
+// question that was not asked.
+const GOAL_FIGURES = {
+  spots: null,  // already the headline; nothing to convert
+  seconds: (totals) => totals.seconds,
+  grp: (totals) => totals.ratingPoints,
+  ils: (totals) => totals.spendIls,
+};
+
+function goalFigure(totals, goal, locale) {
+  const read = GOAL_FIGURES[String((goal && goal.kind) || '')];
+  if (!read) {
+    return '';
+  }
+  const unit = String((goal && goal.unit) || '').trim();
+  const value = decimals(read(totals), 2, locale);
+  return unit ? `${value} ${unit}` : value;
+}
+
+// A counted figure reads as a floor wherever it is printed, in whichever unit,
+// because the days behind it are the same partly-sourced days either way.
+function flooredText(text, slice, locale) {
+  if (!slice.isFloor) {
+    return text;
+  }
+  return pageText(locale, `at least ${text}`, `לפחות ${isolate(text)}`);
 }
 
 function daysText(slice, locale) {
@@ -68,7 +94,11 @@ function stateLabel(state, vocabulary, locale) {
 // the window out to read the whole campaign. The cell never prints a bare
 // number: the state leads, the count follows, and the denominator it was counted
 // over is on the line under it.
-export function DeliveryCell({ delivery, window = null, vocabulary = [], locale }) {
+// ``goal`` is the flight's own booked unit as ``{kind, unit}``: pass it and the
+// headline answers in that unit, with the spot count kept underneath. Leave it
+// out and the cell reads in spots, which is what a surface with no booked goal
+// beside it should say.
+export function DeliveryCell({ delivery, window = null, vocabulary = [], goal = null, locale }) {
   const slice = deliverySlice(delivery, window);
 
   if (slice.state === UNKNOWN) {
@@ -80,19 +110,43 @@ export function DeliveryCell({ delivery, window = null, vocabulary = [], locale 
     );
   }
 
-  const counted = slice.state === SCHEDULED ? slice.scheduled.spots : slice.aired.spots;
-  const stillToCome = slice.state === AIRED && slice.scheduled.spots > 0 ? slice.scheduled.spots : 0;
+  const totals = slice.state === SCHEDULED ? slice.scheduled : slice.aired;
+  const counted = totals.spots;
+  const inGoalUnit = goalFigure(totals, goal, locale);
+  const uncounted = String((goal && goal.kind) || '') === 'impressions';
+  const ahead = slice.state === AIRED && slice.scheduled.spots > 0;
+  const stillToCome = ahead
+    ? (goalFigure(slice.scheduled, goal, locale)
+      || `${slice.scheduled.spots} ${spotWord(slice.scheduled.spots, locale)}`)
+    : '';
   return (
     <span className="clients-delivered">
       <span className={`clients-air-state ${slice.state}`}>{stateLabel(slice.state, vocabulary, locale)}</span>
-      <strong className="numeric"><Figure>{countedText(slice, counted, locale)}</Figure></strong>
+      <strong className="numeric">
+        <Figure>{inGoalUnit
+          ? flooredText(inGoalUnit, slice, locale)
+          : countedText(slice, counted, locale)}</Figure>
+      </strong>
+      {inGoalUnit ? <small><Figure>{countedText(slice, counted, locale)}</Figure></small> : null}
+      {uncounted ? (
+        <small>
+          {pageText(
+            locale,
+            'This ledger counts spots, not impressions, so the booked unit is not answered here.',
+            'הספר הזה סופר תשדירים ולא חשיפות, ולכן היחידה שהוזמנה אינה נענית כאן.',
+          )}
+        </small>
+      ) : null}
       <small>{daysText(slice, locale)}</small>
+      {/* In the same unit as the figure above it. A cell that answers the
+          counted question in GRP and the remaining question in spots makes a
+          reader convert between two currencies to read one row. */}
       {stillToCome ? (
         <small>
           {pageText(
             locale,
-            `Still to come: ${stillToCome} ${spotWord(stillToCome, locale)}`,
-            `עוד לפנינו: ${isolate(stillToCome)} ${spotWord(stillToCome, locale)}`,
+            `Still to come: ${stillToCome}`,
+            `עוד לפנינו: ${isolate(stillToCome)}`,
           )}
         </small>
       ) : null}
@@ -100,128 +154,6 @@ export function DeliveryCell({ delivery, window = null, vocabulary = [], locale 
   );
 }
 
-// The as-of instant as the ledger recorded it, with the sentence the ledger
-// recorded beside it. Prefer a server-supplied Hebrew basis. The seeded basis
-// predates that field, so its one known sentence is translated here; any future
-// untranslated server wording remains explicitly marked as English.
-function AsOf({ asOf, locale }) {
-  const instant = String((asOf && asOf.instant) || '').trim();
-  const basis = String((asOf && asOf.basis) || '').trim();
-  const suppliedHebrew = String((asOf && asOf.basis_he) || '').trim();
-  const visibleBasis = locale === 'he'
-    ? suppliedHebrew || ({
-      'The start of the last programme booked on the newest sourced broadcast day, so the demo shows what has aired and what is still to come on that day.': 'נקודת הספירה היא תחילת התוכנית האחרונה ששובצה ביום השידור העדכני ביותר שיש עבורו מקור. לכן ההדגמה מפרידה באותו יום בין מה ששודר לבין מה שעדיין מתוכנן.',
-    }[basis] || basis)
-    : basis;
-  const basisLanguage = locale === 'he' && visibleBasis !== basis ? 'he' : 'en';
-  if (!instant) {
-    return null;
-  }
-  return (
-    <p className="clients-basis-note">
-      <span>{pageText(locale, 'Counted as of', 'נספר נכון ל־')}</span>
-      {pageText(locale, ' ', '')}
-      <Figure className="numeric">{formatStamp(instant) || instant}</Figure>
-      {visibleBasis ? (
-        <>
-          {'. '}
-          <span lang={basisLanguage}>{visibleBasis}</span>
-        </>
-      ) : '.'}
-    </p>
-  );
-}
-
-// Everything a counted figure on this surface was counted on. It renders in both
-// states on purpose: when no day has a source it names the missing feed and the
-// path that supplies it, and when days do have a source it names the instant,
-// the file, the days nobody has a source for and the rule that removed spots.
-export function DeliveryBasis({ delivery, locale }) {
-  // No ledger reached this surface at all, which is a different state from a
-  // ledger that reports nothing. It is stated rather than left silent, because
-  // the alternative is the word unknown standing on a row with no reason under
-  // it, which is the defect this component was built to end.
-  if (!delivery) {
-    return (
-      <p className="clients-basis-note">
-        {pageText(
-          locale,
-          'The delivery ledger was not read on this screen, so what aired is unknown here rather than counted.',
-          'ספר האספקה לא נקרא במסך הזה, ולכן מה ששודר אינו ידוע כאן ואינו נספר.',
-        )}
-      </p>
-    );
-  }
-  if (!delivery.available) {
-    return (
-      <>
-        <p className="clients-basis-note">{localized(delivery, 'reason', locale)}</p>
-        <p className="clients-basis-path">{localized(delivery, 'path_forward', locale)}</p>
-      </>
-    );
-  }
-
-  const slice = deliverySlice(delivery);
-  const files = sourceFilesOf(slice);
-  const rules = droppedRulesOf(slice);
-  const dropped = slice.aired.droppedByRule + slice.scheduled.droppedByRule;
-  const floor = localized(delivery.unknown, 'reason', locale) || localized(delivery, 'floor_note', locale);
-
-  return (
-    <>
-      <AsOf asOf={delivery.as_of} locale={locale} />
-      {floor ? <p className="clients-basis-note">{floor}</p> : null}
-      {slice.unknownDays > 0 ? (
-        <p className="clients-basis-note">
-          <span>
-            {pageText(
-              locale,
-              `${slice.unknownDays} flight days carry no per-spot source and are not counted as zero:`,
-              `${isolate(slice.unknownDays)} ימי טיסה ללא מקור ברמת התשדיר, ואינם נספרים כאפס:`,
-            )}
-          </span>
-          {' '}
-          {/* Not wrapped in Figure, and not clickable, and both were measured.
-              Figure forces left-to-right, which is right for one quantity and
-              wrong for a list, because it would put the earliest run on the far
-              side of a Hebrew line; formatDayList isolates each run on its own
-              and leaves the ORDER to the line. And a click here does nothing:
-              this is a span inside a paragraph with no handler on it or on any
-              of its three call sites (CampaignBoard, ClientRecord,
-              CampaignFlights), so merging a run into a range takes nothing away
-              from a reader. A day rendered as a control it is not would. */}
-          {formatDayList(slice.unknownDates, locale)}
-        </p>
-      ) : null}
-      {files.length ? (
-        <p className="clients-basis-note">
-          <span>{pageText(locale, 'The file these counts were read out of:', 'הקובץ שממנו נקראו הספירות האלה:')}</span>
-          {' '}
-          <Code>{files.join(', ')}</Code>
-        </p>
-      ) : null}
-      {dropped > 0 ? (
-        <p className="clients-basis-note">
-          <span>
-            {pageText(
-              locale,
-              `Removed by a rule on the counted days: ${dropped} ${spotWord(dropped, locale)}. The count above is short by that many.`,
-              `הוסרו על ידי כלל בימים שנספרו: ${isolate(dropped)} ${spotWord(dropped, locale)}. הספירה שלמעלה חסרה במספר הזה.`,
-            )}
-          </span>
-          {rules.length ? <Code>{` ${rules.join(', ')}`}</Code> : null}
-        </p>
-      ) : null}
-      <p className="clients-basis-note">
-        {pageText(
-          locale,
-          'Times are as the source file records them. No time zone is declared on this ledger.',
-          'השעות הן כפי שקובץ המקור רושם אותן. לא מוצהר אזור זמן בספר הזה.',
-        )}
-      </p>
-    </>
-  );
-}
 
 // One goal and how far the counted figures have got against it. The percent is
 // never printed alone: it carries the endpoint's own state word, and a floor is

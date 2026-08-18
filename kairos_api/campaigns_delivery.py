@@ -258,8 +258,41 @@ def _progress(counted: Optional[float], goal: Optional[float], *, measurable: bo
     }
 
 
+def booking_rule_sentences(days_by_campaign_index: dict[str, list[dict[str, Any]]]
+                           ) -> dict[str, dict[str, Any]]:
+    """What each rule the ledger named actually capped, composed once per read.
+
+    The ledger names the rule that left spots out of a day by ``dropped_rule_id``
+    and by nothing else. That id is an engine key: the clients drawer printed it
+    raw beside the dropped count, so a reader was told how many spots a rule
+    removed and shown a token they cannot act on instead of the cap.
+
+    The sentence is imported from the pacing vocabulary rather than written
+    again here, because that module's own header says it is the one place this
+    product turns this engine artefact into words, and two translators for one
+    rule is how a product comes to name one thing two ways. It is composed once
+    for the whole payload because the rule file is read from disk on every call:
+    per campaign that is one file read per campaign for one shared answer.
+    """
+    try:
+        from kairos_api import pacing_alerts_api_words as words
+    except Exception:  # noqa: BLE001 - an unreadable vocabulary is unknown, not a crash
+        return {}
+    ids = [
+        day.get("dropped_rule_id")
+        for days in days_by_campaign_index.values()
+        for day in days
+        if (day.get("spots_dropped_by_rule") or 0) > 0
+    ]
+    try:
+        return words.booking_rules(ids)
+    except Exception:  # noqa: BLE001
+        return {}
+
+
 def delivery_for(campaign: dict[str, Any], days: list[dict[str, Any]],
-                 as_of: dict[str, Any]) -> dict[str, Any]:
+                 as_of: dict[str, Any],
+                 booking_rules: Optional[dict[str, dict[str, Any]]] = None) -> dict[str, Any]:
     """One campaign's delivery: what aired, what is still to come, what is unknown.
 
     ``available`` is false when no day of this campaign carries a source at all,
@@ -292,6 +325,18 @@ def delivery_for(campaign: dict[str, Any], days: list[dict[str, Any]],
             "dates": [day["broadcast_date"] for day in unknown_days],
             "reason_en": FLOOR_EN,
             "reason_he": FLOOR_HE,
+        },
+        # Only the rules this campaign's own days named, so a surface holding one
+        # delivery block can say what was capped without the id reaching a screen
+        # and without being handed the whole payload's vocabulary.
+        "booking_rules": {
+            rule_id: block
+            for rule_id, block in (booking_rules or {}).items()
+            if rule_id in {
+                str(day.get("dropped_rule_id") or "")
+                for day in days
+                if (day.get("spots_dropped_by_rule") or 0) > 0
+            }
         },
         "rating_basis_en": RATING_BASIS_EN,
         "rating_basis_he": RATING_BASIS_HE,
@@ -329,10 +374,11 @@ def attach(campaigns: list[dict[str, Any]]) -> dict[str, Any]:
     as_of = _as_of(frame)
     grouped = days_by_campaign()
     assets = campaigns_assets.assets_by_campaign()
+    rules = booking_rule_sentences(grouped)
     sourced_campaigns = 0
     for campaign in campaigns:
         days = grouped.get(campaign["campaign_id"], [])
-        campaign["delivery"] = delivery_for(campaign, days, as_of)
+        campaign["delivery"] = delivery_for(campaign, days, as_of, rules)
         own_assets = assets.get(campaign["campaign_id"], [])
         campaign["assets"] = own_assets
         campaign["assets_summary"] = campaigns_assets.summarise(own_assets)

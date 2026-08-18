@@ -7,7 +7,8 @@ import { refusalText, vocabularyLabel, vocabularyRemedy, windowLabel } from './c
 import { endCampaign, loadOnboardingOptions } from './clients-api';
 import CampaignDetail from './CampaignDetail';
 import CampaignTerms from './CampaignTerms';
-import { DeliveryBasis, DeliveryCell } from './DeliveryState';
+import { DeliveryCell } from './DeliveryState';
+import { DeliveryBasis } from './DeliveryBasisNotes';
 import DemoBadge from './DemoBadge';
 import './clients-campaigns.css';
 import { isolate } from '../shell/bidi';
@@ -114,8 +115,8 @@ export default function CampaignBoard({
   const countLine = demoCount > 0
     ? pageText(
       locale,
-      `${campaigns.length} campaigns in the ledger: ${bookedCount} booked, ${demoCount} demo seed data`,
-      `${isolate(campaigns.length)} קמפיינים בספר: ${isolate(bookedCount)} הוזמנו, ${isolate(demoCount)} נתוני זרע הדגמה`,
+      `${campaigns.length} campaigns in the ledger: ${bookedCount} booked, ${demoCount} demo data`,
+      `${isolate(campaigns.length)} קמפיינים בספר: ${isolate(bookedCount)} הוזמנו, ${isolate(demoCount)} נתוני הדגמה`,
     )
     : pageText(locale, `${campaigns.length} campaigns booked`, `${isolate(campaigns.length)} קמפיינים הוזמנו`);
   const selected = campaigns.find((campaign) => campaign.campaign_id === openId) || null;
@@ -252,7 +253,15 @@ export default function CampaignBoard({
                 <tr>
                   <th scope="col">{pageText(locale, 'Campaign and client', 'קמפיין ולקוח')}</th>
                   <th scope="col">{pageText(locale, 'Window', 'חלון')}</th>
-                  <th scope="col">{pageText(locale, 'Commitment', 'התחייבות')}</th>
+                  {/* What this column holds, which is not what it used to say.
+                      It was headed Commitment and its cell renders the delivery
+                      ledger: what aired, over how many sourced days, in the
+                      state the ledger recorded. A reader comparing rows under
+                      that heading was reading delivery as though it were the
+                      goal. The commitment itself is per flight and lives on the
+                      client record, where each flight's booked figure stands
+                      beside what was counted against it. */}
+                  <th scope="col">{pageText(locale, 'Delivered', 'סופק')}</th>
                   <th scope="col">{pageText(locale, 'State', 'מצב')}</th>
                 </tr>
               </thead>
