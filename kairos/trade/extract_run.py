@@ -23,7 +23,7 @@ from typing import Any, Callable, Optional
 _POINTER_RE = re.compile(r"כמפורט|מפורטים|מפורט בנספח|המפורט|יפורטו|בהתאם לנספח|כאמור בנספח")
 _OVERRIDE_RE = re.compile(r"על אף|חרף|בסתירה ל")
 
-from . import precedence
+from . import collapse, precedence
 from .documents import (
     Clause,
     Citation,
@@ -217,6 +217,17 @@ def extract_document(
             reason=note or "בעל תוכן מסחרי שלא סווג לאף מונח נתמך",
         ))
 
+    # ---- one term stated twice becomes one card ------------------------
+    # A clause that points at another makes the parameterise stage read that
+    # other clause again, so the same term comes back a second time anchored to
+    # the clause it was borrowed from. The reviewer sees two cards with the same
+    # numbers and nothing to tell them apart. Collapsing here — after extraction,
+    # on the evidence, rather than before it on the wording — folds those
+    # together and keeps every clause each was stated in. It runs BEFORE
+    # precedence, which is what precedence's own docstring has always assumed:
+    # identical-parameter duplicates are not conflicts, they merge.
+    instances, dispositions, collapsed = collapse.collapse(instances, dispositions)
+
     # ---- conflicts through the precedence algebra ----------------------
     candidates = []
     for inst in instances:
@@ -251,6 +262,7 @@ def extract_document(
         stats={
             "elapsed_seconds": round(time.monotonic() - started, 2),
             "work_units": len(work),
+            "merged_readings": collapsed["merged"],
             "failures": failures,
             "conflicts": conflicts,
         },

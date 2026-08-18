@@ -145,9 +145,14 @@ with a stored artifact so reruns are partial and debuggable:
 6. **Resolve cross-references** — definitions applied, "כמפורט בנספח"
    followed, amendment targets bound, scope inheritance (agreement-level
    scope flows to instances without their own).
-7. **Assemble** — instances merged (a CPP table split over pages),
-   duplicates coalesced with citations kept, conflicts detected (§2), the
-   proposal built and validated (`DocumentExtraction.validate()`).
+7. **Assemble** — instances merged (a CPP table split over pages), duplicate
+   readings coalesced by `kairos.trade.collapse` with every citation kept,
+   conflicts detected (§2), the proposal built and validated
+   (`DocumentExtraction.validate()`). A duplicate is folded only when the two
+   readings agree on every parameter they both state, in the same scope and
+   window; readings of one clause may differ in completeness and the fuller one
+   wins, readings of different clauses must agree exactly. Numbers are compared
+   exactly in both cases — two different prices are a conflict, not a duplicate.
 
 **Model routing** (the AI-layer contract): segmentation assist + clause
 classification + simple params → small fast model; interpretation-heavy

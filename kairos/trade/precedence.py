@@ -241,9 +241,11 @@ def detect_and_resolve(
 
     Two instances of the SAME term conflict when their scopes and windows can
     describe the same moment and their parameters differ. Identical-parameter
-    duplicates are not conflicts (they merge downstream). Cross-term
-    contradictions ride the same machinery through the restrictiveness map
-    where one exists.
+    duplicates are not conflicts: :func:`kairos.trade.collapse.collapse` folds
+    those into one instance before this runs. That sentence used to read "they
+    merge downstream" — and nothing downstream merged, so the reviewer saw both
+    for as long as this module has existed. Cross-term contradictions ride the
+    same machinery through the restrictiveness map where one exists.
     """
     edges = list(edges or [])
     conflicts: list[Conflict] = []

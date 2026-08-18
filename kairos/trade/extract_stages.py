@@ -98,6 +98,7 @@ CLASSIFY_TOOL_SCHEMA = {
                     "labels": {
                         "type": "array",
                         "items": {"type": "string"},
+                        "uniqueItems": True,
                         "minItems": 1,
                     },
                     "note": {"type": "string"},
@@ -171,7 +172,15 @@ def classify_clauses(clauses: list[Clause], call: CallFn) -> dict[str, dict[str,
             raw_labels = entry.get("labels", [])
             if not isinstance(raw_labels, (list, tuple)):
                 continue
-            kept = [str(l) for l in raw_labels if str(l) in valid]
+            # De-duplicated: a label returned twice for one clause becomes two
+            # identical work units, two identical model calls and two identical
+            # cards for the reviewer. The tool schema asks for a list and does
+            # not forbid repeats, and a degraded turn takes that literally.
+            kept: list[str] = []
+            for label in raw_labels:
+                text = str(label)
+                if text in valid and text not in kept:
+                    kept.append(text)
             if cid in batch_ids and kept:
                 out[cid] = {"labels": kept, "note": str(entry.get("note", ""))}
                 answered.add(cid)
