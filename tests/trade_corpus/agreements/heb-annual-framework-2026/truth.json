@@ -471,11 +471,17 @@
         "summary": "סמכות שיפוט בלעדית לבתי המשפט בתל אביב-יפו; הדין החל — דין מדינת ישראל"
       },
       "cite": [{"clause_id": "10.4", "quote": "בתי המשפט המוסמכים בתל אביב-יפו"}]
+    },
+    {
+      "instance_id": "gt-agreement-level",
+      "term_id": "agreement-level",
+      "params": {"level": "agency_framework"},
+      "cite": [{"clause_id": "pre-2", "quote": "ובין: אופק מדיה בע\"מ"}]
     }
   ],
   "dispositions": {
     "pre-1": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "שורת מקום ותאריך חתימה"},
-    "pre-2": {"disposition": "mapped", "instance_ids": ["gt-parties"]},
+    "pre-2": {"disposition": "mapped", "instance_ids": ["gt-parties", "gt-agreement-level"]},
     "pre-3": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "סעיפי הואיל — מבוא הצהרתי"},
     "1.1": {"disposition": "mapped", "instance_ids": ["gt-definitions"]},
     "1.2": {"disposition": "mapped", "instance_ids": ["gt-measurement"]},

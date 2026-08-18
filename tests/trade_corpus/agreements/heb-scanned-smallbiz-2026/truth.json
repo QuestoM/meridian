@@ -122,10 +122,16 @@
         "summary": "סמכות שיפוט לבית משפט השלום בנצרת; הדין החל — דין מדינת ישראל"
       },
       "cite": [{"clause_id": "10", "quote": "בית משפט השלום בנצרת"}]
+    },
+    {
+      "instance_id": "gt-agreement-level",
+      "term_id": "agreement-level",
+      "params": {"level": "advertiser"},
+      "cite": [{"clause_id": "pre-1", "quote": "ובין: מאפיית הגליל בע\"מ"}]
     }
   ],
   "dispositions": {
-    "pre-1": {"disposition": "mapped", "instance_ids": ["sc-parties"]},
+    "pre-1": {"disposition": "mapped", "instance_ids": ["sc-parties", "gt-agreement-level"]},
     "pre-2": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "סעיף הואיל — מבוא הצהרתי"},
     "1": {"disposition": "mapped", "instance_ids": ["sc-window"]},
     "2": {"disposition": "mapped", "instance_ids": ["sc-fixed"]},

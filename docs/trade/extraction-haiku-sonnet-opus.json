@@ -15,18 +15,25 @@
    "small": "claude-haiku-4-5-20251001",
    "mid": "claude-sonnet-5",
    "reason": "claude-opus-5"
-  }
+  },
+  "rescored_against": "ground truth corrected 2026-08-18: agreement-level was declared as a top-level field in every truth file and read by nothing, so a pipeline that identified it correctly was scored as wrong on six of eight documents"
  },
  "documents": {
   "heb-amendment-q4-2026": {
    "score": {
     "clauses_truth": 12,
+    "clauses_pipeline": 12,
     "clauses_accounted": 12,
     "disposition_class_hits": 11,
-    "instances_truth": 7,
+    "instances_truth": 8,
     "instances_found": 19,
     "matched": 7,
-    "missed": [],
+    "missed": [
+     {
+      "instance_id": "gt-agreement-level",
+      "term_id": "agreement-level"
+     }
+    ],
     "spurious": [
      {
       "instance_id": "x-001",
@@ -77,7 +84,7 @@
       "term_id": "fixed-spot-pricing"
      }
     ],
-    "recall": 1.0,
+    "recall": 0.875,
     "precision": 0.3684,
     "param_hits": 14,
     "param_total": 29,
@@ -148,9 +155,10 @@
   "heb-annual-framework-2026": {
    "score": {
     "clauses_truth": 50,
+    "clauses_pipeline": 50,
     "clauses_accounted": 50,
     "disposition_class_hits": 49,
-    "instances_truth": 41,
+    "instances_truth": 42,
     "instances_found": 54,
     "matched": 39,
     "missed": [
@@ -161,6 +169,10 @@
      {
       "instance_id": "gt-supersession",
       "term_id": "precedence-clause"
+     },
+     {
+      "instance_id": "gt-agreement-level",
+      "term_id": "agreement-level"
      }
     ],
     "spurious": [
@@ -225,7 +237,7 @@
       "term_id": "underspend-true-up"
      }
     ],
-    "recall": 0.9512,
+    "recall": 0.9286,
     "precision": 0.7222,
     "param_hits": 112,
     "param_total": 177,
@@ -314,12 +326,18 @@
   "heb-contradictory-2026": {
    "score": {
     "clauses_truth": 26,
+    "clauses_pipeline": 26,
     "clauses_accounted": 26,
     "disposition_class_hits": 25,
-    "instances_truth": 22,
+    "instances_truth": 23,
     "instances_found": 28,
     "matched": 22,
-    "missed": [],
+    "missed": [
+     {
+      "instance_id": "gt-agreement-level",
+      "term_id": "agreement-level"
+     }
+    ],
     "spurious": [
      {
       "instance_id": "x-001",
@@ -346,7 +364,7 @@
       "term_id": "target-cpp"
      }
     ],
-    "recall": 1.0,
+    "recall": 0.9565,
     "precision": 0.7857,
     "param_hits": 51,
     "param_total": 71,
@@ -429,6 +447,7 @@
   "heb-direct-advertiser-2026": {
    "score": {
     "clauses_truth": 32,
+    "clauses_pipeline": 32,
     "clauses_accounted": 32,
     "disposition_class_hits": 31,
     "instances_truth": 30,
@@ -559,9 +578,10 @@
   "heb-edge-stress-2026": {
    "score": {
     "clauses_truth": 28,
+    "clauses_pipeline": 28,
     "clauses_accounted": 28,
     "disposition_class_hits": 26,
-    "instances_truth": 23,
+    "instances_truth": 24,
     "instances_found": 26,
     "matched": 21,
     "missed": [
@@ -572,6 +592,10 @@
      {
       "instance_id": "es-barter",
       "term_id": "barter-inquiry"
+     },
+     {
+      "instance_id": "gt-agreement-level",
+      "term_id": "agreement-level"
      }
     ],
     "spurious": [
@@ -596,7 +620,7 @@
       "term_id": "delivery-truth-source"
      }
     ],
-    "recall": 0.913,
+    "recall": 0.875,
     "precision": 0.8077,
     "param_hits": 70,
     "param_total": 98,
@@ -679,11 +703,12 @@
   "heb-sano-annual-2025": {
    "score": {
     "clauses_truth": 12,
+    "clauses_pipeline": 13,
     "clauses_accounted": 13,
     "disposition_class_hits": 11,
-    "instances_truth": 9,
+    "instances_truth": 10,
     "instances_found": 15,
-    "matched": 8,
+    "matched": 9,
     "missed": [
      {
       "instance_id": "sn-parties",
@@ -691,10 +716,6 @@
      }
     ],
     "spurious": [
-     {
-      "instance_id": "x-001",
-      "term_id": "agreement-level"
-     },
      {
       "instance_id": "x-002",
       "term_id": "effective-window"
@@ -720,16 +741,16 @@
       "term_id": "shortfall-cure"
      }
     ],
-    "recall": 0.8889,
-    "precision": 0.5333,
-    "param_hits": 23,
-    "param_total": 32,
-    "param_accuracy": 0.7188,
+    "recall": 0.9,
+    "precision": 0.6,
+    "param_hits": 24,
+    "param_total": 33,
+    "param_accuracy": 0.7273,
     "by_family": {
      "A": {
-      "hits": 2,
-      "total": 2,
-      "instances": 1,
+      "hits": 3,
+      "total": 3,
+      "instances": 2,
       "accuracy": 1.0
      },
      "C": {
@@ -791,9 +812,10 @@
   "heb-scanned-smallbiz-2026": {
    "score": {
     "clauses_truth": 14,
+    "clauses_pipeline": 14,
     "clauses_accounted": 14,
     "disposition_class_hits": 11,
-    "instances_truth": 12,
+    "instances_truth": 13,
     "instances_found": 12,
     "matched": 9,
     "missed": [
@@ -808,6 +830,10 @@
      {
       "instance_id": "sc-freq-day",
       "term_id": "frequency-caps"
+     },
+     {
+      "instance_id": "gt-agreement-level",
+      "term_id": "agreement-level"
      }
     ],
     "spurious": [
@@ -824,7 +850,7 @@
       "term_id": "credit-security"
      }
     ],
-    "recall": 0.75,
+    "recall": 0.6923,
     "precision": 0.75,
     "param_hits": 22,
     "param_total": 32,
@@ -910,6 +936,7 @@
   "heb-sponsorship-bundle-2026": {
    "score": {
     "clauses_truth": 23,
+    "clauses_pipeline": 23,
     "clauses_accounted": 23,
     "disposition_class_hits": 22,
     "instances_truth": 18,

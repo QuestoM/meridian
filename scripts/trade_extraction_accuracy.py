@@ -411,8 +411,13 @@ def main() -> None:
             "provider": stats.to_payload(),
             "elapsed": elapsed,
         }
+        # Stamped with the routing that produced it. This file is the last run's
+        # reading of the document, kept for inspection, and without the stamp
+        # there is no way to tell whether the reading on disk came from the
+        # shipped routing or from an experiment somebody ran once.
         (directory / "measured-extraction.json").write_text(
-            json.dumps(got.to_payload(), ensure_ascii=False, indent=1), encoding="utf-8")
+            json.dumps({**got.to_payload(), "measured_with": {"routing": routing()}},
+                       ensure_ascii=False, indent=1), encoding="utf-8")
         score = records[doc_id]["score"]
         print(f"  recall {_pct(score['recall'])}  precision {_pct(score['precision'])}  "
               f"params {_pct(score['param_accuracy'])}  {elapsed:.0f}s")

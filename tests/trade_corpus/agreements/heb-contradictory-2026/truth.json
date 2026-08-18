@@ -244,11 +244,17 @@
         "verbatim": "על אף האמור בכל מקום אחר בהסכם, בכל מקרה של סתירה בין הוראות נספח זה לבין הוראות גוף ההסכם — יגברו הוראות הנספח."
       },
       "cite": [{"clause_id": "appB-4", "quote": "יגברו הוראות הנספח"}]
+    },
+    {
+      "instance_id": "gt-agreement-level",
+      "term_id": "agreement-level",
+      "params": {"level": "agency_framework"},
+      "cite": [{"clause_id": "pre-2", "quote": "ובין: מדיה סנטר בע\"מ"}]
     }
   ],
   "dispositions": {
     "pre-1": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "שורת מקום ותאריך חתימה"},
-    "pre-2": {"disposition": "mapped", "instance_ids": ["ct-parties"]},
+    "pre-2": {"disposition": "mapped", "instance_ids": ["ct-parties", "gt-agreement-level"]},
     "pre-3": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "סעיף הואיל — מבוא הצהרתי"},
     "1.1": {"disposition": "mapped", "instance_ids": ["ct-definitions"]},
     "1.2": {"disposition": "mapped", "instance_ids": ["ct-window"]},

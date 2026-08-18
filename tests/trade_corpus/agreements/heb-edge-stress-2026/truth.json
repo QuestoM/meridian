@@ -281,11 +281,17 @@
         "rounding_rule": "אורך שאינו נקוב — פרו-רטה ביחס ל-30 שניות, עיגול לשנייה הקרובה"
       },
       "cite": [{"clause_id": "appD-1", "quote": "15\" — 65%"}]
+    },
+    {
+      "instance_id": "gt-agreement-level",
+      "term_id": "agreement-level",
+      "params": {"level": "advertiser"},
+      "cite": [{"clause_id": "pre-2", "quote": "ובין: תובנה מדיה בע\"מ"}]
     }
   ],
   "dispositions": {
     "pre-1": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "שורת מקום ותאריך חתימה"},
-    "pre-2": {"disposition": "mapped", "instance_ids": ["es-parties"]},
+    "pre-2": {"disposition": "mapped", "instance_ids": ["es-parties", "gt-agreement-level"]},
     "1.1": {"disposition": "mapped", "instance_ids": ["es-definitions"]},
     "1.2": {"disposition": "mapped", "instance_ids": ["es-window"]},
     "2.1": {"disposition": "mapped", "instance_ids": ["es-budget", "es-ladder"]},

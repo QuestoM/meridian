@@ -102,10 +102,16 @@
         "summary": "סמכות שיפוט ייחודית לבתי המשפט המוסמכים בתל אביב—יפו"
       },
       "cite": [{"clause_id": "9", "quote": "לבתי המשפט המוסמכים בתל אביב—יפו"}]
+    },
+    {
+      "instance_id": "gt-agreement-level",
+      "term_id": "agreement-level",
+      "params": {"level": "advertiser"},
+      "cite": [{"clause_id": "pre-1", "quote": "ובין: סנו אינטרנשיונל בע\"מ"}]
     }
   ],
   "dispositions": {
-    "pre-1": {"disposition": "mapped", "instance_ids": ["sn-parties"]},
+    "pre-1": {"disposition": "mapped", "instance_ids": ["sn-parties", "gt-agreement-level"]},
     "pre-2": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "סעיף הואיל — מבוא הצהרתי ללא תוכן אופרטיבי"},
     "1": {"disposition": "mapped", "instance_ids": ["sn-window"]},
     "2": {"disposition": "mapped", "instance_ids": ["sn-budget"]},

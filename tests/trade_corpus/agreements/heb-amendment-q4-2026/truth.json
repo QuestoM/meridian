@@ -97,11 +97,17 @@
         {"clause_id": "3.1", "quote": "בלעדיות קטגוריאלית"},
         {"clause_id": "3.1", "quote": "תוספת של 10%"}
       ]
+    },
+    {
+      "instance_id": "gt-agreement-level",
+      "term_id": "agreement-level",
+      "params": {"level": "agency_framework"},
+      "cite": [{"clause_id": "pre-2", "quote": "ובין: אופק מדיה בע\"מ"}]
     }
   ],
   "dispositions": {
     "pre-1": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "שורת מקום ותאריך חתימה"},
-    "pre-2": {"disposition": "mapped", "instance_ids": ["am-parties"]},
+    "pre-2": {"disposition": "mapped", "instance_ids": ["am-parties", "gt-agreement-level"]},
     "pre-3": {"disposition": "irrelevant", "irrelevant_class": "preamble-recitals", "reason": "סעיפי הואיל — הפניה מבואית להסכם העיקרי"},
     "1.1": {"disposition": "mapped", "instance_ids": ["am-layer"]},
     "1.2": {"disposition": "mapped", "instance_ids": ["am-precedence"]},
