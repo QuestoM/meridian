@@ -81,6 +81,23 @@
   cursor: pointer;
 }
 
+/* Three figures, three equal columns. They used to size to their own content and
+   sit in a huddle in the middle of a 388px block: measured, 210px of text with
+   65px of dead space on either side, because MUI's Button sets
+   justify-content:center and this block never said otherwise. A stat row reads
+   as a scoreboard when the columns are equal and as an accident when they are
+   not — and the reader compares down the labels, which only works if the labels
+   are where the figures are.
+
+   The selector carries the record class for specificity, not for decoration:
+   MUI's own rule is a single generated class, so a bare .clients-money-open
+   ties it and loses on source order, which is exactly why the display:flex
+   above it computed as inline-flex. */
+.clients-record .clients-money-open span {
+  flex: 1 1 0;
+  min-inline-size: 0;
+}
+
 .clients-money-open span {
   display: flex;
   flex-direction: column;

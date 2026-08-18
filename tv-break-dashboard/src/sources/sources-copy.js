@@ -141,6 +141,10 @@ export const TEXT = {
   offline: { en: 'The Kairos API is unavailable, so the state of the inputs cannot be read.', he: 'ה־API של Kairos לא זמין, ולכן לא ניתן לקרוא את מצב הקלטים.' },
   loading: { en: 'Reading the state of every input', he: 'קורא את מצב כל הקלטים' },
   none: { en: 'No input is in this state.', he: 'אין קלט במצב הזה.' },
+  // A file named on another screen that this screen cannot place. It is said
+  // rather than swallowed: silently showing the first card would answer a
+  // question nobody asked with the state of a different file.
+  fileNotAnInput: { en: 'That file is not one of the inputs this screen reads, so nothing here is focused on it.', he: 'הקובץ הזה אינו אחד הקלטים שהמסך הזה קורא, ולכן דבר כאן אינו ממוקד עליו.' },
   fileRole: { en: 'Role', he: 'תפקיד' },
   fileState: { en: 'Read by the engine', he: 'נקרא על ידי המנוע' },
   filePath: { en: 'File', he: 'קובץ' },

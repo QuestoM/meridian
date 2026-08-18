@@ -177,6 +177,20 @@ export const ButtonBase = Button;
 export const IconButton = Button;
 """
 
+# The source-file link, stubbed to its visible text. This harness compiles one
+# component in isolation and stands in for everything it imports; the link became
+# an import of ClientTree when a filename stopped being a dead string and became
+# the way to the Data screen. What matters here is that the NAME still reaches
+# the screen, which is what the stub renders.
+SOURCE_FILE_LINK = """
+import React from 'react';
+export default function SourceFileLink({ name }) {
+  return name ? React.createElement('button', { type: 'button' }, String(name)) : null;
+}
+export function sourceFileAddress(name) { return String(name || ''); }
+export function openSourceFile() {}
+"""
+
 CONTROLS = """
 import React from 'react';
 export function InputControl(props) { return React.createElement('input', props); }
@@ -204,6 +218,7 @@ const ICONS = pathToFileURL(join(here, 'icons.mjs')).href;
 const FORMAT = pathToFileURL(join(here, 'format.mjs')).href;
 const ACTIONS = pathToFileURL(join(here, 'actions.mjs')).href;
 const CONTROLS = pathToFileURL(join(here, 'controls.mjs')).href;
+const SOURCE_FILE_LINK = pathToFileURL(join(here, 'source-file-link.mjs')).href;
 const HELPERS = pathToFileURL(helpersPath).href;
 
 registerHooks({
@@ -214,6 +229,7 @@ registerHooks({
     if (specifier.endsWith('studio/actions')) return { url: ACTIONS, shortCircuit: true };
     if (specifier.endsWith('studio/dom-controls')) return { url: CONTROLS, shortCircuit: true };
     if (specifier.endsWith('clients-money-helpers')) return { url: HELPERS, shortCircuit: true };
+    if (specifier.endsWith('SourceFileLink')) return { url: SOURCE_FILE_LINK, shortCircuit: true };
     return nextResolve(specifier, context);
   },
 });
@@ -300,6 +316,7 @@ def _render(tmp_path: Path, source: str, payload_path: Path) -> dict[str, dict]:
     (tmp_path / "format.mjs").write_text(FORMAT, encoding="utf-8")
     (tmp_path / "actions.mjs").write_text(ACTIONS, encoding="utf-8")
     (tmp_path / "controls.mjs").write_text(CONTROLS, encoding="utf-8")
+    (tmp_path / "source-file-link.mjs").write_text(SOURCE_FILE_LINK, encoding="utf-8")
     harness = tmp_path / "harness.mjs"
     harness.write_text(HARNESS, encoding="utf-8")
     component = tmp_path / "ClientTree.jsx"

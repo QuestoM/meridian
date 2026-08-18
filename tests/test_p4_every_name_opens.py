@@ -47,7 +47,7 @@ const [, , DASH, SRC, OUT, PAYLOAD] = process.argv;
 const req = createRequire(pathToFileURL(path.join(DASH, 'package.json')));
 const { transformWithOxc } = await import(pathToFileURL(req.resolve('vite')).href);
 
-const MODULES = ['MoneyDetail.jsx', 'MoneyBoard.jsx', 'CampaignBoard.jsx', 'DemoBadge.jsx', 'DeliveryState.jsx', 'DeliveryBasisNotes.jsx', 'clients-money-helpers.js', 'delivery-helpers.js'];
+const MODULES = ['MoneyDetail.jsx', 'MoneyBoard.jsx', 'CampaignBoard.jsx', 'DemoBadge.jsx', 'DeliveryState.jsx', 'DeliveryBasisNotes.jsx', 'SourceFileLink.jsx', 'clients-money-helpers.js', 'delivery-helpers.js'];
 const built = new Map();
 const icons = new Set();
 

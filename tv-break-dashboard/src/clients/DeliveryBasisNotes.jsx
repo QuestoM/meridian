@@ -1,6 +1,7 @@
 import React from 'react';
 import { Figure, Code, isolate } from '../shell/bidi';
 import { pageText } from '../shell/format';
+import SourceFileLink from './SourceFileLink';
 import { localized } from './clients-money-helpers';
 import { formatDayList, formatStamp } from '../shell/dates';
 import { deliverySlice, droppedRulesOf, sourceFilesOf, spotWord } from './delivery-helpers';
@@ -218,7 +219,14 @@ export function DeliveryBasis({ delivery, locale, ledgerNote = true, ratingBasis
         <p className="clients-basis-note">
           <span>{pageText(locale, 'The file these counts were read out of:', 'הקובץ שממנו נקראו הספירות האלה:')}</span>
           {' '}
-          <Code>{files.join(', ')}</Code>
+          {/* The name is the way to the file. Joined by a comma when a slice was
+              counted over more than one, each one its own control. */}
+          {files.map((file, index) => (
+            <React.Fragment key={file}>
+              {index ? ', ' : null}
+              <SourceFileLink name={file} locale={locale} />
+            </React.Fragment>
+          ))}
         </p>
       ) : null}
       {/* One rule is one sentence: what it caps and what it cost, together. The

@@ -62,7 +62,7 @@
    citation chip and a tab are buttons that are not actions, and they carry
    their own layout, which an inherited gap would silently re-space. */
 :is(.kairos-shell, .studio-modal)
-  .MuiButton-root:not(.trd-card, .trd-filter, .trd-citation, [role='tab']) {
+  .MuiButton-root:not(.trd-card, .trd-filter, .trd-citation, .clients-money-open, [role='tab']) {
   gap: var(--space-2);
 }
 

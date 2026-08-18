@@ -3,7 +3,8 @@ import { Button } from '../studio/actions';
 import { Figure } from '../shell/bidi';
 import { ArrowLeft, Coins, Layers, Receipt } from 'lucide-react';
 import { pageText } from '../shell/format';
-import { NO_DRILL, basisLine, exactMoney, goToView, localized, periodNote, scopeNote, widerPeriod } from './clients-money-helpers';
+import SourceFileLink from './SourceFileLink';
+import { NO_DRILL, basisPrefix, exactMoney, goToView, localized, periodNote, scopeNote, widerPeriod } from './clients-money-helpers';
 import MoneyDetail from './MoneyDetail';
 import { isolate } from '../shell/bidi';
 
@@ -169,7 +170,10 @@ export default function MoneyBoard({
             <small>{pageText(locale, 'net after rebates', 'נטו אחרי רבייט')}</small>
           </Button>
         ) : null}
-        <p className="clients-basis">{basisLine(basis, locale)}</p>
+        <p className="clients-basis">
+          {basisPrefix(basis, locale)}
+          <SourceFileLink name={basis && basis.file} locale={locale} />
+        </p>
         <p className="clients-basis-note">{periodNote(basis, locale)}</p>
         <p className="clients-basis-note">{scopeNote(basis, locale)}</p>
         <p className="clients-basis-path">
@@ -253,7 +257,10 @@ export default function MoneyBoard({
               `ל${isolate(openKey)} אין שורה בספר שהלוח הזה קורא, ולכן אין מה לפתוח מאחוריו.`,
             )}
           </p>
-          <p className="clients-basis-note">{basisLine(basis, locale)}</p>
+          <p className="clients-basis-note">
+            {basisPrefix(basis, locale)}
+            <SourceFileLink name={basis && basis.file} locale={locale} />
+          </p>
         </div>
       ) : null}
 

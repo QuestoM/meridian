@@ -163,6 +163,14 @@ export function ledgerBreakKeys(money) {
 // The one sentence that travels with every total on this destination: which
 // file, which day, which channel, and how many of the file's rows were priced.
 export function basisLine(basis, locale) {
+  const prefix = basisPrefix(basis, locale);
+  return prefix ? `${prefix}${basis.file}` : '';
+}
+
+// The same sentence up to but not including the file, so a surface can render
+// the file as the control it should be. Both languages end with the filename,
+// which is what makes the split clean rather than a template with a hole in it.
+export function basisPrefix(basis, locale) {
   if (!basis || !basis.file) {
     return '';
   }
@@ -171,8 +179,8 @@ export function basisLine(basis, locale) {
   const rows = Number(basis.rows_in_file || 0);
   return pageText(
     locale,
-    `${scope}, ${formatDay(basis.day)}, ${priced} priced spots of ${rows} in ${basis.file}`,
-    `${scope}, ${formatDay(basis.day)}, ${isolate(priced)} תשדירים מתומחרים מתוך ${isolate(rows)} בקובץ ${basis.file}`,
+    `${scope}, ${formatDay(basis.day)}, ${priced} priced spots of ${rows} in `,
+    `${scope}, ${formatDay(basis.day)}, ${isolate(priced)} תשדירים מתומחרים מתוך ${isolate(rows)} בקובץ `,
   );
 }
 

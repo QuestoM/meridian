@@ -3,7 +3,8 @@ import { Button } from '../studio/actions';
 import { Figure } from '../shell/bidi';
 import { Building2, ChevronDown, ChevronUp, Plus, Search } from 'lucide-react';
 import { pageText } from '../shell/format';
-import { basisLine, exactMoney, filterAgencies, filterClients, localized } from './clients-money-helpers';
+import SourceFileLink from './SourceFileLink';
+import { basisPrefix, exactMoney, filterAgencies, filterClients, localized } from './clients-money-helpers';
 import { isolate } from '../shell/bidi';
 import { InputControl } from '../studio/dom-controls';
 
@@ -261,7 +262,10 @@ export default function ClientTree({ tree, locale, onOpenClient }) {
         <span className="clients-counts">{countsLine}</span>
       </div>
 
-      <p className="clients-basis">{basisLine(tree.basis, locale)}</p>
+      <p className="clients-basis">
+        {basisPrefix(tree.basis, locale)}
+        <SourceFileLink name={tree.basis && tree.basis.file} locale={locale} />
+      </p>
 
       {shownAgencies.map((agency) => {
         const expanded = openAgency === agency.agency_id;

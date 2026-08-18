@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../studio/actions';
 import { ArrowRight } from 'lucide-react';
 import { Numeric, formatNumber } from '../shell/format';
@@ -80,7 +80,8 @@ function ModelPanel({ model, locale }) {
 // vocabulary itself, so a state is also a place: three inputs stored and not
 // read is a number you can click, and the address in the bar carries it, so
 // that place can be returned to and sent to somebody else.
-export function InputsView({ status, locale, canEdit, canEditReason, filter, onFilter, onOpenFile, onReload, notify }) {
+export function InputsView({ status, locale, canEdit, canEditReason, filter, onFilter, onOpenFile,
+                             onReload, notify, focusKind = '', focusFile = '' }) {
   const [rowsIndex, setRowsIndex] = useState(-1);
   const [fields, setFields] = useState(readFields);
   const [selectedKind, setSelectedKind] = useState('');
@@ -98,6 +99,19 @@ export function InputsView({ status, locale, canEdit, canEditReason, filter, onF
   }, [inputs, summary]);
 
   const shown = filter === 'all' ? inputs : inputs.filter((input) => input.state === filter);
+
+  // A file named on another screen arrives here as a request to show it. The
+  // filter is cleared when the requested card is not in the current one, because
+  // landing on somebody else's filter and quietly showing a DIFFERENT card is
+  // worse than landing nowhere: the reader asked for one file and would read the
+  // state of another.
+  useEffect(() => {
+    if (!focusKind) return;
+    setSelectedKind(focusKind);
+    const visible = filter === 'all' || inputs.some(
+      (input) => input.kind === focusKind && input.state === filter);
+    if (!visible && onFilter) onFilter('all');
+  }, [focusKind, filter, inputs, onFilter]);
   const visibleFilters = FILTER_ORDER.filter((key) => key === 'all' || counts[key] > 0);
   const selected = shown.find((input) => input.kind === selectedKind) || shown[0] || null;
   const selectedIndex = selected ? shown.findIndex((input) => input.kind === selected.kind) : -1;
@@ -154,6 +168,11 @@ export function InputsView({ status, locale, canEdit, canEditReason, filter, onF
 
       <div id="source-inputs-panel" role="tabpanel" aria-labelledby={`source-filter-${filter}`} tabIndex={0}>
         {canEdit ? null : <p className="sources-note">{canEditReason || text('readOnly', locale)}</p>}
+        {focusFile && !focusKind ? (
+          <p className="sources-note" role="status">
+            {text('fileNotAnInput', locale)} <Code>{focusFile}</Code>
+          </p>
+        ) : null}
 
         {shown.length === 0 ? (
           <p className="sources-note">{text('none', locale)}</p>

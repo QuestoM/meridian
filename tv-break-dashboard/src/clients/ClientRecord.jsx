@@ -6,6 +6,7 @@ import { pageText } from '../shell/format';
 import ClientRuleCard from './ClientRuleCard';
 import { exactMoney, goToView, goalLabel, hasLedgerRow, localized, positionOf, sourceLabel, step, vocabularyLabel, windowLabel } from './clients-money-helpers';
 import { DeliveryCell } from './DeliveryState';
+import SourceFileLink from './SourceFileLink';
 import { DeliveryBasis, DeliveryLedgerNote } from './DeliveryBasisNotes';
 import DemoBadge from './DemoBadge';
 import { isolate } from '../shell/bidi';
@@ -216,10 +217,18 @@ export default function ClientRecord({
         {localized(client, 'money_reason', locale) ? <p className="clients-reason">{localized(client, 'money_reason', locale)}</p> : null}
         {!opensRows && basis && basis.day ? (
           <p className="clients-basis-path">
+            {/* Split around the file so the name is the control it should be,
+                rather than a dead string in the middle of a sentence. */}
             {pageText(
               locale,
-              `The day being read is ${formatDay(basis.day)}, from ${basis.file}. A daily file carrying this client prices their spots and fills these figures.`,
-              `היום הנקרא הוא ${isolate(basis.day)}, מתוך ${isolate(basis.file)}. קובץ יומי שנושא את הלקוח הזה מתמחר את התשדירים שלו וממלא את הסכומים.`,
+              `The day being read is ${formatDay(basis.day)}, from `,
+              `היום הנקרא הוא ${isolate(basis.day)}, מתוך `,
+            )}
+            <SourceFileLink name={basis.file} locale={locale} />
+            {pageText(
+              locale,
+              '. A daily file carrying this client prices their spots and fills these figures.',
+              '. קובץ יומי שנושא את הלקוח הזה מתמחר את התשדירים שלו וממלא את הסכומים.',
             )}
             <Button type="button" className="clients-inline-action" onClick={() => goToView('Data')}>
               {pageText(locale, 'Open Data', 'פתחו את מסך הנתונים')}

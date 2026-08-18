@@ -38,10 +38,40 @@ function viewFromLocation(fallback = 'inputs') {
   return VIEWS.includes(requested) ? requested : fallback;
 }
 
+// A file named somewhere else in the product, arriving as a request to show it.
+//
+// It travels by NAME because the surfaces that print it — a delivery basis, a
+// money basis, a pacing drill — hold a filename and nothing else. Resolving that
+// name to the input it belongs to happens HERE, against the upload status this
+// screen already fetches, so the mapping lives in one place rather than being
+// re-derived by every caller from a path convention.
+//
+// Matched on the basename in both directions: the ledger records
+// "Wally_Prime_Reshet_Example_2025-04-27.csv" while the status carries
+// "data/daily_input/Wally_Prime_Reshet_Example_2025-04-27.csv", and either may
+// be the one asking.
+function fileFromLocation() {
+  if (typeof window === 'undefined') return '';
+  return (new URLSearchParams(window.location.search).get('sourceFile') || '').trim();
+}
+
+function baseName(value) {
+  return String(value || '').split('/').pop();
+}
+
+function kindForFile(inputs, wanted) {
+  if (!wanted) return '';
+  const target = baseName(wanted);
+  const hit = (inputs || []).find(
+    (input) => baseName(input.path) === target || baseName(input.file) === target);
+  return hit ? String(hit.kind || '') : '';
+}
+
 export function SourcesPage({ view: initialView, files, overview, reports, locale, notify, onGlobalRefresh }) {
   const fallbackView = VIEWS.includes(initialView) ? initialView : 'inputs';
   const [view, setViewState] = useState(() => viewFromLocation(fallbackView));
   const [filter, setFilterState] = useState(filterFromLocation);
+  const [wantedFile, setWantedFile] = useState(fileFromLocation);
   const [status, setStatus] = useState({ loading: true, online: true, body: { inputs: [] } });
   const [ownReports, setOwnReports] = useState(null);
   const [highlight, setHighlight] = useState('');
@@ -65,6 +95,7 @@ export function SourcesPage({ view: initialView, files, overview, reports, local
     function syncFromAddress() {
       setViewState(viewFromLocation(fallbackView));
       setFilterState(filterFromLocation());
+      setWantedFile(fileFromLocation());
     }
     window.addEventListener('popstate', syncFromAddress);
     return () => window.removeEventListener('popstate', syncFromAddress);
@@ -194,6 +225,8 @@ export function SourcesPage({ view: initialView, files, overview, reports, local
             onOpenFile={openFile}
             onReload={reload}
             notify={notify}
+            focusKind={kindForFile(status.body.inputs, wantedFile)}
+            focusFile={wantedFile}
           />
         ) : null}
 

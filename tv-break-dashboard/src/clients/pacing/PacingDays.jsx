@@ -1,3 +1,4 @@
+import SourceFileLink from '../SourceFileLink';
 import React from 'react';
 import { Button } from '../../studio/actions';
 import { Code, Figure, Name } from '../../shell/bidi';
@@ -240,7 +241,12 @@ export default function PacingDays({ drill, line, second, vocabulary, locale, on
       {sources.length ? (
         <p className="pacing-days-source">
           {pick(locale, 'Read from ', 'נקרא מתוך ')}
-          <Code>{sources.join(', ')}</Code>
+          {sources.map((file, index) => (
+            <React.Fragment key={file}>
+              {index ? ', ' : null}
+              <SourceFileLink name={file} locale={locale} />
+            </React.Fragment>
+          ))}
         </p>
       ) : null}
     </div>
