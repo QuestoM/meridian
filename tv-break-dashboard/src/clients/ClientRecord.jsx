@@ -10,6 +10,7 @@ import SourceFileLink from './SourceFileLink';
 import { DeliveryBasis, DeliveryLedgerNote } from './DeliveryBasisNotes';
 import DemoBadge from './DemoBadge';
 import { isolate } from '../shell/bidi';
+import { droppingRuleLine } from './clients-rule-helpers';
 import { formatDay } from '../shell/dates';
 
 // One client, opened without losing the set it came from. The counter and the
@@ -235,13 +236,23 @@ export default function ClientRecord({
             </Button>
           </p>
         ) : null}
+        {/* Which rule took the money. A count beside the bare word "rule" tells
+            a reader that a figure is short and nothing about what to change to
+            get it back — and the rule was never further away than one campaign
+            and one spot, which is what made the omission easy to keep. */}
         {client.dropped_by_frequency ? (
           <p className="clients-reason">
-            {pageText(
-              locale,
-              `${client.dropped_by_frequency} of this client's spots were removed by a rule, so their money is not above.`,
-              `${isolate(client.dropped_by_frequency)} מתשדירי הלקוח הוסרו על ידי כלל, ולכן הכסף שלהם אינו למעלה.`,
-            )}
+            {droppingRuleLine(client.dropped_rules, locale)
+              ? pageText(
+                locale,
+                `${client.dropped_by_frequency} of this client's spots were removed, so their money is not above. ${droppingRuleLine(client.dropped_rules, locale)}`,
+                `${isolate(client.dropped_by_frequency)} מתשדירי הלקוח הוסרו, ולכן הכסף שלהם אינו למעלה. ${droppingRuleLine(client.dropped_rules, locale)}`,
+              )
+              : pageText(
+                locale,
+                `${client.dropped_by_frequency} of this client's spots were removed by a rule, so their money is not above.`,
+                `${isolate(client.dropped_by_frequency)} מתשדירי הלקוח הוסרו על ידי כלל, ולכן הכסף שלהם אינו למעלה.`,
+              )}
           </p>
         ) : null}
       </section>

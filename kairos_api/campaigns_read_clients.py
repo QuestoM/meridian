@@ -114,6 +114,7 @@ def _client_record(
         "rebates": (money_row or {}).get("rebates"),
         "spots": (money_row or {}).get("spots"),
         "dropped_by_frequency": (money_row or {}).get("dropped_by_frequency"),
+        "dropped_rules": (money_row or {}).get("dropped_rules") or [],
         "rank": (money_row or {}).get("rank"),
         "share_of_gross": (money_row or {}).get("share_of_gross"),
         "money_reason_en": "" if money_row else NO_MONEY_REASON,

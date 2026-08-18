@@ -186,3 +186,34 @@ export function parsePremium(raw) {
   }
   return value;
 }
+
+// ------------------------------------------------------ the rule that removed
+
+// Which rule left these spots out of the money, in one line.
+//
+// A count and the bare word "rule" was what every summary carried: a reader was
+// told money had been left out of a total, and not told what to change to get it
+// back. The rule was always reachable — one drawer, one campaign, one spot down —
+// and being reachable is not the same as being told.
+//
+// A level can involve more than one rule. When it does the largest is named and
+// the rest are counted, because a tile is one line and "several rules" tells a
+// reader nothing at all.
+export function droppingRuleLine(rules, locale) {
+  const named = (rules || []).filter((rule) => rule && (rule.sentence_he || rule.sentence_en));
+  if (!named.length) {
+    return '';
+  }
+  const first = named[0];
+  const sentence = (locale === 'he' ? first.sentence_he : first.sentence_en) || '';
+  if (named.length === 1) {
+    return sentence;
+  }
+  const rest = named.length - 1;
+  if (locale === 'he') {
+    return rest === 1
+      ? `${sentence} כלל נוסף אחד הוציא תשדירים נוספים.`
+      : `${sentence} ${isolate(rest)} כללים נוספים הוציאו תשדירים נוספים.`;
+  }
+  return `${sentence} ${rest} further ${rest === 1 ? 'rule' : 'rules'} removed spots too.`;
+}

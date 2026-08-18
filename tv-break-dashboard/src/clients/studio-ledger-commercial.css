@@ -196,31 +196,13 @@
   background: var(--surface-muted);
 }
 
-/* Every link in this workspace, and why the class is written twice.
- *
- * MEASURED on the Commercial page: 48 of 50 elements carrying these classes
- * rendered with no link signal whatsoever — no underline, no link colour, no
- * icon — and every one of the 48 was painted in --muted, the token this system
- * reserves for DE-EMPHASIS. Client names, campaign titles and source files were
- * all clickable and all looked like slightly faded prose. The report that
- * started this was "nothing there is clickable", and it was literally true.
- *
- * Two causes, both invisible in the source:
- *
- * MUI injects its own `.muirtl-XXXX { color; text-decoration: none }` into a
- * runtime <style> element, which lands AFTER this stylesheet in the document.
- * One class against one class is equal specificity, so the later sheet wins
- * outright — in the resting state AND in :hover, which is why hovering did not
- * reveal the link either. Doubling the class takes this to (0,2,0) so the
- * design system decides, not the component library. It reads as a typo and is
- * not one; an element selector would not do, because these classes are worn by
- * buttons in some places and by anchors in others.
- *
- * And the underline was styled without ever being turned on: this block set
- * text-decoration-COLOR and text-underline-OFFSET, which do nothing at all
- * until text-decoration-line exists. The soft warm underline was designed,
- * committed, and never rendered once.
- */
+/* Every link in this workspace. The class is written twice on purpose: MUI
+ * injects its own styles into a runtime sheet that lands after this file, and
+ * one class against one class is a tie the later sheet wins. Measured before
+ * this was fixed, 48 of 50 links on this page rendered with no link signal at
+ * all — no underline, no link colour — and all 48 in --muted, the de-emphasis
+ * token. scripts/verify-link-rules.mjs holds the full account and fails the
+ * build on either cause. */
 .clients-link.clients-link,
 .clients-inline-action.clients-inline-action,
 .agz-totals-link.agz-totals-link,

@@ -190,6 +190,10 @@ def test_an_unreadable_ledger_is_a_state_with_a_reason(monkeypatch):
         "spots": None,
         "dropped_by_frequency": None,
         "dropped_by_rule": None,
+        # None rather than []. With no ledger to read, an empty list of rules
+        # reads as "no rule removed anything", which is the same false claim
+        # this test exists to forbid, in the shape of a list instead of a zero.
+        "dropped_rules": None,
     }
     assert payload["advertisers"] == []
     assert payload["spots"] == []

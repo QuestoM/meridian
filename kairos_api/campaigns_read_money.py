@@ -177,6 +177,55 @@ def _dropped_record(ordinal: int, drop: Any, kind: str = "frequency",
     }
 
 
+def _rules_behind(drops: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Which rules removed these spots, each named once, most first.
+
+    Every removed spot already carries the sentence for the rule that removed
+    it. What the summaries above them carried was a COUNT and the bare word
+    "rule": a reader was told that money had been left out of a total and not
+    told what to change to get it back. The rule was reachable — one drawer, one
+    campaign, one spot down — which is not the same as being told.
+
+    A level can involve more than one rule, so this is a list. It is never
+    collapsed to "several rules": a surface that cannot fit them all should say
+    how many there are and show the largest, and that is a decision for the
+    surface, not for this reader.
+    """
+    counts: dict[str, int] = {}
+    limits: dict[str, str] = {}
+    for drop in drops:
+        rule_id = str(drop.get("rule_id") or "")
+        counts[rule_id] = counts.get(rule_id, 0) + 1
+        limits.setdefault(rule_id, str(drop.get("limit_type") or ""))
+
+    # The CAP, not one spot's story. Each removed spot carries a sentence naming
+    # the advertiser and the break it lost — right for that row, wrong the
+    # moment it stands over a total: "the cap was already reached for Factory 54
+    # in the 20:40 break" is a true sentence about one of fifty-six spots and a
+    # false summary of all of them. The pacing vocabulary already composes the
+    # rule itself — "at most one spot per client per break" — and that is what a
+    # summary is owed.
+    try:
+        from kairos_api import pacing_alerts_api_words as words
+
+        sentences = words.booking_rules(counts)
+    except Exception:  # noqa: BLE001 - an unreadable vocabulary is unknown, not a crash
+        sentences = {}
+
+    out: list[dict[str, Any]] = []
+    for rule_id, spots in counts.items():
+        block = sentences.get(rule_id) or {}
+        out.append({
+            "rule_id": rule_id,
+            "limit_type": limits.get(rule_id, ""),
+            "known": bool(block.get("known")),
+            "sentence_en": block.get("rule_en", ""),
+            "sentence_he": block.get("rule_he", ""),
+            "spots": spots,
+        })
+    return sorted(out, key=lambda r: (-r["spots"], r["rule_id"]))
+
+
 def _blank_totals() -> dict[str, Any]:
     return {
         "gross": None,
@@ -185,6 +234,9 @@ def _blank_totals() -> dict[str, Any]:
         "spots": None,
         "dropped_by_frequency": None,
         "dropped_by_rule": None,
+        # None, not an empty list. With no ledger to read, "no rule removed
+        # anything" is a claim and not a blank, exactly as a zero would be.
+        "dropped_rules": None,
     }
 
 
@@ -250,6 +302,7 @@ def _advertiser_rows(
         removed = dropped_by_advertiser.get(advertiser["advertiser"], [])
         advertiser["dropped_by_frequency"] = len(removed)
         advertiser["dropped_keys"] = [row["spot_key"] for row in removed]
+        advertiser["dropped_rules"] = _rules_behind(removed)
     return advertisers
 
 
@@ -323,6 +376,7 @@ def _build() -> dict[str, Any]:
     totals = _sum_rows(rows)
     totals["dropped_by_frequency"] = len(dropped)
     totals["dropped_by_rule"] = len(rule_dropped)
+    totals["dropped_rules"] = _rules_behind(dropped + rule_dropped)
     return {
         "available": True,
         "reason": "",

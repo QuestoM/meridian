@@ -7,6 +7,7 @@ import SourceFileLink from './SourceFileLink';
 import { NO_DRILL, basisPrefix, exactMoney, goToView, localized, periodNote, scopeNote, widerPeriod } from './clients-money-helpers';
 import MoneyDetail from './MoneyDetail';
 import { isolate } from '../shell/bidi';
+import { droppingRuleLine } from './clients-rule-helpers';
 
 // The analyst's surface: what each client delivered, gross and net of the
 // agency rebate, with every figure opening the rows behind it.
@@ -103,6 +104,26 @@ function Tile({ label, value, sub, icon: Icon, tone }) {
 // board, which are that surface's reads and not this one's. An absent opener is
 // an honest state and not a fault: the head stays a label wherever the object
 // behind it cannot be reached.
+// The dropped-spot line under the net tile. It names the rule, because a count
+// beside the word "rule" tells a reader that money is missing and nothing about
+// how to get it back — and the rule was never further away than one drawer, one
+// campaign and one spot, which is exactly what made the omission easy to keep.
+function dropSub(totals, locale) {
+  const count = totals.dropped_by_frequency;
+  const which = droppingRuleLine(totals.dropped_rules, locale);
+  if (!which) {
+    // No rule could be named — an unreadable rule file, say. The count is still
+    // true and still worth stating; what is not known is not invented.
+    return pageText(
+      locale,
+      `${count} spots dropped by a rule`,
+      `${isolate(count)} תשדירים הוסרו על ידי כלל`,
+    );
+  }
+  return pageText(locale, `${count} spots dropped. ${which}`, `${isolate(count)} תשדירים הוסרו. ${which}`);
+}
+
+
 export default function MoneyBoard({
   money,
   locale,
@@ -200,7 +221,7 @@ export default function MoneyBoard({
         <Tile
           label={pageText(locale, 'Net after rebates', 'נטו אחרי רבייט')}
           value={exactMoney(totals.net, locale)}
-          sub={pageText(locale, `${totals.dropped_by_frequency} spots dropped by a rule`, `${isolate(totals.dropped_by_frequency)} תשדירים הוסרו על ידי כלל`)}
+          sub={dropSub(totals, locale)}
           icon={Layers}
           tone="net"
         />

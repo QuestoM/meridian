@@ -47,7 +47,13 @@ const [, , DASH, SRC, OUT, PAYLOAD] = process.argv;
 const req = createRequire(pathToFileURL(path.join(DASH, 'package.json')));
 const { transformWithOxc } = await import(pathToFileURL(req.resolve('vite')).href);
 
-const MODULES = ['MoneyDetail.jsx', 'MoneyBoard.jsx', 'CampaignBoard.jsx', 'DemoBadge.jsx', 'DeliveryState.jsx', 'DeliveryBasisNotes.jsx', 'SourceFileLink.jsx', 'clients-money-helpers.js', 'delivery-helpers.js'];
+// Every module in the directory, rather than a list somebody has to remember to
+// extend. Twice now a component gained one import and this harness died on
+// ERR_MODULE_NOT_FOUND — a failure that says nothing about the component and
+// everything about the list. Compiling the whole directory costs milliseconds
+// and takes the class of failure away; anything unreachable from the entry
+// modules is simply never imported.
+const MODULES = fs.readdirSync(SRC).filter((name) => /\.jsx?$/.test(name));
 const built = new Map();
 const icons = new Set();
 
