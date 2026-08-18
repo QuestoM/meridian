@@ -109,6 +109,22 @@ def known_channels() -> tuple[str, ...]:
     return tuple(CHANNELS)
 
 
+def _shadowing_file(target: Path) -> Optional[Path]:
+    """A file the loader would read INSTEAD of the one this writes.
+
+    :func:`kairos.model.future_epg._resolve_future_epg_path` prefers a workbook
+    over a CSV, and for years this schedule arrived as a workbook somebody
+    saved by hand. The two habits together make a silent, total failure: the
+    pull succeeds, the file is written, the log says so, and the engine reads a
+    frozen spreadsheet from months ago.
+    """
+    for suffix in (".xlsx", ".xls"):
+        candidate = target.with_suffix(suffix)
+        if candidate.exists():
+            return candidate
+    return None
+
+
 def configured_operator_channel() -> str:
     """The channel this operator owns, as the rest of the product reads it.
 
@@ -170,6 +186,30 @@ def pull(
                 "do_this": "Name the rival's channel, not the operator's own",
             }
 
+    shadow = _shadowing_file(Path(target))
+    if shadow is not None:
+        # The loader prefers .xlsx over .csv, and the competitor file arrived by
+        # hand as a spreadsheet for years. So a leftover workbook beside the
+        # file this writes is not clutter: it is the file the engine will read
+        # INSTEAD, forever, while this pull reports success every morning. The
+        # whole feed would be a no-op and every log line would say it worked.
+        return {
+            "refreshed": False,
+            "reason": (
+                f"{shadow.name} sits beside the schedule this writes, and the loader "
+                f"prefers it. Every pull would look successful and none would be read. "
+                f"Move or delete it."
+            ),
+            "reason_he": (
+                f"הקובץ {shadow.name} יושב לצד הלוח שההזנה כותבת, והטוען מעדיף אותו. "
+                f"כל משיכה תיראה מוצלחת ואף אחת לא תיקרא. יש להזיז או למחוק אותו."
+            ),
+            "needs_human": True,
+            "do_this": f"mv '{shadow}' '{shadow}.was-shadowing'",
+            "shadowed_by": shadow.name,
+            "channel": resolved,
+        }
+
     sources = SOURCES.get(resolved)
     if not sources:
         # An honest gap, named. Every rival matters to the optimizer and saying
@@ -218,11 +258,18 @@ def pull(
 
 def headline(result: dict[str, Any], locale: str = "he") -> str:
     """The line an operator reads before a run, including who is needed."""
-    if result.get("sources_available") is not None:
-        # A channel with no source at all is not a stale schedule, and calling it
-        # one would send somebody looking for a network fault that is not there.
+    # Two states are NOT staleness and must not be worded as it. A channel with
+    # no source, and a file shadowing the one this writes. Calling either "the
+    # schedule was not refreshed" sends somebody looking for a network fault
+    # that is not there, and in the shadowing case the schedule on disk is
+    # perfectly fresh and simply never read.
+    if result.get("sources_available") is not None or result.get("shadowed_by"):
         key = "reason_he" if locale == "he" else "reason"
-        return str(result.get(key) or result.get("reason") or "")
+        line = str(result.get(key) or result.get("reason") or "")
+        if result.get("do_this"):
+            step = result["do_this"].strip().splitlines()[0]
+            line += (f" הצעד: {step}" if locale == "he" else f" Do this: {step}")
+        return line
     line = keshet_refresh.headline(result, locale)
     if result.get("needs_human") and result.get("do_this"):
         step = result["do_this"].strip().splitlines()[0]

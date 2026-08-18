@@ -552,3 +552,23 @@ def test_no_rival_needs_a_credential(monkeypatch):
         assert sources, channel
         assert sources[0] in ("mako", "freetv"), (
             f"{channel} leads with {sources[0]}, which needs a credential")
+
+
+def test_a_workbook_beside_the_schedule_stops_the_pull(tmp_path):
+    """The loader prefers .xlsx, and this file arrived as one by hand for years.
+
+    Left alone, that is a silent total failure: the pull succeeds every morning,
+    the log says so, and the engine reads a frozen spreadsheet instead. The one
+    state worse than a stale schedule is a fresh one nobody reads.
+    """
+    from kairos.model import keshet_feed
+
+    target = tmp_path / "CompetitorProgrammes.csv"
+    (tmp_path / "CompetitorProgrammes.xlsx").write_bytes(b"")
+    result = keshet_feed.pull(channel="קשת 12", operator_channel="", target=target)
+    assert result["refreshed"] is False
+    assert result["shadowed_by"] == "CompetitorProgrammes.xlsx"
+    assert not target.exists(), "a schedule was written that would never be read"
+    line = keshet_feed.headline(result, "he")
+    assert "לא רוענן" not in line, "a shadowed pull was worded as staleness"
+    assert "CompetitorProgrammes.xlsx" in line
