@@ -446,3 +446,46 @@ def test_a_failed_pull_says_which_channel_it_kept(payload, tmp_path):
     assert result["channel"] == "קשת 12"
     assert result["kept_rows"] < result["kept_rows_in_file"], (
         "the count for one channel is being reported as the whole file")
+
+
+def test_one_rivals_source_failing_does_not_cost_the_others(payload, tmp_path):
+    """Measured live, then pinned: with Keshet's session gone, כאן 11 and
+    עכשיו 14 refreshed normally, Keshet said so and named the one human step,
+    and all 300 of its rows survived. A lineup where one source can take the
+    others down with it is a lineup that stops being pulled the first time a
+    credential expires."""
+    target = tmp_path / "CompetitorProgrammes.csv"
+    refresh.refresh(fetch=lambda: payload, channel="קשת 12", target=target)
+    kept = len(_channel_rows(target, "קשת 12"))
+
+    def dead():
+        raise ConnectionError("no session")
+
+    broken = refresh.refresh(fetch=dead, channel="קשת 12", target=target)
+    fine = refresh.refresh(fetch=lambda: payload, channel="כאן 11", target=target)
+
+    assert broken["refreshed"] is False
+    assert fine["refreshed"] is True
+    assert len(_channel_rows(target, "קשת 12")) == kept, "the failed channel lost its rows"
+    assert len(_channel_rows(target, "כאן 11")) == kept
+
+
+def test_the_channel_that_failed_keeps_its_older_stamp(payload, tmp_path):
+    """The other half of the same property: refreshing one channel must not
+    make a channel that failed look freshly pulled."""
+    from datetime import datetime, timedelta, timezone
+
+    target = tmp_path / "CompetitorProgrammes.csv"
+    first = datetime(2026, 8, 1, tzinfo=timezone.utc)
+    refresh.refresh(fetch=lambda: payload, channel="קשת 12", target=target, now=first)
+
+    def dead():
+        raise ConnectionError("no session")
+
+    later = first + timedelta(days=2)
+    refresh.refresh(fetch=dead, channel="קשת 12", target=target, now=later)
+    refresh.refresh(fetch=lambda: payload, channel="כאן 11", target=target, now=later)
+
+    stamps = refresh.read_freshness(target)
+    assert stamps["קשת 12"].startswith("2026-08-01"), "a failed pull moved the stamp"
+    assert stamps["כאן 11"].startswith("2026-08-03")
