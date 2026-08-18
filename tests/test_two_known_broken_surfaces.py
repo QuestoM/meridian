@@ -73,11 +73,22 @@ def test_the_client_tree_marks_demo_campaigns_without_the_shared_badge():
 
 
 def test_the_campaign_board_header_states_the_demo_split_not_a_bare_count():
+    """The split, in both languages — and not one particular phrasing of it.
+
+    This used to pin the literal words "demo seed data" / "נתוני זרע הדגמה". The
+    owner read that Hebrew on screen and said it sounds strange, which it does:
+    "זרע" is the seeding SCRIPT's word for itself and means nothing to an
+    operator. The copy is now "נתוני הדגמה" / "demo data" across the product. A
+    test that pins a phrase blocks that kind of fix while proving nothing about
+    the behaviour, so this asserts what the header must SAY — a booked count and
+    a demo count, both named — and leaves the wording to the writer.
+    """
     board = read("CampaignBoard.jsx")
     assert "demo_count" in board
     assert "booked_count" in board
-    assert "demo seed data" in board
-    assert "נתוני זרע הדגמה" in board
+    assert "demo data" in board
+    assert "נתוני הדגמה" in board
+    assert "זרע" not in board, "the seeding script's own word is back on an operator screen"
 
 
 def test_the_client_tree_header_counts_demo_campaigns_from_its_own_payload():
