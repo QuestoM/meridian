@@ -56,11 +56,20 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
   // language does, because a stale sentence is worse than none.
   useEffect(() => { setRefusal(''); setRefusalOpen(null); setNotice(''); setUndoable(null); }, [locale]);
 
+  // When WE last read, which is not the same fact as the board's own as_of —
+  // that is the broadcast instant the figures are cut at. Conflating the two
+  // would answer "how fresh is this screen" with "how far the day has got".
+  const [readAt, setReadAt] = useState('');
+
   const reload = useCallback(() => {
     let active = true;
     setBoard((current) => ({ status: current.payload ? 'ready' : 'loading', payload: current.payload }));
     loadBoard()
-      .then((payload) => { if (active) setBoard({ status: 'ready', payload }); })
+      .then((payload) => {
+        if (!active) return;
+        setBoard({ status: 'ready', payload });
+        setReadAt(new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }));
+      })
       .catch(() => { if (active) setBoard({ status: 'failed', payload: null }); });
     loadLedger()
       .then((payload) => { if (active) setLedger({ status: 'ready', payload }); })
@@ -343,9 +352,29 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
                 : null}
             </Button>
           </nav>
-          <Button type="button" className="pacing-refresh" onClick={reload}>
-            {pick(locale, 'Read again', 'קראו שוב')}
-          </Button>
+          {/* A command, not a third tab, and it now says what it re-reads and
+              when that reading happened. "Read again" beside two views is a
+              question with no answer on screen: again since when, and again of
+              what. Both are on the line now. */}
+          <span className="pacing-read-state">
+            {readAt ? (
+              <Figure>
+                {pick(locale, `Read at ${readAt}`, `נקרא ב־${readAt}`)}
+              </Figure>
+            ) : null}
+            <Button
+              type="button"
+              className="pacing-refresh"
+              onClick={reload}
+              title={pick(
+                locale,
+                'Read the pacing board and the decision ledger again from the server',
+                'קוראים מחדש מהשרת את לוח קצב האספקה ואת ספר ההחלטות',
+              )}
+            >
+              {pick(locale, 'Read again', 'קראו שוב')}
+            </Button>
+          </span>
         </div>
       </div>
 

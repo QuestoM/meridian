@@ -39,8 +39,25 @@
   max-inline-size: 88ch;
 }
 
+/* A COMMAND looks like a button. A TAB does not.
+ *
+ * This rule used to include `.pacing-views button`, which is every control in
+ * the strip — both tabs and the reload command — so all three were painted with
+ * the same border and the same surface. The file said so itself, a few rules
+ * down: "Read again sits beside them in .pacing-views and looks identical." It
+ * was noticed, written down, and left, and the report that reopened it was that
+ * the tabs do not read as tabs and the button beside them does not say what it
+ * does.
+ *
+ * The selector was also doing nothing that was not already done: `.pacing-refresh`
+ * is named on this very line, and the only other button in `.pacing-views` is a
+ * tab. So this is not a narrowing that costs something; it is the removal of a
+ * rule that only ever hit the wrong element.
+ *
+ * This file loads AFTER the two that define the tab look, so what it says about
+ * a tab wins on order at equal specificity. That is exactly how the tab look was
+ * being lost. */
 .pacing-refresh,
-.pacing-views button,
 .pacing-failed button {
   border: 1px solid var(--line-strong);
   background: var(--surface);
@@ -72,18 +89,40 @@
 }
 
 /* The two tabs, in their own element so the tablist holds tabs and nothing
-   else. Read again sits beside them in .pacing-views and looks identical. */
+   else — and now looking like a tab strip rather than like the command next to
+   them. The strip carries the rule the selected tab sits on, which is what
+   makes two controls read as two views of one thing instead of two buttons. */
 .pacing-view-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-1);
   align-items: center;
+  border-block-end: 1px solid var(--line);
 }
 
-.pacing-views button.active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: var(--surface);
+.pacing-view-tabs button {
+  border: 0;
+  background: transparent;
+  color: var(--ink-muted);
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
+}
+
+.pacing-view-tabs button.active {
+  background: var(--surface-muted);
+  color: var(--ink);
+  font-weight: var(--weight-semibold);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+/* The command sits apart from the views it re-reads, with the reading time
+   beside it — "read again" says nothing without "read when". */
+.pacing-read-state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-inline-start: auto;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
 }
 
 .pacing-open-count {
