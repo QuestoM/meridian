@@ -26,10 +26,11 @@ import subprocess
 import time
 import urllib.request
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 
 API_USER = "https://api.kway.co.il/api/user"
 APP_LOGIN = "https://app.kway.co.il/auth/login"
+DASHBOARD = "https://app.kway.co.il/dashboard"
 LOGIN_SELECTOR = ".continue-with-google"
 
 # Google's own pages that mean a person has to act. Matched on the path so a
@@ -205,6 +206,19 @@ def renew_via_profile(
                 }, session_id, timeout=timeout)
                 return result.get("result", {}).get("value")
 
+            # SIGNING IN AGAIN ENDS THE SESSION THAT IS ALREADY THERE. Measured:
+            # a second sign-in on a profile that still held a live session left
+            # both the old cookie and the new one answering 401 "Session ended",
+            # because the server killed the first and the jar had not yet caught
+            # up with the second. So the profile's own session is tried FIRST and
+            # taken as it is when it works. The cheapest renewal is the one that
+            # does not happen.
+            _rpc(sock, "Page.navigate", {"url": DASHBOARD}, session_id)
+            time.sleep(2.0)
+            standing = _cookies_now(sock, session_id)
+            if accepted(standing):
+                return _harvest(sock, session_id, evaluate, started)
+
             _rpc(sock, "Page.navigate", {"url": APP_LOGIN}, session_id)
             # Wait for the control the application renders, rather than a fixed
             # sleep: an app that is slow today must not read as an app that is
@@ -293,16 +307,67 @@ def renew_via_profile(
             process.kill()
 
 
-def _harvest(sock: Any, session_id: str, evaluate: Any, started: float) -> dict[str, Any]:
-    """Take the cookies only after the server has accepted them."""
+def accepted(cookies: Mapping[str, str], timeout: float = 20.0) -> bool:
+    """Does the server accept these cookies OUTSIDE the browser?
+
+    The only question that matters, and not the same question as "is the page
+    signed in". Measured: the two answers disagree, and the disagreement is
+    silent — see :func:`_harvest`.
+    """
+    import urllib.error
+    import urllib.request
+
+    if "sfp_access" not in cookies:
+        return False
+    header = "; ".join(f"{name}={value}" for name, value in cookies.items())
+    request = urllib.request.Request(
+        API_USER, headers={"Cookie": header, "Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.status == 200
+    except Exception:  # noqa: BLE001 - anything but a clean 200 is a no
+        return False
+
+
+def _cookies_now(sock: Any, session_id: str) -> dict[str, str]:
     jar = _rpc(sock, "Network.getAllCookies", {}, session_id).get("cookies", [])
-    cookies = {
+    return {
         c["name"]: c["value"] for c in jar
         if c["name"] in WANTED_COOKIES and "kway.co.il" in c.get("domain", "")
     }
+
+
+def _harvest(sock: Any, session_id: str, evaluate: Any, started: float,
+             settle_seconds: float = 12.0) -> dict[str, Any]:
+    """Take the cookies only once the server accepts them from OUT HERE.
+
+    The page reporting itself signed in is not the same fact as the cookies in
+    its jar being usable, and the day those two came apart cost a full debugging
+    round. Measured: signing in again ENDS the session that already existed, and
+    for a moment afterwards the jar still holds the old value — so a harvest
+    taken on the page's word walks away with a token the server has just killed,
+    reports success, and fails at the first real call with "Session ended".
+
+    So the jar is read, tried for real over plain HTTPS, and read again until it
+    works or the settle window closes. Nothing is returned that has not answered
+    200 to exactly the request the caller will make.
+    """
+    cookies = _cookies_now(sock, session_id)
+    deadline = time.monotonic() + settle_seconds
+    while not accepted(cookies) and time.monotonic() < deadline:
+        time.sleep(1.0)
+        cookies = _cookies_now(sock, session_id)
     if "sfp_access" not in cookies:
         return {"renewed": False,
                 "reason": "the sign-in reported success but issued no session cookie"}
+    if not accepted(cookies):
+        return {
+            "renewed": False,
+            "reason": (
+                "the sign-in looked complete in the page but the session it left "
+                "behind is not accepted outside it"
+            ),
+        }
     account: dict[str, Any] = {}
     try:
         raw = evaluate(

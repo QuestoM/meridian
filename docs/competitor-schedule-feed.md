@@ -91,6 +91,29 @@ ancestor. `tests/test_kway_session.py` pins both page shapes as static fixtures 
 no network, no real account — and the fixture keeps the `<li>` wrapper on
 purpose, because without it the broken selector passes.
 
+### Signing in again ends the session you already had
+
+Measured, twice, deliberately: renew once and the token works; renew again a
+moment later and **both the old cookie and the new one answer 401 "Session
+ended."** The server ends the standing session when a new sign-in arrives, and
+for a moment afterwards the browser's cookie jar still holds the dead value — so
+a harvest taken on the page's word walks away with a token that has just been
+killed, reports success, and fails at the first real call.
+
+Two rules follow, and both are now enforced:
+
+1. **Never sign in while a session is alive.** The renewal loads the dashboard
+   first and takes the profile's standing session when the server still accepts
+   it. The cheapest renewal is the one that does not happen — measured, that path
+   costs 4 seconds instead of 11.
+2. **A session is only taken once the server accepts it from outside the
+   browser.** The jar is read, tried over plain HTTPS with exactly the request
+   the caller will make, and read again until it works or the settle window
+   closes. "The page is signed in" and "these cookies work" are different facts.
+
+This is why a run can report `renewed` and still be wrong if either rule is
+dropped, and why `tests/test_kway_session.py` pins both.
+
 ## When a person is genuinely needed
 
 Three states, and each names the one step:

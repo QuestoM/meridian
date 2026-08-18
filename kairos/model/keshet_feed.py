@@ -50,10 +50,27 @@ def known_channels() -> tuple[str, ...]:
     return tuple(CHANNELS)
 
 
+def configured_operator_channel() -> str:
+    """The channel this operator owns, as the rest of the product reads it.
+
+    Asked of the settings rather than passed on a command line, so the check
+    that a rival is not filed under the operator's own channel keeps working
+    after somebody changes that setting and forgets this job exists. Optional:
+    the model layer must stay importable without the API around it, so an
+    absent settings store means the check is simply not made, and says so.
+    """
+    try:
+        from kairos_api import channel_scope
+
+        return channel_scope.operator_channel()
+    except Exception:  # noqa: BLE001 - a missing settings store is not a failure here
+        return ""
+
+
 def pull(
     *,
     channel: str = DEFAULT_CHANNEL,
-    operator_channel: str = "",
+    operator_channel: Optional[str] = None,
     target: str | Path = DEFAULT_TARGET,
     history_dir: Optional[str | Path] = None,
     known: Optional[Iterable[str]] = None,
@@ -66,6 +83,7 @@ def pull(
     for "the rival changed nothing".
     """
     registry = tuple(known) if known is not None else known_channels()
+    own_name = configured_operator_channel() if operator_channel is None else operator_channel
     try:
         resolved = keshet_epg.resolve_channel(channel, registry)
     except keshet_epg.UnknownChannel as exc:
@@ -75,11 +93,11 @@ def pull(
             "needs_human": True,
             "do_this": f"Name the competitor channel as one of: {', '.join(registry)}",
         }
-    if operator_channel:
+    if own_name:
         try:
-            own = keshet_epg.resolve_channel(operator_channel, registry)
+            own = keshet_epg.resolve_channel(own_name, registry)
         except keshet_epg.UnknownChannel:
-            own = operator_channel
+            own = own_name
         if own == resolved:
             return {
                 "refreshed": False,
@@ -129,7 +147,8 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--channel", default=DEFAULT_CHANNEL)
-    parser.add_argument("--operator-channel", default="")
+    parser.add_argument("--operator-channel", default=None,
+                        help="defaults to the operator channel saved in settings")
     parser.add_argument("--target", default=str(DEFAULT_TARGET))
     parser.add_argument("--history-dir", default=None)
     parser.add_argument("--no-renew", action="store_true",

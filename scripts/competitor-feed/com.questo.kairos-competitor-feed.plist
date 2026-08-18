@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  launchd agent: pull the rival's schedule once a day at 05:30 local, before the
+  morning run. It renews its own Kway session headlessly (about seven seconds,
+  no window, no password) and refuses to overwrite the schedule on a failed or
+  empty pull, so a quiet log line means the rival did not move — never that the
+  pull broke.
+
+  Install:
+    cp scripts/competitor-feed/com.questo.kairos-competitor-feed.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.questo.kairos-competitor-feed.plist
+  Run it immediately (test):
+    launchctl start com.questo.kairos-competitor-feed
+  Uninstall:
+    launchctl unload ~/Library/LaunchAgents/com.questo.kairos-competitor-feed.plist
+  Logs: scripts/competitor-feed/feed.log
+
+  The rival channel defaults to קשת 12 and is checked against this engine's own
+  channel registry; the operator's channel is read from saved settings, so this
+  job keeps honouring a change to that setting without being edited. No account
+  name is needed here: the session names itself from the keychain, and a profile
+  holding a single Google account needs no name at all. Set KAIROS_KWAY_ACCOUNT
+  below only if that profile ever holds more than one.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.questo.kairos-competitor-feed</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>-lc</string>
+    <string>cd /Users/home/Code/questo/meridian &amp;&amp; echo "--- $(date -Iseconds)" &amp;&amp; ~/.venvs/meridian/bin/python -m kairos.model.keshet_feed</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key><integer>5</integer>
+    <key>Minute</key><integer>30</integer>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/home/Code/questo/meridian/scripts/competitor-feed/feed.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/home/Code/questo/meridian/scripts/competitor-feed/feed.log</string>
+
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>

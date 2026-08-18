@@ -326,7 +326,8 @@ def test_the_feed_refuses_to_file_a_rival_under_the_operators_own_channel(tmp_pa
 def test_the_feed_stops_on_an_unknown_channel_before_it_signs_in(tmp_path):
     from kairos.model import keshet_feed
 
-    result = keshet_feed.pull(channel="Channel 12", target=tmp_path / "x.csv")
+    result = keshet_feed.pull(channel="Channel 12", operator_channel="",
+                              target=tmp_path / "x.csv")
     assert result["refreshed"] is False
     assert result["needs_human"] is True
     assert not (tmp_path / "x.csv").exists()
@@ -340,7 +341,8 @@ def test_the_feed_reports_a_missing_session_as_stale_and_not_as_quiet(monkeypatc
         "state": "needs_human", "reason": "Google is asking for a person",
         "do_this": "sign in once",
     }))
-    result = keshet_feed.pull(channel="קשת 12", target=tmp_path / "x.csv")
+    result = keshet_feed.pull(channel="קשת 12", operator_channel="",
+                              target=tmp_path / "x.csv")
     assert result["refreshed"] is False
     assert result["needs_human"] is True
     assert "לא רוענן" in keshet_feed.headline(result, "he")

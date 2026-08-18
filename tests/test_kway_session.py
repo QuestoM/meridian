@@ -171,6 +171,67 @@ def test_an_account_that_is_not_signed_in_is_reported_not_guessed(page):
     assert clicked == ""
 
 
+# --------------------------------------------- what counts as having a session
+
+def _script(steps):
+    """Answer each step in turn, then keep answering the last one."""
+    state = {"i": 0}
+
+    def answer(*_args, **_kwargs):
+        step = steps[min(state["i"], len(steps) - 1)]
+        state["i"] += 1
+        return step
+
+    return answer
+
+
+def _harvest(monkeypatch, jars, accepts):
+    """Run the harvest against a scripted jar and a scripted server."""
+    monkeypatch.setattr(kb, "_cookies_now", _script(jars))
+    monkeypatch.setattr(kb, "accepted", _script(accepts))
+    monkeypatch.setattr(kb.time, "sleep", lambda *_a: None)
+    return kb._harvest(None, "s", lambda *_a, **_k: None, 0.0, settle_seconds=0.2)
+
+
+def test_a_session_is_only_taken_once_the_server_accepts_it_from_outside(monkeypatch):
+    """The page saying it is signed in is a different fact, and they disagree.
+
+    Measured: signing in again ENDS the session that already existed, and the
+    jar keeps the dead value for a moment afterwards. A harvest taken on the
+    page's word therefore walks off with a token the server has just killed,
+    reports success, and fails at the first real call with "Session ended".
+    """
+    live = {"sfp_access": "good", "XSRF-TOKEN": "t"}
+    out = _harvest(monkeypatch, [live], [True, True])
+    assert out["renewed"] is True
+    assert out["cookies"] == live
+
+
+def test_a_session_the_server_will_not_accept_is_a_stated_failure(monkeypatch):
+    dead = {"sfp_access": "killed"}
+    out = _harvest(monkeypatch, [dead], [False])
+    assert out["renewed"] is False
+    assert "not accepted outside" in out["reason"]
+
+
+def test_the_harvest_waits_for_the_jar_to_catch_up_with_the_server(monkeypatch):
+    """The new cookie lands a moment after the page believes it has."""
+    stale, fresh = {"sfp_access": "old"}, {"sfp_access": "new"}
+    out = _harvest(monkeypatch, [stale, fresh], [False, True, True])
+    assert out["renewed"] is True
+    assert out["cookies"] == fresh
+
+
+def test_no_session_cookie_at_all_is_never_reported_as_renewed(monkeypatch):
+    out = _harvest(monkeypatch, [{"XSRF-TOKEN": "t"}], [False])
+    assert out["renewed"] is False
+    assert "no session cookie" in out["reason"]
+
+
+def test_cookies_without_the_session_are_not_even_offered_to_the_server():
+    assert kb.accepted({"XSRF-TOKEN": "t"}) is False
+
+
 # ------------------------------------------------- telling the states apart
 
 def test_choosing_an_account_is_not_mistaken_for_a_step_only_a_person_can_take():
