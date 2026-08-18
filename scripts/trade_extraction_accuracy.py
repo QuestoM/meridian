@@ -51,6 +51,26 @@ OUT_DOC = REPO / "docs" / "trade" / "extraction-accuracy.md"
 OUT_JSON = REPO / "docs" / "trade" / "extraction-accuracy.json"
 
 
+def routing() -> dict[str, str]:
+    """Which model answered which tier on this run."""
+    return {tier: extract_provider.model_for(tier) for tier in ("small", "mid", "reason")}
+
+
+def _routing_slug() -> str:
+    """A filename for one routing: the family word of each tier, in order.
+
+    Short on purpose — the archive's own meta carries the full model ids, and a
+    file called extraction-haiku-sonnet-opus.json says at a glance which run it
+    is without anyone having to open it.
+    """
+    words = []
+    for tier in ("small", "mid", "reason"):
+        name = extract_provider.model_for(tier)
+        family = next((word for word in ("haiku", "sonnet", "opus") if word in name), None)
+        words.append(family or name.replace("/", "-"))
+    return "-".join(words)
+
+
 # ----------------------------------------------------------------- scoring
 
 def _leaves(value: Any, prefix: str = "") -> dict[str, Any]:
@@ -299,6 +319,50 @@ def write_report(records: dict[str, dict[str, Any]], meta: dict[str, Any]) -> No
         tout = sum(b["output_tokens"] for b in provider.values())
         lines.append(f"| `{doc_id}` | {record.get('elapsed', 0):.1f} | {calls} | "
                      f"{tin:,} | {tout:,} |")
+    # Model routing is a VARIABLE of this measurement, not a constant of it, so
+    # every run is archived under the routing that produced it and the table
+    # below is generated from those archives. The alternative — one report that
+    # the newest run overwrites — makes "did the bigger model help?" a question
+    # answered from memory, which is how a number nobody re-measured becomes a
+    # fact. Same discipline the arbiter's prompt gets in
+    # scripts/trade_arbitration_bench.py.
+    archive = OUT_JSON.parent / f"extraction-{_routing_slug()}.json"
+    body = json.dumps({"meta": meta, "documents": records}, ensure_ascii=False, indent=1)
+    archive.write_text(body, encoding="utf-8")
+
+    # Every archive EXCEPT the headline file, which the glob also matches and
+    # which is a copy of whichever run wrote it last: leaving it in put a
+    # duplicate row in the table under a routing of "? / ? / ?", because the
+    # headline predates the field. A comparison whose rows are not distinct runs
+    # is not a comparison.
+    archives = sorted(path for path in OUT_JSON.parent.glob("extraction-*.json")
+                      if path.name != OUT_JSON.name)
+    if len(archives) > 1:
+        lines += ["", "## Model routing is a variable, so it was measured", "",
+                  "| routing | documents | recall | precision | parameters | seconds |",
+                  "|---|---|---|---|---|---|"]
+        for path in archives:
+            other = json.loads(path.read_text(encoding="utf-8"))
+            docs = other.get("documents", {})
+            if not docs:
+                continue
+            matched = sum(r["score"]["matched"] for r in docs.values())
+            truth = sum(r["score"]["instances_truth"] for r in docs.values())
+            found = sum(r["score"]["instances_found"] for r in docs.values())
+            hits = sum(r["score"]["param_hits"] for r in docs.values())
+            leaves = sum(r["score"]["param_total"] for r in docs.values())
+            seconds = sum(r.get("elapsed", 0.0) for r in docs.values())
+            routing = other.get("meta", {}).get("routing") or {}
+            shown = " / ".join(str(routing.get(tier, "?")) for tier in ("small", "mid", "reason"))
+            lines.append(
+                f"| {shown} | {len(docs)} | {_pct(matched / truth if truth else None)} "
+                f"| {_pct(matched / found if found else None)} "
+                f"| {_pct(hits / leaves if leaves else None)} | {seconds:.0f} |")
+        lines += ["",
+                  "Read as small / mid / reason. The rows are whole-corpus runs of the",
+                  "same pipeline against the same ground truth, so the only thing that",
+                  "moved between them is which model answered which stage.", ""]
+
     OUT_DOC.write_text("\n".join(lines) + "\n", encoding="utf-8")
     OUT_JSON.write_text(
         json.dumps({"meta": meta, "documents": records}, ensure_ascii=False, indent=1),
@@ -357,6 +421,7 @@ def main() -> None:
     write_report(records, {
         "run_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "documents": sorted(records),
+        "routing": routing(),
     })
     print(f"\nwrote {OUT_DOC.relative_to(REPO)}")
 
