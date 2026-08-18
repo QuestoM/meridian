@@ -347,3 +347,102 @@ def test_the_feed_reports_a_missing_session_as_stale_and_not_as_quiet(monkeypatc
     assert result["needs_human"] is True
     assert "לא רוענן" in keshet_feed.headline(result, "he")
     assert "sign in once" in keshet_feed.headline(result, "he")
+
+
+# -------------------------------------------------- one file, every rival
+
+def _channel_rows(path, channel):
+    return [r for r in refresh._read_rows(path) if r["Channel"] == channel]
+
+
+def test_pulling_one_rival_never_erases_another(payload, tmp_path):
+    """The whole point of a shared file, and the whole risk of one.
+
+    The optimizer wants the competitive lineup in one place, which the contract
+    has always allowed. A refresh that wrote the file wholesale would have made
+    the second channel's pull a silent deletion of the first.
+    """
+    target = tmp_path / "CompetitorProgrammes.csv"
+    refresh.refresh(fetch=lambda: payload, channel="קשת 12", target=target)
+    keshet = len(_channel_rows(target, "קשת 12"))
+    assert keshet, "the first channel was not written at all"
+
+    refresh.refresh(fetch=lambda: payload, channel="כאן 11", target=target)
+    assert len(_channel_rows(target, "קשת 12")) == keshet, "the first rival was erased"
+    assert len(_channel_rows(target, "כאן 11")) == keshet
+    assert len(refresh._read_rows(target)) == keshet * 2
+
+
+def test_the_existing_loader_reads_every_channel_out_of_the_one_file(payload, tmp_path):
+    from kairos.model.future_epg import load_future_competitor_epg
+
+    target = tmp_path / "CompetitorProgrammes.csv"
+    for channel in ("קשת 12", "כאן 11", "עכשיו 14"):
+        refresh.refresh(fetch=lambda: payload, channel=channel, target=target)
+    frame, status = load_future_competitor_epg(target)
+    assert status["present"] is True
+    assert status["channels"] == ["כאן 11", "עכשיו 14", "קשת 12"]
+
+
+def test_a_change_on_one_channel_is_not_reported_against_another(payload, tmp_path):
+    """The diff is per channel, or a rival that never moved reads as rebuilt."""
+    import copy
+
+    target = tmp_path / "CompetitorProgrammes.csv"
+    refresh.refresh(fetch=lambda: payload, channel="קשת 12", target=target)
+    refresh.refresh(fetch=lambda: payload, channel="כאן 11", target=target)
+
+    moved = copy.deepcopy(payload)
+    record = next(p for p in moved["json"]["data"]["programs"]
+                  if p["DisplayStartTime"].startswith("21"))
+    day, clock = record["StartTime"].split(" ")
+    hour, minute, second = clock.split(":")
+    record["StartTime"] = f"{day} {int(hour) + 1:02d}:{minute}:{second}"
+
+    result = refresh.refresh(fetch=lambda: moved, channel="קשת 12", target=target)
+    assert len(result["changes"]["moved"]) == 1
+    assert result["changes"]["changes"] == 1, "another channel's rows entered the diff"
+
+    quiet = refresh.refresh(fetch=lambda: payload, channel="כאן 11", target=target)
+    assert quiet["changes"]["quiet"] is True, "a channel that did not move reported changes"
+
+
+def test_each_channel_carries_its_own_age(payload, tmp_path):
+    """A file's modified time cannot answer "how old is THIS rival's schedule".
+
+    Refreshing one channel touches the file. Without a per-channel stamp, a
+    channel nobody has pulled for a week reads as one minute old, which is the
+    silent staleness this module exists to prevent.
+    """
+    from datetime import datetime, timedelta, timezone
+
+    target = tmp_path / "CompetitorProgrammes.csv"
+    long_ago = datetime(2026, 8, 1, tzinfo=timezone.utc)
+    refresh.refresh(fetch=lambda: payload, channel="קשת 12", target=target, now=long_ago)
+    refresh.refresh(fetch=lambda: payload, channel="כאן 11", target=target,
+                    now=long_ago + timedelta(days=7))
+
+    stamps = refresh.read_freshness(target)
+    assert set(stamps) == {"קשת 12", "כאן 11"}
+
+    def explode():
+        raise ConnectionError("no session")
+
+    stale = refresh.refresh(fetch=explode, channel="קשת 12", target=target,
+                            now=long_ago + timedelta(days=7, hours=1))
+    assert stale["stale_hours"] == pytest.approx(169.0, abs=0.2), (
+        "the untouched channel borrowed the other channel's freshness")
+
+
+def test_a_failed_pull_says_which_channel_it_kept(payload, tmp_path):
+    target = tmp_path / "CompetitorProgrammes.csv"
+    refresh.refresh(fetch=lambda: payload, channel="קשת 12", target=target)
+    refresh.refresh(fetch=lambda: payload, channel="כאן 11", target=target)
+
+    def explode():
+        raise ConnectionError("no session")
+
+    result = refresh.refresh(fetch=explode, channel="קשת 12", target=target)
+    assert result["channel"] == "קשת 12"
+    assert result["kept_rows"] < result["kept_rows_in_file"], (
+        "the count for one channel is being reported as the whole file")

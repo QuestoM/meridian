@@ -38,9 +38,22 @@ from kairos.model import keshet_epg, keshet_refresh, kway_session
 # Where the competitor contract lives, which is where the loader already looks.
 DEFAULT_TARGET = Path("data/reference/CompetitorProgrammes.csv")
 
-# The rival this feeds. Keshet is Reshet's largest competitor, and the name is
-# resolved against the engine's registry rather than trusted as spelled here.
+# The rival this feeds by default. Keshet is Reshet's largest competitor, and the
+# name is resolved against the engine's registry rather than trusted as spelled
+# here.
 DEFAULT_CHANNEL = "קשת 12"
+
+# Which channels this engine can actually pull, and how.
+#
+# One entry today, and the shape matters more than the count: the optimizer
+# reads the whole competitive lineup out of one file, so the other rivals are
+# not a different feature but a missing row in this table. A channel with no
+# entry is refused by name rather than pulled as an empty schedule, because an
+# empty schedule for a channel that is broadcasting is the most expensive
+# possible lie to tell a plan.
+SOURCES = {
+    "קשת 12": "kway",
+}
 
 
 def known_channels() -> tuple[str, ...]:
@@ -110,6 +123,27 @@ def pull(
                 "do_this": "Name the rival's channel, not the operator's own",
             }
 
+    source = SOURCES.get(resolved)
+    if source is None:
+        # An honest gap, named. Every rival matters to the optimizer and only one
+        # of them publishes somewhere this engine can reach today; saying so is
+        # the difference between a feature that is unfinished and a schedule
+        # that is quietly missing a channel nobody thinks to look for.
+        return {
+            "refreshed": False,
+            "reason": (
+                f"no schedule source is wired for {resolved}. This engine can pull "
+                f"{', '.join(sorted(SOURCES))} and no other channel yet."
+            ),
+            "reason_he": (
+                f"אין מקור לוח שידורים מחובר עבור {resolved}. המערכת יודעת למשוך "
+                f"את {', '.join(sorted(SOURCES))} בלבד."
+            ),
+            "kept_rows": len(keshet_refresh._read_rows(Path(target))),
+            "channel": resolved,
+            "sources_available": sorted(SOURCES),
+        }
+
     session, status = kway_session.current(allow_renew=allow_renew)
     if session is None:
         result = keshet_refresh.refresh(fetch=None, channel=resolved, target=target)
@@ -121,7 +155,7 @@ def pull(
         return result
 
     result = keshet_refresh.refresh(
-        fetch=lambda: kway_session.fetch_epg(session),
+        fetch=lambda: kway_session.fetch_epg(session),   # SOURCES[resolved] == "kway"
         channel=resolved,
         target=target,
         history_dir=history_dir,
@@ -133,6 +167,11 @@ def pull(
 
 def headline(result: dict[str, Any], locale: str = "he") -> str:
     """The line an operator reads before a run, including who is needed."""
+    if result.get("sources_available") is not None:
+        # A channel with no source at all is not a stale schedule, and calling it
+        # one would send somebody looking for a network fault that is not there.
+        key = "reason_he" if locale == "he" else "reason"
+        return str(result.get(key) or result.get("reason") or "")
     line = keshet_refresh.headline(result, locale)
     if result.get("needs_human") and result.get("do_this"):
         step = result["do_this"].strip().splitlines()[0]

@@ -8,6 +8,16 @@ is not happening.
 The refresh runs at the start of the week and again before each daily run. Both
 are the same call; the only difference is how much has moved.
 
+ONE FILE, EVERY RIVAL
+---------------------
+The contract carries a Channel column and the loader reads every channel out of
+it, so the competitive lineup the optimizer needs lives in one file. A refresh
+therefore replaces only the rows of the channel it pulled and carries every
+other channel through untouched — pulling one rival is never a deletion of the
+others. Each channel's age is stamped separately beside the file, because the
+file's own modified time would make a channel nobody has pulled for a week read
+as fresh the moment a different channel was refreshed.
+
 WHAT THIS REFUSES TO DO
 -----------------------
 A failed pull must never look like a successful one. When the publication cannot
@@ -122,6 +132,62 @@ def _read_rows(path: Path) -> list[dict[str, Any]]:
     return frame.to_dict("records")
 
 
+# ---------------------------------------------------- one file, many channels
+#
+# The contract has always carried a Channel column and the loader has always
+# read every channel out of it, so the one place the optimizer needs already
+# exists. What did not exist was a refresh that could share it: this wrote the
+# whole file, so pulling a second rival would have silently erased the first.
+
+def _freshness_path(target: Path) -> Path:
+    return target.with_suffix(".freshness.json")
+
+
+def read_freshness(target: str | Path) -> dict[str, str]:
+    """When each channel in this file was last actually pulled.
+
+    Kept beside the contract rather than in it, because the contract's columns
+    are a shape other code depends on. The file's own modified time cannot
+    answer this: refreshing one channel touches the file, and a channel nobody
+    has pulled for a week would read as fresh because a different channel was
+    pulled a minute ago. That is the silent staleness this whole module exists
+    to prevent, arriving through the back door.
+    """
+    path = _freshness_path(Path(target))
+    if not path.exists():
+        return {}
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+        return {str(k): str(v) for k, v in dict(loaded).items()}
+    except Exception:  # noqa: BLE001 - an unreadable stamp is unknown, not a crash
+        return {}
+
+
+def _write_freshness(target: Path, channel: str, at: datetime) -> None:
+    stamps = read_freshness(target)
+    stamps[channel] = at.isoformat(timespec="seconds")
+    try:
+        _freshness_path(target).write_text(
+            json.dumps(stamps, ensure_ascii=False, indent=1, sort_keys=True),
+            encoding="utf-8")
+    except OSError:
+        pass  # The schedule is written; a missing stamp degrades to "unknown".
+
+
+def _age_hours(target: Path, channel: str, now: datetime) -> Optional[float]:
+    """How old THIS channel's rows are, or None when nothing says."""
+    stamp = read_freshness(target).get(channel)
+    if stamp:
+        try:
+            return round((now - datetime.fromisoformat(stamp)).total_seconds() / 3600.0, 1)
+        except ValueError:
+            return None
+    # No stamp: a file written before per-channel stamps existed, or by hand.
+    # The file's time is the only evidence there is, and it is reported as the
+    # FILE's age rather than as this channel's.
+    return None
+
+
 def refresh(
     *,
     fetch: Optional[Callable[[], Any]],
@@ -139,9 +205,15 @@ def refresh(
     """
     stamp = (now or datetime.now(timezone.utc))
     target = Path(target)
-    previous = _read_rows(target)
-    age_note = None
-    if target.exists():
+    everything = _read_rows(target)
+    # This channel's rows are what gets compared and replaced. Every other
+    # channel's rows are carried through untouched, so one file can hold the
+    # whole competitive lineup and a pull of one rival is never a deletion of
+    # the others.
+    previous = [r for r in everything if str(r.get("Channel") or "") == channel]
+    other_channels = [r for r in everything if str(r.get("Channel") or "") != channel]
+    age_note = _age_hours(target, channel, stamp)
+    if age_note is None and target.exists() and previous:
         modified = datetime.fromtimestamp(target.stat().st_mtime, tz=timezone.utc)
         age_note = round((stamp - modified).total_seconds() / 3600.0, 1)
 
@@ -153,6 +225,8 @@ def refresh(
                 "published EPG needs a signed-in session and this engine holds none"
             ),
             "kept_rows": len(previous),
+            "kept_rows_in_file": len(everything),
+            "channel": channel,
             "stale_hours": age_note,
             "at": stamp.isoformat(timespec="seconds"),
         }
@@ -164,6 +238,8 @@ def refresh(
             "refreshed": False,
             "reason": f"the competitor schedule could not be read ({type(exc).__name__}: {exc})",
             "kept_rows": len(previous),
+            "kept_rows_in_file": len(everything),
+            "channel": channel,
             "stale_hours": age_note,
             "at": stamp.isoformat(timespec="seconds"),
         }
@@ -176,14 +252,18 @@ def refresh(
             "refreshed": False,
             "reason": "the competitor schedule came back with no broadcasts; the previous one is kept",
             "kept_rows": len(previous),
+            "kept_rows_in_file": len(everything),
+            "channel": channel,
             "stale_hours": age_note,
             "at": stamp.isoformat(timespec="seconds"),
         }
 
     diff = compare(previous, rows)
-    keshet_epg.write_contract_csv(rows, target)
+    keshet_epg.write_contract_csv(other_channels + rows, target)
+    _write_freshness(target, channel, stamp)
     if history_dir:
-        archive = Path(history_dir) / f"CompetitorProgrammes-{stamp:%Y%m%dT%H%M%S}.csv"
+        archive = (Path(history_dir)
+                   / f"CompetitorProgrammes-{channel}-{stamp:%Y%m%dT%H%M%S}.csv")
         keshet_epg.write_contract_csv(rows, archive)
 
     return {
@@ -196,18 +276,40 @@ def refresh(
         "first_pull": not previous,
         "changes": diff,
         "path": str(target),
+        "channels_in_file": sorted({str(r.get("Channel") or "") for r in other_channels + rows}),
+        "rows_in_file": len(other_channels) + len(rows),
     }
 
 
 def headline(result: Mapping[str, Any], locale: str = "he") -> str:
-    """One line an operator reads before the run. Says stale when it is."""
+    """One line an operator reads before the run. Says stale when it is.
+
+    It names the channel. With one rival in the file that was noise; with the
+    lineup in it, "the competitor schedule was not refreshed" is a sentence that
+    could be about any of four channels, and the one it is about is the only
+    thing the reader needs.
+    """
+    channel = str(result.get("channel") or "")
     if not result.get("refreshed"):
         hours = result.get("stale_hours")
+        kept = result.get("kept_rows")
         if locale == "he":
-            age = f" הלוח שבידינו בן {hours} שעות." if hours is not None else " אין לוח מתחרים כלל."
-            return f"לוח המתחרים לא רוענן.{age}"
-        age = f" The schedule on hand is {hours}h old." if hours is not None else " There is no competitor schedule at all."
-        return f"The competitor schedule was not refreshed.{age}"
+            who = f"לוח {channel}" if channel else "לוח המתחרים"
+            if hours is not None:
+                age = f" הלוח שבידינו בן {hours} שעות."
+            elif kept:
+                age = f" נשמרו {kept} שידורים ללא חותמת זמן."
+            else:
+                age = f" אין לוח ל{channel} כלל." if channel else " אין לוח מתחרים כלל."
+            return f"{who} לא רוענן.{age}"
+        who = f"The {channel} schedule" if channel else "The competitor schedule"
+        if hours is not None:
+            age = f" The schedule on hand is {hours}h old."
+        elif kept:
+            age = f" {kept} broadcasts are held with no timestamp."
+        else:
+            age = f" There is no schedule for {channel} at all." if channel else " There is no competitor schedule at all."
+        return f"{who} was not refreshed.{age}"
     if result.get("first_pull"):
         return (f"נמשך לוח המתחרים לראשונה: {result['rows']} שידורים על פני {result['days']} ימים."
                 if locale == "he" else
