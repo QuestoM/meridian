@@ -118,6 +118,13 @@ ARBITER_PROMPT_VERSION = (
 )
 ARBITER_SYSTEM = ARBITER_PROMPTS[ARBITER_PROMPT_VERSION]
 
+# How many contests one call is asked to rule on. Measured across the corpus, a
+# ruling costs the judge roughly 280 output tokens, so eighteen of them is about
+# 5k against the stage's 16k ceiling — three times the headroom, on the document
+# that has three times the disagreements of any other. The number is a guard,
+# not a tuning knob: raise it and the failure it prevents is silent again.
+CONTESTS_PER_CALL = 18
+
 
 
 def _contest_block(kind: str, clause: Clause, term_id: str,
@@ -175,9 +182,19 @@ def arbitrate(
 ) -> dict[str, Any]:
     """Rule on every contested pair. Returns {instances, rulings, agreed_count}.
 
-    One call per document, not one per disagreement: the judge's whole value is
-    that it holds the document while it decides, and re-sending the document
-    forty times would be the same reading paid for forty times.
+    The judge holds the WHOLE DOCUMENT while it decides — that is its entire
+    value over the two readers it is judging — so the document goes into every
+    call and the contests are what get divided between them.
+
+    Divided, and not sent all at once, because an answer has an output ceiling
+    and a document's disagreements do not. Measured: the corpus document with
+    fifty-four contests produced an answer of exactly 16,000 output tokens
+    against a 16,000 ceiling, which is not an answer but a sentence cut in half.
+    It carried a parseable tool block, so nothing downstream noticed; the run
+    recorded zero rulings, and the accuracy table published 14.6% recall for
+    arbitration on that document as though the judge had considered the
+    disagreements and dismissed them. The provider now refuses a truncated
+    answer outright, and this batches so it should never have to.
     """
     by_id = {c.clause_id: c for c in clauses}
     pipeline_by_key = alignment["pipeline_by_key"]
@@ -214,22 +231,26 @@ def arbitrate(
     document = "\n\n".join(
         f'<סעיף id="{c.clause_id}">\n{c.text}\n</סעיף>' for c in clauses
     )
-    content = (
-        "ההסכם המלא:\n\n" + document
-        + "\n\nהמחלוקות להכרעה:\n\n" + "\n\n".join(blocks)
-    )
-    result = call(
-        stage="arbitrate", tier="reason",
-        system=ARBITER_SYSTEM,
-        content=content,
-        tool_name="record_rulings",
-        tool_schema=_ruling_schema(),
-    )
+    raw_rulings: list[Any] = []
+    for start in range(0, len(blocks), CONTESTS_PER_CALL):
+        batch = blocks[start:start + CONTESTS_PER_CALL]
+        content = (
+            "ההסכם המלא:\n\n" + document
+            + "\n\nהמחלוקות להכרעה:\n\n" + "\n\n".join(batch)
+        )
+        result = call(
+            stage="arbitrate", tier="reason",
+            system=ARBITER_SYSTEM,
+            content=content,
+            tool_name="record_rulings",
+            tool_schema=_ruling_schema(),
+        )
+        raw_rulings.extend(result.get("rulings", []) or [])
 
     instances: list[TermInstance] = list(agreed_instances)
     rulings: list[dict[str, Any]] = []
     seen_keys: set[tuple[str, str]] = set()
-    for raw in result.get("rulings", []):
+    for raw in raw_rulings:
         if not isinstance(raw, dict):
             continue
         clause_id = str(raw.get("clause_id", ""))

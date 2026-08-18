@@ -258,6 +258,38 @@ def _write(records: dict[str, Any]) -> None:
             f"| {_pct(t['params'])} ({t['hits']}/{t['leaves']}) | {t['seconds']:.0f} |"
         )
 
+    # Which reading wins what, computed from the table above rather than read off
+    # it by a person. A table with no verdict is half a measurement, and a
+    # verdict typed by hand goes stale the first time the corpus is re-run.
+    rows += ["", "## Which reading wins what", ""]
+    scores = {reading: _totals(records, reading)
+              for reading in ("pipeline", "whole", "arbitrated")}
+    for metric, label, better in (
+        ("recall", "recall — how much of the truth was found", max),
+        ("precision", "precision — how much of what was found is real", max),
+        ("params", "parameter accuracy — how right the values are", max),
+        ("seconds", "wall clock over the whole corpus", min),
+    ):
+        ranked = sorted(
+            ((reading, scores[reading][metric]) for reading in scores
+             if scores[reading][metric] is not None),
+            key=lambda kv: kv[1], reverse=(better is max))
+        if not ranked:
+            continue
+        winner, value = ranked[0]
+        runner, second = ranked[1] if len(ranked) > 1 else (None, None)
+        shown = f"{value:.0f}s" if metric == "seconds" else _pct(value)
+        gap = ""
+        if runner is not None:
+            delta = abs(value - second)
+            gap = (f", ahead of {labels[runner].split(' — ')[0]} by "
+                   + (f"{delta:.0f}s" if metric == "seconds" else f"{delta * 100:.1f} points"))
+        rows.append(f"- **{label}**: {labels[winner].split(' — ')[0]} at {shown}{gap}.")
+    rows += ["",
+             "Read them together rather than one at a time: a reading that finds more",
+             "terms and is wrong about more of them has not improved anything a",
+             "reviewer has to sit through.", ""]
+
     rows += ["", "## Where the two readers disagreed", "",
              "| document | agreed | different parameters | only A saw | only B saw | rulings |",
              "|---|---|---|---|---|---|"]

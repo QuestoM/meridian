@@ -319,3 +319,71 @@ def test_the_notes_field_cannot_eat_the_output_budget():
     notes = schema["properties"]["document_notes"]
     assert notes.get("maxLength"), "an uncapped notes field can starve the instances array"
     assert schema["required"] == ["instances"]
+
+
+def test_a_truncated_answer_is_a_failure_and_not_a_result():
+    """The same class again, and this time it published a number.
+
+    The provider used to accept any response carrying a ``tool_use`` block. A
+    response that stopped at the output ceiling carries one — a half-written
+    one — so it passed every check and travelled on as an answer. Measured on
+    the corpus: the arbiter's reply on the document with fifty-four
+    disagreements was exactly 16,000 output tokens against a 16,000 ceiling, the
+    run recorded zero rulings with zero failures, and the accuracy report
+    published 14.6% recall for arbitration on that document as though the judge
+    had weighed the disagreements and dismissed them.
+
+    ``stop_reason`` is the provider's own word for it and is now believed.
+    """
+    from kairos.trade import extract_provider
+
+    class _Cut:
+        stop_reason = "max_tokens"
+        usage = type("U", (), {"input_tokens": 61454, "output_tokens": 16000})()
+        content = [type("B", (), {"type": "tool_use", "input": {"rulings": []}})()]
+
+    class _Client:
+        class messages:
+            @staticmethod
+            def create(**_kwargs):
+                return _Cut()
+
+    stats = extract_provider.RunStats()
+    caller = extract_provider.StageCaller(
+        client=_Client(), stats=stats, pace_seconds=0.0,
+        max_tokens_by_stage={"arbitrate": 16000},
+    )
+    with pytest.raises(extract_provider.TruncatedAnswer):
+        caller.call(stage="arbitrate", tier="reason", system="s", content="c",
+                    tool_name="record_rulings", tool_schema={"type": "object"})
+    # and the run's own record says what happened rather than counting it a pass
+    assert [call.ok for call in stats.calls] == [False]
+    assert stats.calls[0].error == "truncated_max_tokens"
+
+
+def test_the_judge_divides_its_contests_so_no_answer_can_be_cut_in_half():
+    """The document goes in every call; the disagreements are what get split."""
+    sent = []
+
+    def call(**kwargs):
+        sent.append(kwargs["content"])
+        return {"rulings": []}
+
+    many = []
+    for index in range(40):
+        many.append(_pipeline_instance(f"p{index}", "agency-commission", "2",
+                                       {"percent": index}, "15% מהמחזור נטו"))
+    # forty contests against one clause, all of them params_differ
+    alignment = {
+        "agreed": [],
+        "params_differ": [("2", "agency-commission")] * 40,
+        "pipeline_only": [],
+        "whole_only": [],
+        "pipeline_by_key": {("2", "agency-commission"): many[0]},
+        "whole_by_key": {},
+    }
+    arbitrate.arbitrate(CLAUSES, alignment, call, document_id=DOC)
+    assert len(sent) == 3, f"40 contests at {arbitrate.CONTESTS_PER_CALL} per call should be 3 calls"
+    for content in sent:
+        # the judge's whole value is holding the document while it decides
+        assert "עמלת הסוכנות" in content, "a batch went out without the document"

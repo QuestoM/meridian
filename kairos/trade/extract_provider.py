@@ -44,7 +44,13 @@ DEFAULT_REASON = "claude-opus-5"
 # takes minutes: a 180-second ceiling there would not be a guard, it would be
 # a guaranteed failure.
 CALL_TIMEOUT_SECONDS = 180.0
-WHOLE_DOCUMENT_TIMEOUT_SECONDS = 900.0
+# Seven minutes, not fifteen. A sixteen-thousand-token answer takes two to
+# three; a call still open at seven has stopped generating rather than started
+# thinking, and the retry ladder cannot help if each attempt burns a quarter of
+# an hour first. Measured: a whole-document call on the fifty-clause flagship
+# sat with no output for seventeen minutes before it was killed by hand, on a
+# run whose client carried no deadline at all.
+WHOLE_DOCUMENT_TIMEOUT_SECONDS = 420.0
 
 TIERS = ("small", "mid", "reason")
 
@@ -104,6 +110,15 @@ class RunStats:
 
 class ProviderUnavailable(RuntimeError):
     """No credentials resolve; the caller surfaces this honestly."""
+
+
+class TruncatedAnswer(RuntimeError):
+    """The model stopped at the output ceiling, so its answer is incomplete.
+
+    Distinct from every other failure because the remedy is different: nothing
+    about the connection or the credentials is wrong and a retry changes
+    nothing. The caller must send less work per call.
+    """
 
 
 def build_client() -> tuple[Any, Optional[str]]:
@@ -248,14 +263,33 @@ class StageCaller:
                  if getattr(b, "type", "") == "tool_use"),
                 None,
             )
-            ok = block is not None
+            # A call that hit the output ceiling did not answer, it stopped
+            # talking. The tool_use block is still present and still parses, so
+            # every check below it passes and a HALF-WRITTEN answer travels on as
+            # a whole one. Measured twice on this product, and both times the
+            # damage was silent: the whole-document reader returned zero terms
+            # with zero errors at output_tokens 4000 of 4000, and the arbiter
+            # returned zero rulings at 16000 of 16000 on the one corpus document
+            # with fifty-four disagreements - a number that was then published in
+            # an accuracy table as if arbitration had ruled and found nothing.
+            # A truncated answer is a failure with a name from here on.
+            truncated = str(getattr(response, "stop_reason", "") or "") == "max_tokens"
+            ok = block is not None and not truncated
             self.stats.record(CallRecord(
                 stage=stage, tier=tier, model=model, latency_seconds=latency,
                 input_tokens=input_tokens, output_tokens=output_tokens, ok=ok,
-                error="" if ok else "no_tool_use_block",
+                error="" if ok else ("truncated_max_tokens" if truncated else "no_tool_use_block"),
             ))
             if ok:
                 return dict(block.input or {})
+            if truncated:
+                # Retrying the same prompt truncates at the same place. The
+                # caller has to make the work smaller, and it can only do that if
+                # it is told.
+                raise TruncatedAnswer(
+                    f"the {stage} answer hit the {self.max_tokens_by_stage.get(stage, self.max_tokens)}"
+                    " token ceiling and is incomplete"
+                )
             last_error = RuntimeError("model returned no tool_use block")
         raise last_error  # pragma: no cover - loop always returns or raises
 

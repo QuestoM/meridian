@@ -148,6 +148,29 @@ ground truth authored independently of it — nothing asserted by hand:
   eight documents, including the scanned document (vision route) and the
   reversed-bare-head form pdftotext produces for flat "1." numbering (caught
   by this corpus, fixed in `kairos/trade/segment.py`, pinned by test).
+- **Three readings of the same corpus, measured** (`docs/trade/arbitration-accuracy.md`,
+  produced by `scripts/trade_arbitration_bench.py`). The question was the
+  obvious one: would handing the whole agreement to the top model under a strict
+  schema beat reading it clause by clause? Measured on all eight documents
+  against the same independently authored truth:
+
+  | reading | recall | precision | parameters | corpus seconds |
+  |---|---|---|---|---|
+  | A — clause by clause (shipped) | 93.2% | 68.0% | 64.5% | 3,107 |
+  | B — one call, whole document | 93.8% | **81.3%** | **70.7%** | **663** |
+  | C — A and B, disagreements ruled by a third call | **94.4%** | 71.2% | 69.6% | 1,221 |
+
+  B is the better reader and it is not close on the two numbers a reviewer feels:
+  precision by 13.3 points and parameter accuracy by 6.2, at a fifth of the wall
+  clock. A's 68% precision means roughly a third of what it proposes is
+  spurious and a person has to reject it. The arbiter buys +0.6 points of recall
+  for −10.1 of precision and twice B's time, because it admits terms only one
+  reader saw; on its own numbers it does not earn a place in the default path.
+  B does not replace the pipeline — it replaces the pipeline's per-clause
+  parameterise stage. Ingest, segmentation, classification and the completeness
+  list stay where they are, and B reads against A's clause ids. **Switching the
+  default is an owner decision and has not been taken**; both readers ship,
+  measured, and the shipped path is still A.
 - Forecast backtest (walk-forward, 2,867 observations over five folds): the
   two objectives disagree, and both are published. Log-space RMSE 0.683 vs
   0.707 — the model wins, four folds of five. Arithmetic MAE 1.188 vs 0.898 —
@@ -177,6 +200,16 @@ ground truth authored independently of it — nothing asserted by hand:
   to unmapped-flagged clauses, never to invented terms. The OAuth identity
   gate (Sonnet/Opus behind the Claude Code system block on Max) is handled in
   `kairos/trade/extract_provider.py`.
+- **A truncated answer is a failure, not a result.** A response that stops at
+  the output ceiling still carries a parseable tool block, so every check
+  downstream passes and half an answer travels on as a whole one. Measured
+  twice here: the whole-document reader returned zero terms with zero errors at
+  4,000 output tokens of 4,000, and the arbiter returned zero rulings at 16,000
+  of 16,000 on the one corpus document with fifty-four disagreements — a number
+  that reached an accuracy table before it was caught. The provider now reads
+  the model's own `stop_reason` and raises `TruncatedAnswer`, which the runner
+  turns into an incomplete instance that names it; and the arbiter batches its
+  contests so it should never hit the ceiling in the first place.
 - **Draft state for money**: extraction writes proposals; only the human gate
   writes rules.
 

@@ -13,11 +13,6 @@
 // counted in and whether it is a floor, so no surface can print the figure and
 // drop the word that says what the figure is.
 
-// The one import here, and it is a pure locale switch out of the shell's
-// framework-free helpers rather than the JSX one, so this file stays testable
-// without a renderer.
-import { pageText } from '../shell/surface-helpers';
-
 export const AIRED = 'aired';
 export const SCHEDULED = 'scheduled';
 export const UNKNOWN = 'unknown';
@@ -174,6 +169,17 @@ export function deliverySlice(delivery, window = null) {
 // The two word helpers both halves of the display need — the figures module and
 // the basis module. They live here rather than in either of them so neither has
 // to import the other, and so a spot is called a spot in one place.
+//
+// The locale switch is written out rather than imported, and that is not
+// laziness. This file's first line promises it is framework free and reaches
+// nothing; the shell's plain-JS helpers module reads `import.meta.env` at its
+// top level, so importing one two-line function from it drags a Vite global
+// into every bundle that touches delivery. Measured: doing exactly that turned
+// eight passing renders in tests/test_p4_tree_renders_every_client.py into one
+// failure and six errors, all of them "Cannot read properties of undefined
+// (reading 'VITE_KAIROS_API_URL')".
+const inLocale = (locale, en, he) => (locale === 'he' ? he : en);
+
 export function decimals(value, places, locale) {
   return new Intl.NumberFormat(locale === 'he' ? 'he-IL' : 'en-US', {
     maximumFractionDigits: places,
@@ -182,7 +188,7 @@ export function decimals(value, places, locale) {
 }
 
 export function spotWord(count, locale) {
-  return pageText(locale, count === 1 ? 'spot' : 'spots', count === 1 ? 'תשדיר' : 'תשדירים');
+  return inLocale(locale, count === 1 ? 'spot' : 'spots', count === 1 ? 'תשדיר' : 'תשדירים');
 }
 
 // Which files the counted days were read out of, named so the reader can go and
