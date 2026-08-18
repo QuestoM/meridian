@@ -141,9 +141,102 @@ def canonicalize_series(title: object) -> str:
     if not stripped:
         # Everything stripped away (a title that was only markers); fall back to
         # the punctuation-cleaned full title so the key is never empty.
+        #
+        # ON THE AIRED-SPOTS LOG THIS IS NOT THE RARE PATH, IT IS THE ONLY PATH.
+        # 99.4% of titles there are written wrapped — "[מאסטר שף עונה 7 ש.ח]" —
+        # so _BRACKETED above consumes the whole string, every stripper runs on
+        # empty text, and this returns the raw title with the season number and
+        # the repeat marker still in it. The shipped model therefore keys 603
+        # "series" where 256 exist, 348 of them carrying a marker.
+        #
+        # That is a defect and it is deliberately still here. Fixing it was
+        # built, verified not to over-collapse, and MEASURED WORSE out of sample
+        # on every metric — log RMSE 0.6834 to 0.7008, points MAE 1.1883 to
+        # 1.5028, bias flipping sign — because the marker it leaves behind is
+        # carrying a real effect: a repeat draws a third of the audience of a
+        # first broadcast, 5.77 against 1.93 mean TVR over 50,386 rows. The fit
+        # is using that, under the name of programme identity.
+        #
+        # So this function keeps predicting what it predicts, and the identity
+        # the owner asked for — one code per programme across every season —
+        # lives in series_join_key below, where it can be correct without
+        # silently repricing anything. docs/programme-identity.md has the
+        # numbers and the design that separates the two.
         fallback = _PUNCT.sub(" ", text)
         return _WHITESPACE.sub(" ", fallback).strip()
     return stripped
+
+
+# A break written at the junction of two programmes: "[A] * [B]", 19.2% of the
+# aired-spots rows. The break belongs to the programme it followed.
+_JUNCTION = re.compile(r"\]\s*\*\s*\[")
+
+# The bracket characters alone, for unwrapping a title the brackets CONTAIN
+# rather than tag.
+_BRACKET_CHARS = re.compile(r"[\[\]{}()]")
+
+# The episode name a broadcaster hangs off the series after a dash:
+# "מאסטר שף - השווארמה המהפכנית של עדן הראל". The spaces are required, so a
+# hyphenated word inside a name is not mistaken for a separator. This is the
+# single rule that decides whether a returning series finds its own history:
+# without it the future feed's titles are one-of-a-kind by construction, since
+# a broadcaster names every episode.
+_EPISODE_SUFFIX = re.compile(r"\s+[–—-]\s+")
+
+
+@lru_cache(maxsize=4096)
+def series_join_key(title: object) -> str:
+    """One programme, one key, across every season and every repeat.
+
+    This is the identity for JOINING — matching a programme in a schedule we are
+    about to plan against the same programme in the history we measured. It is
+    deliberately a different function from :func:`canonicalize_series`, which
+    keys the model's cells, because the two want opposite things and the
+    difference is measured rather than assumed:
+
+    * A cell key wants to be FINE. Season and repeat genuinely move the
+      audience, so a key that separates them predicts better, and the shipped
+      one does that by accident.
+    * A join key wants to be COARSE. A new season of מאסטר שף has to find the
+      old one, or every historical signal for it is lost at the moment it is
+      needed. A key that splits on the season answers "no history" for a
+      programme with years of it.
+
+    Same primitives, composed for the other job. Brackets are UNWRAPPED rather
+    than deleted — on the spots log they hold the title itself — and only the
+    bracket characters, because clearing all punctuation first turns "ש.ח" into
+    "ש ח" and the repeat pattern, which matches the dotted form, stops seeing it.
+    """
+    text = _normalize_text(title)
+    if not text:
+        return ""
+
+    # The programme the break followed, before its neighbour's markers can leak
+    # into this one's key.
+    text = _JUNCTION.split(text, maxsplit=1)[0]
+    # The series, not the episode.
+    text = _EPISODE_SUFFIX.split(text, maxsplit=1)[0]
+
+    # Brackets as a tag first, which is right when the title is not wrapped.
+    keyed = _strip_series_markers(_BRACKETED.sub(" ", text))
+    if keyed:
+        return keyed
+    # Nothing left, so the brackets were holding the title. Unwrap and retry.
+    keyed = _strip_series_markers(_BRACKET_CHARS.sub(" ", text))
+    if keyed:
+        return keyed
+    return _WHITESPACE.sub(" ", _PUNCT.sub(" ", text)).strip()
+
+
+def _strip_series_markers(text: str) -> str:
+    """Season, episode, part, repeat markers and trailing numbers, off one string."""
+    for pattern in _REPEAT_MARKERS:
+        text = pattern.sub(" ", text)
+    for pattern in _SEASON_EPISODE_PATTERNS:
+        text = pattern.sub(" ", text)
+    text = re.sub(r"\b\d+\b", " ", text)
+    text = _PUNCT.sub(" ", text)
+    return _WHITESPACE.sub(" ", text).strip()
 
 
 @lru_cache(maxsize=4096)

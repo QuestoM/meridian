@@ -179,18 +179,40 @@ third strongest of nine families) and reverted with the rest: on the unfixed
 identity it is collinear with the series key that is already carrying it, so it
 would have been measuring the same thing twice.
 
-## What this says to build
+## Two keys, and the coarse one is built
 
 The two jobs need two keys, and conflating them is what the bug was accidentally
 getting right.
 
-1. **A fine key for PREDICTING.** Series + season + repeat, explicit rather than
-   smuggled. That is what the model is already using through the bug, so naming
-   it should cost nothing and can then be measured honestly, family by family.
-2. **A coarse key for JOINING.** Series alone, stable across seasons and
-   repeats, which is what a future programme needs to find its own history and
-   what the owner asked for. It is a different key from the one the cells use,
-   and it should be a different function with a different name.
+**The coarse key for JOINING is shipped.** `series_join_key` in
+`kairos/data/title_features.py`, beside the fit key rather than replacing it,
+sharing its primitives and composed for the other job: brackets unwrapped rather
+than deleted, a junction title taken as the programme it followed, the episode
+name after a dash removed, then the same season and repeat strippers.
+
+Measured on the real corpora:
+
+| | future rows finding their history |
+|---|---|
+| `canonicalize_series` (the fit key) | 120 of 704 — 17.0% |
+| `series_join_key` | **202 of 704 — 28.7%** |
+
+The owner's own example resolves: **eleven MasterChef titles in one fortnight's
+schedule become one key**, because a broadcaster names every episode and the
+episode name is not the series. `הכוורת`, `שום פלפל ושמן זית` and
+`ההמצאות של המחר` collapse the same way, and no key absorbs two different
+programmes.
+
+It is written into the competitor contract as a `SeriesKey` column rather than
+recomputed by each reader, so the three places that need this identity cannot
+drift apart about it. Nothing the model fits on moved: the forecast and
+backtest suites are unchanged, because `canonicalize_series` was not touched.
+
+**The fine key for PREDICTING is still the accidental one.** Series + season +
+repeat, smuggled through a bug rather than named. Making it explicit is the next
+piece, and it has to be measured family by family the way everything else here
+is — `test_series_identity.py` pins the current behaviour so it is not "fixed"
+by reasoning alone.
 3. **Read the description.** The classifier reads a title; the feed carries a
    synopsis for nearly every broadcast. That is free coverage and the cheapest
    way to move 38% down.

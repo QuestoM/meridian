@@ -42,6 +42,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional
 
+from kairos.data.title_features import series_join_key
+
 # The contract's own column names, from kairos.data.loaders.load_programmes.
 # Written out rather than imported so a change to the loader's expectations
 # fails here loudly instead of producing a frame that parses into nothing.
@@ -50,7 +52,8 @@ CONTRACT_COLUMNS = ("Channel", "Title", "Date", "Start time", "End time", "Durat
 # Extra columns the contract's loader ignores and a human reading the file
 # wants. They ride along because this file is also the evidence of what was
 # pulled, and a schedule nobody can audit is a schedule nobody should trust.
-CARRIED_COLUMNS = ("Live", "Rerun", "ProgramCode", "HouseNumber", "Description")
+CARRIED_COLUMNS = ("Live", "Rerun", "ProgramCode", "HouseNumber", "Description",
+                   "SeriesKey")
 
 STAMP = "%d/%m/%Y %H:%M:%S"
 
@@ -249,6 +252,10 @@ def to_contract_rows(
             "ProgramCode": record.get("ProgramCode"),
             "HouseNumber": str(record.get("HouseNumber") or ""),
             "Description": str(record.get("EventDescription") or "").strip(),
+            # The identity a future programme is found by. Written into the file
+            # rather than recomputed by each reader, so the join is auditable and
+            # cannot drift between the three places that need it.
+            "SeriesKey": series_join_key(title),
         })
     rows.sort(key=lambda row: (row["Date"], row["Start time"]))
     days = sorted({row["Date"] for row in rows})

@@ -57,6 +57,8 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterable, Optional
 from zoneinfo import ZoneInfo
 
+from kairos.data.title_features import series_join_key
+
 LIVES_URL = "https://web.freetv.tv/api/products/lives?platform=BROWSER&lang=HEB"
 PROGRAMMES_URL = (
     "https://web.freetv.tv/api/products/lives/programmes"
@@ -250,6 +252,10 @@ def to_contract_rows(records: Iterable[dict[str, Any]], *, channel: str
             "ProgramCode": str(record.get("id") or ""),
             "HouseNumber": "",
             "Description": str(record.get("description") or record.get("lead") or "").strip(),
+            # The identity a future programme is found by. Written into the file
+            # rather than recomputed by each reader, so the join is auditable and
+            # cannot drift between the three places that need it.
+            "SeriesKey": series_join_key(title),
         })
 
     rows.sort(key=lambda r: (r["Date"].split("/")[::-1], r["Start time"]))
