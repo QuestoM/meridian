@@ -73,12 +73,30 @@ function rulePath(block, locale) {
   return localized(block, 'path_forward', locale);
 }
 
-// What that rule cost the count, in the sentence that names the rule.
+// What that rule cost, in the sentence that names the rule.
+//
+// It cost MONEY and not the count, which is the opposite of what this used to
+// say. The sentence read "the count above is short by that many", and the count
+// above is not short: the ledger's spot column is the number of rows the traffic
+// file carries for that campaign and day, dropped ones included, while its
+// spend column is the engine's price for the spots that survived the rule.
+// Measured on the shipped store, and it is an identity rather than an
+// impression: for all 41 clients with a source, ledger spots equals the money
+// layer's priced spots plus its dropped spots exactly, and the two layers'
+// dropped counts are equal to the row. On פריסבי that is 9 airings, 6 priced,
+// 3 removed by DEFAULT_ONE_PER_BREAK — and the drawer told a reader the 9 was
+// missing 3. The money layer's own note beside the figures has always said this
+// correctly; now both halves of the screen say the same thing.
 function droppedText(dropped, locale) {
+  const one = dropped === 1;
   return pageText(
     locale,
-    `It left ${dropped} ${spotWord(dropped, locale)} out of the counted days, so the count above is short by that many.`,
-    `הוא השמיט ${isolate(dropped)} ${spotWord(dropped, locale)} בימים שנספרו, והספירה שלמעלה חסרה במספר הזה.`,
+    one
+      ? `It took ${dropped} ${spotWord(dropped, locale)} out of the pricing, so its money is not in the figures. The spot count above includes it.`
+      : `It took ${dropped} ${spotWord(dropped, locale)} out of the pricing, so their money is not in the figures. The spot count above includes them.`,
+    one
+      ? `הוא הוציא ${isolate(dropped)} ${spotWord(dropped, locale)} מהתמחור, ולכן הכסף שלו אינו בסכומים. ספירת התשדירים שלמעלה כוללת אותו.`
+      : `הוא הוציא ${isolate(dropped)} ${spotWord(dropped, locale)} מהתמחור, ולכן הכסף שלהם אינו בסכומים. ספירת התשדירים שלמעלה כוללת אותם.`,
   );
 }
 
@@ -227,8 +245,8 @@ export function DeliveryBasis({ delivery, locale, ledgerNote = true, ratingBasis
           <p className="clients-basis-note">
             {pageText(
               locale,
-              `Removed by a rule on the counted days: ${dropped} ${spotWord(dropped, locale)}. The count above is short by that many.`,
-              `הוסרו על ידי כלל בימים שנספרו: ${isolate(dropped)} ${spotWord(dropped, locale)}. הספירה שלמעלה חסרה במספר הזה.`,
+              `Taken out of the pricing by a rule on the counted days: ${dropped} ${spotWord(dropped, locale)}. Their money is not in the figures, and the spot count above includes them.`,
+              `הוצאו מהתמחור על ידי כלל בימים שנספרו: ${isolate(dropped)} ${spotWord(dropped, locale)}. הכסף שלהם אינו בסכומים, וספירת התשדירים שלמעלה כוללת אותם.`,
             )}
           </p>
           {rules.map(({ id, block }) => (

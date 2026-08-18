@@ -46,14 +46,15 @@ APP = ROOT / "tv-break-dashboard"
 CLIENTS = APP / "src" / "clients"
 FLIGHTS = CLIENTS / "CampaignFlights.jsx"
 
-# The two files allowed to know what a raw ledger field is called. Everything
-# else on the destination reads delivery through them, which is what makes "a
-# figure without its state" unwritable rather than merely absent today.
-# Three files, because the display outgrew two. DeliveryState.jsx held both the
+# The files allowed to know what a raw ledger field is called. Everything else on
+# the destination reads delivery through them, which is what makes "a figure
+# without its state" unwritable rather than merely absent today.
+#
+# Three of them, because the display outgrew two: DeliveryState.jsx held both the
 # figures and the sentences that say what they were counted on, and passed this
-# destination's 450-line cap; the sentences moved to DeliveryBasisNotes.jsx. The
-# seam did not widen: these three may name the ledger's raw fields and every
-# other surface in this directory still may not.
+# destination's 450-line cap, so the sentences moved to DeliveryBasisNotes.jsx.
+# The seam did not widen with the split — these three may name the ledger's raw
+# fields and every other surface in this directory still may not.
 DELIVERY_OWNERS = {"delivery-helpers.js", "DeliveryState.jsx", "DeliveryBasisNotes.jsx"}
 
 # Raw ledger fields. A surface that names one of these is formatting a delivery
@@ -627,3 +628,62 @@ def test_putting_the_hard_coded_literal_back_brings_the_defect_back(tmp_path, pa
     assert _day_runs(payload["probe"]["delivery"]["unknown"]["dates"])[0] in html, (
         "the basis block survives the mutation, so the cell is what this proves"
     )
+
+
+def test_the_dropped_sentence_says_what_the_rule_actually_cost(payload):
+    """The count is not short; the money is. Proven as an identity, not asserted.
+
+    The drawer told a reader that a rule had left N spots out of the count and
+    that "the count above is short by that many". It is not. The ledger's spot
+    column is the number of rows the traffic file carries for that campaign and
+    day — the ones a rule removed from PRICING included — while its spend column
+    is the engine's price for the spots that survived. So the count already
+    holds them and it is the money that does not.
+
+    Measured on the shipped store rather than reasoned about: for every client
+    with a source, the delivery ledger's spot count equals the money layer's
+    priced spots plus its dropped spots, and the two layers' dropped counts are
+    equal row for row. On פריסבי that is 9 airings, 6 priced, 3 removed by
+    DEFAULT_ONE_PER_BREAK.
+
+    This is what the sentence on screen now claims, so it is pinned here. A
+    ledger written to a different convention breaks this test rather than
+    quietly making the screen lie.
+    """
+    from collections import Counter
+
+    from kairos_api.campaigns_read_money import board
+
+    money = board()
+    if not money.get("spots"):
+        pytest.skip("no priced spot on disk, so the two layers cannot be compared")
+    priced = Counter(row["advertiser"] for row in money["spots"])
+    dropped = Counter(row["advertiser"] for row in (money.get("dropped") or []))
+
+    ledger, ledger_dropped = Counter(), Counter()
+    for campaign in payload["board"]["campaigns"]:
+        delivery = campaign["delivery"]
+        if not delivery["available"]:
+            continue
+        aired, scheduled = delivery["aired"], delivery["scheduled"]
+        ledger[campaign["advertiser"]] += aired["spots"] + scheduled["spots"]
+        ledger_dropped[campaign["advertiser"]] += (
+            aired["spots_dropped_by_rule"] + scheduled["spots_dropped_by_rule"])
+
+    off = {
+        advertiser: (ledger[advertiser], priced[advertiser], dropped[advertiser])
+        for advertiser in set(ledger) | set(priced)
+        if ledger[advertiser] != priced[advertiser] + dropped[advertiser]
+    }
+    assert not off, (
+        "the ledger's spot count no longer equals priced + dropped, so the screen's "
+        f"sentence about what a rule cost is no longer true: {off}"
+    )
+    assert ledger_dropped == dropped, (
+        "the two layers disagree about how many spots a rule removed, and the drawer "
+        "prints both numbers"
+    )
+    # and the sentence a reader sees says money, not count
+    notes = (CLIENTS / "DeliveryBasisNotes.jsx").read_text(encoding="utf-8")
+    assert "הכסף שלהם אינו בסכומים" in notes
+    assert "חסרה במספר הזה" not in notes, "the false claim is back on the screen"
