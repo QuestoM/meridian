@@ -99,6 +99,7 @@ data/trade_credit_ledger.csv
 # nothing is lost by its absence — the competitor stack answers honestly that it
 # has no schedule and contributes exactly zero until the next pull.
 data/reference/CompetitorProgrammes.csv
+data/reference/CompetitorProgrammes.freshness.json
 
 # The daily feed's log, written by the launchd agent.
 scripts/competitor-feed/feed.log

@@ -1,34 +1,112 @@
-# The rival's schedule, pulled instead of typed
+# The rivals' schedules, pulled instead of typed
 
 Every competitor input this engine has ever had arrived as a file somebody put on
 disk by hand — which in practice means most weeks had none, because nobody
-re-types a rival's schedule. This feed replaces that with a daily pull, and
-attaches it to the contract the engine already reads.
+re-types a rival's schedule. This feed replaces that with a daily pull of the
+WHOLE competitive lineup, into the one contract the engine already reads.
 
 Run it before the daily simulation:
 
 ```bash
-python -m kairos.model.keshet_feed --operator-channel "רשת 13"
+python -m kairos.model.keshet_feed --all
 ```
 
-It prints one line and exits 0 on a refresh, 1 on anything else:
+Measured on a real morning: 704 broadcasts across three rivals over thirteen
+days, in one file, from one command.
+
+It prints one line per channel and exits 0 only if every one refreshed. Every
+line names its channel, because "the competitor schedule was not refreshed"
+could be about any of four:
 
 ```
-נמשך לוח המתחרים לראשונה: 300 שידורים על פני 13 ימים.
-לוח המתחרים רוענן: אין שינוי מאז הפעם הקודמת.
-לוח המתחרים רוענן: 2 הוזזו, 1 הוכרזו.
-לוח המתחרים לא רוענן. הלוח שבידינו בן 26.0 שעות.
+כאן 11: נמשך לוח כאן 11 לראשונה: 222 שידורים על פני 9 ימים.
+עכשיו 14: לוח עכשיו 14 רוענן: אין שינוי מאז הפעם הקודמת.
+קשת 12: לוח קשת 12 רוענן: 2 הוזזו, 1 הוכרזו.
+קשת 12: לוח קשת 12 לא רוענן. הלוח שבידינו בן 26.0 שעות.
 ```
 
-`--json` gives the whole result, including the per-programme diff.
+`--channel "כאן 11"` pulls one. `--days N` sets the window. `--json` gives the
+whole result, including the per-programme diff.
 
 ## What it writes, and what reads it
 
 `data/reference/CompetitorProgrammes.csv` — the file
 `kairos.model.future_epg` already looks for. Nothing downstream changed: same
 columns, same loader, same honest-absence behaviour when it is missing. The file
-is **not** in git: it is a licensed third party's data, it is rewritten daily,
-and its absence costs nothing but freshness.
+is **not** in git: it is third-party data, it is rewritten daily, and its absence
+costs nothing but freshness.
+
+**One file, every rival.** The contract has always carried a Channel column and
+the loader has always read every channel out of it, so the place the optimizer
+needs already existed. A refresh replaces only the rows of the channel it pulled
+and carries the others through untouched — pulling one rival is never a deletion
+of another — and the diff is computed within the channel, or a rival that did
+not move would report as rebuilt whenever a different one was refreshed.
+
+**Each channel's age is its own**, stamped in
+`CompetitorProgrammes.freshness.json` beside the file. The file's modified time
+cannot answer "how old is this rival's schedule": refreshing one channel touches
+the file, so a channel nobody has pulled for a week would read as one minute
+old. A missing stamp degrades to unknown, never to fresh.
+
+## Where each rival comes from
+
+| Channel | Source | Auth | Window |
+|---|---|---|---|
+| קשת 12 | Kway (`api.kway.co.il`) | signed-in session, renewed below | 13 days, one call |
+| כאן 11 | FreeTV (`web.freetv.tv`) | none | 9 days, one call per day |
+| עכשיו 14 | FreeTV | none | 9 days, one call per day |
+| רשת 13 | FreeTV | none | skipped while it is the operator's own channel |
+
+A channel with no source is refused **by name**. An empty schedule for a channel
+that is broadcasting is the most expensive lie a plan can be told, so the
+registry in `keshet_feed.SOURCES` is one table and a missing rival is a missing
+row in it, not a different feature.
+
+### Why FreeTV and not each broadcaster's own site
+
+All three were fetched and compared. The differences are all in the one field
+that matters:
+
+- **`c14.co.il`** gives fifteen days in one call, and its end time is a **bare
+  clock** whose date is only the key of the object around it. A programme running
+  to 00:20 ends before it starts unless the converter rolls the day.
+- **`13tv.co.il`** gives a title and a start and **no end and no duration at
+  all**, so a length can only be inferred from the next programme's start —
+  which silently swallows anything the editorial grid leaves out.
+- Both refuse a browser user-agent and answer a command-line one: the opposite
+  of what anyone would guess, and the opposite of each other.
+
+FreeTV's `since` and `till` are fully dated ISO instants, so the duration is a
+subtraction and the midnight case cannot arise. One converter is correct for
+every channel.
+
+**The channel number is checked, not trusted.** FreeTV calls them "ערוץ 11",
+"ערוץ 12" — not the names this engine's history uses — so the mapping is written
+down and verified against the publication before every pull. If a live id stops
+carrying the title it carried when it was mapped, the pull refuses. A reused id
+would otherwise file one rival's whole evening under another rival's name, and
+the rows would be well formed, the file would load, and nothing downstream could
+tell.
+
+**Two flags are read from the feed and one is a trap.** The field called `live`
+is not a flag at all but an object naming the channel, and a non-empty dict is
+truthy — reading it generously marked every broadcast as live, reruns included.
+The real flag is `liveBroadcast`. `repeat` is trustworthy and corroborated: on a
+real window, 40 of 40 titles carrying "(ש.ח.)" have it set and 0 of 42 without
+it do.
+
+### Keshet stays on the licensed source, and here is the alternative
+
+Measured: `mako.co.il/AjaxPage?jspName=EPGResponse.jsp` answers **200 with no
+account at all** and returns the same 300 programmes in the same shape — the
+existing converter reads it unchanged, 300 in and 300 out. So the credential
+below is not technically required for Keshet.
+
+It is kept anyway: the subscription is paid for, it carries fields the free feed
+does not, and swapping a licensed data path for the competitor's own website is
+a commercial decision rather than a refactoring. The alternative is written down
+so the choice can be made rather than discovered.
 
 ## The session, which is the hard part
 

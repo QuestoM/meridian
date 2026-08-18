@@ -195,6 +195,7 @@ def refresh(
     target: str | Path,
     history_dir: Optional[str | Path] = None,
     now: Optional[datetime] = None,
+    convert: Optional[Callable[..., tuple[list[dict[str, Any]], dict[str, Any]]]] = None,
 ) -> dict[str, Any]:
     """Pull, convert, write, and report the difference. Never write a lie.
 
@@ -232,7 +233,11 @@ def refresh(
         }
     try:
         payload = fetch()
-        rows, status = keshet_epg.to_contract_rows(payload, channel=channel)
+        # Each publication has its own shape, and each converter turns it into
+        # the same contract. Keeping the default here means the module that
+        # started with one rival did not have to change to serve four.
+        to_rows = convert or keshet_epg.to_contract_rows
+        rows, status = to_rows(payload, channel=channel)
     except Exception as exc:  # noqa: BLE001 - a failed pull is a stated state
         return {
             "refreshed": False,
@@ -310,15 +315,17 @@ def headline(result: Mapping[str, Any], locale: str = "he") -> str:
         else:
             age = f" There is no schedule for {channel} at all." if channel else " There is no competitor schedule at all."
         return f"{who} was not refreshed.{age}"
+    who_he = f"לוח {channel}" if channel else "לוח המתחרים"
+    who_en = f"The {channel} schedule" if channel else "The competitor schedule"
     if result.get("first_pull"):
-        return (f"נמשך לוח המתחרים לראשונה: {result['rows']} שידורים על פני {result['days']} ימים."
+        return (f"נמשך {who_he} לראשונה: {result['rows']} שידורים על פני {result['days']} ימים."
                 if locale == "he" else
-                f"Competitor schedule pulled for the first time: {result['rows']} broadcasts over {result['days']} days.")
+                f"{who_en} was pulled for the first time: {result['rows']} broadcasts over {result['days']} days.")
     diff = result["changes"]
     if diff["quiet"]:
-        return ("לוח המתחרים רוענן: אין שינוי מאז הפעם הקודמת."
+        return (f"{who_he} רוענן: אין שינוי מאז הפעם הקודמת."
                 if locale == "he" else
-                "Competitor schedule refreshed: nothing changed since last time.")
+                f"{who_en} was refreshed: nothing changed since last time.")
     parts_he, parts_en = [], []
     for key, he, en in (("added", "נוספו", "added"), ("removed", "ירדו", "removed"),
                         ("moved", "הוזזו", "moved"), ("reshaped", "שונו באורך", "changed length"),
@@ -326,6 +333,6 @@ def headline(result: Mapping[str, Any], locale: str = "he") -> str:
         if diff[key]:
             parts_he.append(f"{len(diff[key])} {he}")
             parts_en.append(f"{len(diff[key])} {en}")
-    return ("לוח המתחרים רוענן: " + ", ".join(parts_he) + "."
+    return (f"{who_he} רוענן: " + ", ".join(parts_he) + "."
             if locale == "he" else
-            "Competitor schedule refreshed: " + ", ".join(parts_en) + ".")
+            f"{who_en} was refreshed: " + ", ".join(parts_en) + ".")

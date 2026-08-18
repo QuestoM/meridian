@@ -36,23 +36,39 @@ from typing import Any, Iterable, Optional
 from kairos.model import keshet_epg, keshet_refresh, kway_session
 
 # Where the competitor contract lives, which is where the loader already looks.
-DEFAULT_TARGET = Path("data/reference/CompetitorProgrammes.csv")
+# Absolute, derived from this file. A relative default works only when the
+# process happens to start in the repository root, which a daily job scheduled
+# by the operating system has no reason to do — and the failure would be a new
+# empty schedule written somewhere nobody reads, while the real one quietly aged.
+DEFAULT_TARGET = Path(__file__).resolve().parents[2] / "data" / "reference" / "CompetitorProgrammes.csv"
 
 # The rival this feeds by default. Keshet is Reshet's largest competitor, and the
 # name is resolved against the engine's registry rather than trusted as spelled
 # here.
 DEFAULT_CHANNEL = "קשת 12"
 
-# Which channels this engine can actually pull, and how.
+# Which channels this engine can actually pull, and from where.
 #
-# One entry today, and the shape matters more than the count: the optimizer
-# reads the whole competitive lineup out of one file, so the other rivals are
-# not a different feature but a missing row in this table. A channel with no
-# entry is refused by name rather than pulled as an empty schedule, because an
-# empty schedule for a channel that is broadcasting is the most expensive
-# possible lie to tell a plan.
+# The optimizer reads the whole competitive lineup out of one file, so a rival
+# with no source is not a different feature — it is a missing row in this table.
+# A channel with no entry is refused BY NAME rather than pulled as an empty
+# schedule, because an empty schedule for a channel that is broadcasting is the
+# most expensive lie a plan can be told.
+#
+# Keshet stays on the licensed publication rather than moving to the free one.
+# Measured, mako.co.il/AjaxPage?jspName=EPGResponse.jsp answers 200 with no
+# account at all and returns the SAME 300 programmes in the SAME shape — the
+# existing converter reads it unchanged, 300 in and 300 out. So the credential
+# is not technically required. It is kept because the subscription is paid for,
+# it carries fields the free feed does not, and swapping a licensed data path
+# for the competitor's own website is a commercial decision and not a
+# refactoring. The alternative is recorded so the choice can be made rather
+# than discovered.
 SOURCES = {
     "קשת 12": "kway",
+    "כאן 11": "freetv",
+    "רשת 13": "freetv",
+    "עכשיו 14": "freetv",
 }
 
 
@@ -88,6 +104,7 @@ def pull(
     history_dir: Optional[str | Path] = None,
     known: Optional[Iterable[str]] = None,
     allow_renew: bool = True,
+    days: int = 8,
 ) -> dict[str, Any]:
     """Refresh the rival's schedule, and report honestly either way.
 
@@ -144,6 +161,21 @@ def pull(
             "sources_available": sorted(SOURCES),
         }
 
+    if source == "freetv":
+        from kairos.model import freetv_epg
+
+        result = keshet_refresh.refresh(
+            fetch=lambda: freetv_epg.fetch(resolved, days=days),
+            convert=lambda records, *, channel: freetv_epg.to_contract_rows(
+                records, channel=channel),
+            channel=resolved,
+            target=target,
+            history_dir=history_dir,
+        )
+        result["channel"] = resolved
+        result["source"] = "freetv"
+        return result
+
     session, status = kway_session.current(allow_renew=allow_renew)
     if session is None:
         result = keshet_refresh.refresh(fetch=None, channel=resolved, target=target)
@@ -162,6 +194,7 @@ def pull(
     )
     result["session"] = status
     result["channel"] = resolved
+    result["source"] = "kway"
     return result
 
 
@@ -192,16 +225,40 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--history-dir", default=None)
     parser.add_argument("--no-renew", action="store_true",
                         help="use the stored session only; never open a browser")
+    parser.add_argument("--days", type=int, default=8,
+                        help="how many broadcast days to pull, where the source is asked per day")
+    parser.add_argument("--all", action="store_true",
+                        help="pull every channel that has a source, skipping the operator's own")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
 
-    result = pull(
-        channel=args.channel,
-        operator_channel=args.operator_channel,
-        target=args.target,
-        history_dir=args.history_dir,
-        allow_renew=not args.no_renew,
-    )
+    def one(channel: str) -> dict[str, Any]:
+        return pull(
+            channel=channel,
+            operator_channel=args.operator_channel,
+            target=args.target,
+            history_dir=args.history_dir,
+            allow_renew=not args.no_renew,
+            days=args.days,
+        )
+
+    # Every rival, or one. The operator's own channel is skipped rather than
+    # refused loudly here: asking for "every channel with a source" and being
+    # told off about the one you own is noise, and the guard inside pull()
+    # still refuses it if somebody names it directly.
+    if args.all:
+        own = (configured_operator_channel() if args.operator_channel is None
+               else args.operator_channel)
+        results = {channel: one(channel) for channel in sorted(SOURCES)
+                   if channel != own}
+        if args.json:
+            print(json.dumps(results, ensure_ascii=False, indent=1, default=str))
+        else:
+            for channel, result in results.items():
+                print(f"{channel}: {headline(result)}")
+        return 0 if all(r.get("refreshed") for r in results.values()) else 1
+
+    result = one(args.channel)
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=1, default=str))
     else:

@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  launchd agent: pull the rival's schedule once a day at 05:30 local, before the
-  morning run. It renews its own Kway session headlessly (about seven seconds,
-  no window, no password) and refuses to overwrite the schedule on a failed or
-  empty pull, so a quiet log line means the rival did not move — never that the
+  launchd agent: pull EVERY rival's schedule once a day at 05:30 local, before
+  the morning run, into the one competitor file the optimizer reads. Keshet
+  comes from the licensed Kway publication, which needs a signed-in session it
+  renews itself headlessly (about seven seconds, no window, no password); the
+  other channels come from FreeTV over plain HTTPS with no account at all. The
+  operator's own channel is skipped. A failed or empty pull never overwrites the
+  schedule, so a quiet log line means the rivals did not move — never that the
   pull broke.
 
   Install:
@@ -31,7 +34,7 @@
   <array>
     <string>/bin/zsh</string>
     <string>-lc</string>
-    <string>cd /Users/home/Code/questo/meridian &amp;&amp; echo "--- $(date -Iseconds)" &amp;&amp; ~/.venvs/meridian/bin/python -m kairos.model.keshet_feed</string>
+    <string>cd /Users/home/Code/questo/meridian &amp;&amp; echo "--- $(date -Iseconds)" &amp;&amp; ~/.venvs/meridian/bin/python -m kairos.model.keshet_feed --all</string>
   </array>
 
   <key>StartCalendarInterval</key>
