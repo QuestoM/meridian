@@ -127,6 +127,12 @@
   cursor: progress;
 }
 
+/* Shape only. What a link LOOKS like is decided once, in
+ * studio-ledger-commercial.css, and this file deliberately no longer has an
+ * opinion about it: for a long while these two stylesheets disagreed — --blue
+ * here, --ink there — and the disagreement was never visible, because a third
+ * thing was quietly beating both of them. Two files arguing about one colour is
+ * how nobody notices that neither is winning. */
 .clients-link,
 .clients-inline-action,
 .clients-chip,
@@ -135,7 +141,6 @@
   border: 0;
   cursor: pointer;
   font-size: var(--text-base);
-  color: var(--blue);
   padding: 0;
   text-align: start;
 }

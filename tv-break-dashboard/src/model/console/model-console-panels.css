@@ -163,7 +163,7 @@
 
 .mc-drill { margin-block-start: var(--space-2); }
 
-.mc-link {
+.mc-link.mc-link {
   background: none;
   border: 0;
   padding: 0;

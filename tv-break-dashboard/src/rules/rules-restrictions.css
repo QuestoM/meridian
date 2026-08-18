@@ -218,7 +218,7 @@
   gap: var(--space-2);
 }
 
-.rules-widen-action {
+.rules-widen-action.rules-widen-action {
   padding: 0;
   border: 0;
   background: none;

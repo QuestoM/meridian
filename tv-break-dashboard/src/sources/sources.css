@@ -239,7 +239,7 @@
   text-align: start;
 }
 
-.link-figure:hover {
+.link-figure.link-figure:hover {
   text-decoration: underline;
 }
 

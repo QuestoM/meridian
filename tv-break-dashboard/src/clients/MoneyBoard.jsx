@@ -279,7 +279,23 @@ export default function MoneyBoard({
           </thead>
           <tbody>
             {ranked.map((row) => (
-              <tr key={String(row[definition.field])}>
+              <tr
+                key={String(row[definition.field])}
+                className="clients-row-open"
+                onClick={(event) => {
+                  // The name stays the real control — it is what a keyboard and
+                  // a screen reader reach, and the row is deliberately not a tab
+                  // stop, because making every row one would double the length
+                  // of the whole table for anyone travelling it by key. So the
+                  // row only forwards clicks the name did not already take.
+                  if (event.target.closest('button, a, input, [role=button]')) return;
+                  // A click that ends a text selection is a selection, not a
+                  // navigation. Reading a figure out of a table should not move
+                  // the reader off it.
+                  if (String(window.getSelection() || '')) return;
+                  onDrill({ group, key: String(row[definition.field]) });
+                }}
+              >
                 <td className="numeric"><Figure>{row.rank}</Figure></td>
                 <td>
                   <Button type="button" className="clients-link" onClick={() => onDrill({ group, key: String(row[definition.field]) })}>
