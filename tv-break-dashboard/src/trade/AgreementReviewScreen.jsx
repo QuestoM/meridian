@@ -10,7 +10,7 @@ import {
 } from './trade-api';
 import {
   buildClauses, buildConflicts, buildTerms, coverageOf, groupByMechanism,
-  isUndecided, termFilters,
+  isUndecided, splitByStanding, termFilters,
 } from './review-model';
 import ReviewCoverageHeader from './ReviewCoverageHeader';
 import ReviewDocumentPane from './ReviewDocumentPane';
@@ -129,7 +129,11 @@ export default function AgreementReviewScreen({
     return terms;
   }, [terms, filter]);
 
-  const groups = useMemo(() => groupByMechanism(shown), [shown]);
+  // The proposals a person must decide, and the readings that only suggest a
+  // term might live in a clause. Only the first kind is grouped and counted:
+  // the second holds nothing shut and lives in its own folded list.
+  const split = useMemo(() => splitByStanding(shown), [shown]);
+  const groups = useMemo(() => groupByMechanism(split.proposals), [split]);
   const unacknowledged = useMemo(
     () => clauses.filter((clause) => clause.disposition === 'unmapped' && !clause.acknowledged),
     [clauses],
@@ -180,6 +184,30 @@ export default function AgreementReviewScreen({
       notify(
         `The term could not be confirmed. ${refusalText(failure, 'en')}`,
         `לא ניתן היה לאשר את המונח. ${refusalText(failure, 'he')}`,
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // A reading with no values in it holds nothing shut, so a reviewer who
+  // recognises a real term in one says so here — and from that moment it is an
+  // ordinary proposal that must be decided before this agreement can be
+  // approved. There is no way back other than rejecting it with a reason,
+  // which is what the ordinary decision path already records.
+  async function promote(term) {
+    setBusy(true);
+    try {
+      await promoteInstance(agreementId, documentId, term.instance_id);
+      reload();
+      notify(
+        `${term.instance_id} moved into the proposals; it now needs a decision.`,
+        `${term.instance_id} הועבר להצעות, וכעת הוא דורש הכרעה.`,
+      );
+    } catch (failure) {
+      notify(
+        `The reading could not be moved. ${refusalText(failure, 'en')}`,
+        `לא ניתן היה להעביר את הקריאה. ${refusalText(failure, 'he')}`,
       );
     } finally {
       setBusy(false);
@@ -384,7 +412,9 @@ export default function AgreementReviewScreen({
           filter={filter}
           counts={counts}
           groups={groups}
-          shown={shown}
+          shown={split.proposals}
+          interpretations={split.interpretations}
+          onPromote={promote}
           conflicts={conflicts}
           unacknowledged={unacknowledged}
           selectedClause={selectedClause}

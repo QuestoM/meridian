@@ -62,6 +62,24 @@ def _pct(value: Any) -> str:
     return f"{number:g}%"
 
 
+def _count(value: Any) -> Optional[str]:
+    """A quantity a document yielded, or None when it yielded no number.
+
+    The money and percent helpers have always guarded this; two quantity sites
+    formatted the raw value with ``:g`` and did not. A real reading puts
+    ``"<UNKNOWN>"`` in a numeric field whenever the clause does not state one —
+    that is the schemas' own word for an absence — and ``f"{'<UNKNOWN>':g}"``
+    raises. Measured: one such value in one term took down the WHOLE review
+    endpoint with a 500, so a reviewer saw an error instead of the agreement and
+    the other seventy readings were unreachable. The seeded demo never hit it
+    because seeded values are clean; the first real upload would have.
+    """
+    try:
+        return f"{float(value):g}"
+    except (TypeError, ValueError):
+        return None
+
+
 def _scope_phrase(scope: Mapping[str, Any]) -> str:
     parts: list[str] = []
     labels = {
@@ -105,7 +123,8 @@ def _sentence(term_id: str, params: Mapping[str, Any],
         unit = {"same_break": "באותו מקבץ", "spots": "תשדירים",
                 "minutes": "דקות"}.get(str(p.get("separation_unit")), "")
         quantity = p.get("separation_quantity")
-        detail = (f"בהפרדה של {quantity:g} {unit}" if quantity and unit != "באותו מקבץ"
+        shown = _count(quantity)
+        detail = (f"בהפרדה של {shown} {unit}" if shown and unit != "באותו מקבץ"
                   else "לא יופיעו יחד באותו מקבץ")
         return BLOCKS, f"מתחרי הקטגוריה {detail}"
     if term_id == "frequency-caps":
@@ -174,8 +193,8 @@ def _sentence(term_id: str, params: Mapping[str, Any],
     if term_id == "trp-delivery-guarantee":
         points = p.get("points")
         tolerance = p.get("tolerance_percent")
-        target = (f"{points:g} נקודות" if points is not None
-                  else "כמות שנקבעת בכל הזמנה")
+        shown = _count(points)
+        target = f"{shown} נקודות" if shown else "כמות שנקבעת בכל הזמנה"
         tail = f", סטייה מותרת {_pct(tolerance)}" if tolerance is not None else ""
         return MEASURES, (f"התחייבות אספקה: {target} מול קהל "
                           f"{p.get('audience') or 'שלא צוין'}{tail}")

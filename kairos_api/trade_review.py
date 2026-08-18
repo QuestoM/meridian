@@ -23,6 +23,7 @@ import uuid
 from typing import Any, Optional
 
 from kairos.trade import taxonomy, taxonomy_schemas
+from kairos.trade import standing
 from kairos_api import trade_store
 from kairos_api.trade_store import (
     APPROVED,
@@ -113,6 +114,55 @@ def decide_instance(
     )
     trade_store.save_review(agreement_id, document_id, review)
     return entry
+
+
+def promote_instance(agreement_id: str, document_id: str, instance_id: str,
+                     actor: str) -> dict[str, Any]:
+    """Move one reading out of the interpretations and into the proposals.
+
+    A reading with no values in it does not hold the gate shut, which is what
+    keeps the main list short enough to work through. But a reader who looks at
+    one and recognises a real term must be able to say so — and from that moment
+    it is an ordinary proposal: it appears in the main list, it blocks approval
+    until it is decided, and deciding it will mean editing the values in,
+    because the extraction did not find any.
+
+    The reverse is deliberately not offered. Once a person has said a clause
+    carries a term, taking that back is a REJECTION with a reason, which the
+    ordinary decision path already records and this would quietly bypass.
+    """
+    extraction = trade_store.load_extraction(agreement_id, document_id)
+    inst = _instance(extraction, instance_id)
+    if not standing.is_interpretive(inst):
+        raise ValueError(
+            f"instance {instance_id!r} is already a proposal; there is nothing to promote"
+        )
+    review = trade_store.load_review(agreement_id, document_id)
+    _entry(review, instance_id)
+    promoted = review.setdefault("promoted", [])
+    if instance_id not in promoted:
+        promoted.append(instance_id)
+    review.setdefault("promoted_log", []).append(
+        {"instance_id": instance_id, "by": actor, "at": now_stamp()})
+    trade_store.save_review(agreement_id, document_id, review)
+    return {"instance_id": instance_id, "standing": standing.CONFIDENT,
+            "promoted": True}
+
+
+def standings(extraction: dict[str, Any], review: dict[str, Any]) -> dict[str, Any]:
+    """Where each reading sits, decided once here so no surface re-derives it."""
+    promoted = set(review.get("promoted", []))
+    out: dict[str, Any] = {}
+    for inst in extraction.get("instances", []):
+        iid = inst["instance_id"]
+        interpretive = standing.is_interpretive(inst) and iid not in promoted
+        out[iid] = {
+            "standing": standing.INTERPRETIVE if interpretive else standing.CONFIDENT,
+            "promoted": iid in promoted,
+            "reason_he": standing.reason(inst, "he") if interpretive else "",
+            "reason_en": standing.reason(inst, "en") if interpretive else "",
+        }
+    return out
 
 
 def _validate_params(term_id: str, params: dict[str, Any]) -> list[str]:
@@ -256,9 +306,23 @@ def document_gate(agreement_id: str, document_id: str) -> dict[str, Any]:
         (c["clause_id"] for c in clauses if c["clause_id"] not in seen),
         key=_clause_key,
     )
+    # A proposal that carries no values is a LEAD, not a proposal, and it does
+    # not hold the gate shut. It is still on the screen, in its own list, with a
+    # control that moves it into the main one — and from that moment it is an
+    # ordinary proposal and must be decided like any other.
+    #
+    # This is what makes the reading light enough to work through. Measured on
+    # the corpus: 16 of 228 proposals carry no answer, and setting them aside
+    # raises the share of the main list that is correct from 66.7% to 71.7%
+    # while moving nothing correct out of it (kairos.trade.standing).
+    interpretive = {
+        inst["instance_id"] for inst in extraction.get("instances", [])
+        if standing.is_interpretive(inst)
+        and inst["instance_id"] not in set(review.get("promoted", []))
+    }
     undecided = sorted(
         iid for iid, entry in states.items()
-        if entry.get("state", PROPOSED) == PROPOSED
+        if entry.get("state", PROPOSED) == PROPOSED and iid not in interpretive
     )
     unacked = sorted(
         cid for cid, d in dispositions.items()
@@ -287,7 +351,10 @@ def document_gate(agreement_id: str, document_id: str) -> dict[str, Any]:
         "clauses_seen": len(seen),
         "dispositions": counts,
         "instances_total": len(states),
-        "instances_decided": len(states) - len(undecided),
+        "instances_decided": len(states) - len(undecided) - len(interpretive),
+        # Named on the gate so a reader can see that the short list is short on
+        # purpose, and how many readings are waiting in the other one.
+        "instances_interpretive": len(interpretive),
         "reviewer_added": len(review.get("reviewer_added", [])),
         "unmapped_acknowledged": len(acks),
         "conflicts_open": len(open_conflicts),

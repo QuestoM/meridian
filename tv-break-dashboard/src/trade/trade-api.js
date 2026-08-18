@@ -151,6 +151,11 @@ export async function decideInstance(agreementId, documentId, instanceId, body) 
   return sendJson(reviewPath(agreementId, documentId, tail), 'POST', body);
 }
 
+export async function promoteInstance(agreementId, documentId, instanceId) {
+  const tail = `instances/${encodeURIComponent(instanceId)}/promote`;
+  return sendJson(reviewPath(agreementId, documentId, tail), 'POST', {});
+}
+
 export async function addInstance(agreementId, documentId, body) {
   return sendJson(reviewPath(agreementId, documentId, 'instances'), 'POST', body);
 }

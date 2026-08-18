@@ -269,7 +269,12 @@ def document_proposal(agreement_id: str, document_id: str) -> dict[str, Any]:
         head,
     )
     return {"extraction": extraction, "review": review, "gate": gate,
-            "effects": explained}
+            "effects": explained,
+            # Where each reading sits — a proposal to decide, or an
+            # interpretation to consider. Decided server-side so the review
+            # screen and the gate can never disagree about which list a term
+            # belongs in.
+            "standings": trade_review.standings(extraction, review)}
 
 
 # --------------------------------------------------------------- review actions
@@ -284,6 +289,17 @@ def mark_seen(agreement_id: str, document_id: str, body: SeenBody,
     try:
         return trade_review.mark_clauses_seen(
             agreement_id, document_id, body.clause_ids, _actor(request))
+    except (KeyError, ValueError) as exc:
+        raise _fail(exc) from exc
+
+
+@router.post("/agreements/{agreement_id}/documents/{document_id}/instances/{instance_id}/promote")
+def promote(agreement_id: str, document_id: str, instance_id: str,
+            request: Request) -> dict[str, Any]:
+    """Move one interpretation into the proposals a reviewer must decide."""
+    try:
+        return trade_review.promote_instance(
+            agreement_id, document_id, instance_id, _actor(request))
     except (KeyError, ValueError) as exc:
         raise _fail(exc) from exc
 

@@ -45,6 +45,10 @@ export function buildTerms(proposal) {
   const effects = asObject(proposal.effects);
   const states = asObject(review.instances);
   const effectById = new Map(asArray(effects.terms).map((term) => [term.instance_id, term]));
+  // Where each reading sits — a proposal to decide, or an interpretation to
+  // consider. The server decides it (kairos.trade.standing) so this screen and
+  // the approval gate can never disagree about which list a term belongs in.
+  const standings = asObject(proposal.standings);
   const conflictByInstance = new Map();
   Object.entries(asObject(review.conflicts)).forEach(([conflictId, conflict]) => {
     asArray(conflict.instances).forEach((instanceId) => {
@@ -74,6 +78,8 @@ export function buildTerms(proposal) {
       notInDocument: false,
       effect: effectById.get(instance.instance_id) || null,
       conflict: conflictByInstance.get(instance.instance_id) || null,
+      standing: asObject(standings[instance.instance_id]).standing || 'confident',
+      standingReason: asObject(standings[instance.instance_id]),
     };
   });
 
@@ -98,6 +104,10 @@ export function buildTerms(proposal) {
     notInDocument: Boolean(instance.not_in_document),
     effect: effectById.get(instance.instance_id) || null,
     conflict: conflictByInstance.get(instance.instance_id) || null,
+    // A term a reviewer wrote is a proposal by definition: a person put the
+    // values in it.
+    standing: 'confident',
+    standingReason: {},
   }));
 
   return rows.concat(added);
@@ -224,4 +234,21 @@ export function termFilters(terms, conflicts, clauses) {
     conflicts: conflicts.filter((c) => c.open).length,
     unmapped: clauses.filter((c) => c.disposition === 'unmapped' && !c.acknowledged).length,
   };
+}
+
+
+// The two lists a reading can be in. Splitting them is what keeps the list a
+// person approves short enough to actually work through: measured on the
+// corpus, 16 of 228 readings carry no values at all, and setting those aside
+// raises the share of the main list that is correct from 66.7% to 71.7% while
+// moving nothing correct out of it.
+export function isInterpretation(term) {
+  return term.standing === 'interpretive';
+}
+
+export function splitByStanding(terms) {
+  const proposals = [];
+  const interpretations = [];
+  terms.forEach((term) => (isInterpretation(term) ? interpretations : proposals).push(term));
+  return { proposals, interpretations };
 }

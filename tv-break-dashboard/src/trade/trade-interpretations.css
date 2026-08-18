@@ -1,0 +1,81 @@
+/* The readings that are not proposals: folded away, quiet, and openable.
+   Split into its own file because trade-review.css is at the destination's
+   450-line cap. Reads the tokens, defines none. */
+
+.trd-interpretations {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+/* Dashed and muted on purpose: this block must not read as a second list of
+   things to approve. It is a drawer of leads, and it should look like one
+   before a word of it is read. */
+.trd-interpretations-head {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-start;
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+
+.trd-interpretations-why {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  margin: 0;
+}
+
+.trd-interpretations-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.trd-interpretations-list li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-block-start: var(--space-3);
+  border-block-start: 1px solid var(--line);
+}
+
+.trd-interpretation-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.trd-interpretation-clause {
+  font-size: var(--text-xs);
+  color: var(--subtle);
+}
+
+/* The quote is the evidence, so it reads as quoted material and not as a
+   sentence this product wrote. */
+.trd-interpretation-quote {
+  font-size: var(--text-xs);
+  color: var(--ink);
+  margin: 0;
+  padding-inline-start: var(--space-3);
+  border-inline-start: 2px solid var(--line);
+}
+
+.trd-interpretation-why {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  margin: 0;
+}
+
+.trd-interpretation-promote {
+  align-self: flex-start;
+}

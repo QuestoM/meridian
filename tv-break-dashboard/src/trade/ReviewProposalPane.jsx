@@ -6,6 +6,7 @@ import { Code, Prose } from '../shell/bidi';
 import { formatNumber, pageText } from '../shell/format';
 import { mechanismName, mechanismTone } from './trade-vocabulary';
 import { REJECTED_GROUP } from './review-model';
+import ReviewInterpretations from './ReviewInterpretations';
 import ReviewTermCard from './ReviewTermCard';
 
 // The engine's proposal: every term it would act on, grouped by what it would DO.
@@ -81,6 +82,7 @@ const TERM_WINDOW = 12;
 
 export default function ReviewProposalPane({
   locale, canEdit, busy, filter, counts, groups, shown, conflicts, unacknowledged,
+  interpretations = [], onPromote,
   selectedClause, clauseTermIds, onFilter, onSelectClause, onConfirm, on,
 }) {
   const openConflicts = conflicts.filter((conflict) => conflict.open).length;
@@ -234,6 +236,16 @@ export default function ReviewProposalPane({
           </Button>
         </div>
       ) : null}
+
+      {/* After the proposals and before the conflict summary: a reader works
+          the list, then decides whether any of the leads is worth adding. */}
+      <ReviewInterpretations
+        terms={interpretations}
+        locale={locale}
+        canEdit={canEdit}
+        busy={busy}
+        onPromote={onPromote}
+      />
 
       {conflicts.length > 0 ? (
         <Card dense className="trd-conflict-summary">

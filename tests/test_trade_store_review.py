@@ -206,3 +206,73 @@ def test_unknown_edit_parameters_are_refused(store):
             aid, doc_id, "i-commission", "edited", "dana",
             edited_params={"percent": 12, "made_up_field": True},
         )
+
+
+def _with_an_empty_reading(doc_id="doc-x"):
+    """The same document, plus a reading that carries the shape of a term and
+    nothing in it — the thing that used to sit in the list a person approves."""
+    payload = _extraction_payload(doc_id)
+    payload["clauses"].append(
+        {"clause_id": "4.1", "text": "ההנחות ייקבעו בהמשך בהתאם להיקף שיסוכם", "pages": [2]})
+    payload["instances"].append({
+        "instance_id": "i-hollow",
+        "term_id": "volume-discount-ladder",
+        "params": {"tiers": [{"threshold": 0, "discount_percent": 0}],
+                   "basis": "unstated", "mechanics": "unstated", "period": "campaign"},
+        "citations": [{"document_id": doc_id, "page": 2, "clause_id": "4.1",
+                       "quote": "ההנחות ייקבעו בהמשך"}],
+        "confidence": "low",
+    })
+    payload["dispositions"].append(
+        {"clause_id": "4.1", "disposition": "mapped", "instance_ids": ["i-hollow"]})
+    return payload
+
+
+def test_a_reading_with_no_values_does_not_hold_the_gate_shut(store):
+    """It is on the screen, in its own list, and it blocks nothing.
+
+    The completeness guarantee is untouched by this: the clause still carries a
+    disposition and is still counted, because what moved is which LIST a term
+    sits in, never whether the clause was accounted for.
+    """
+    actor = "dana"
+    aid, doc = _agreement_in_review(actor)
+    trade_store.save_extraction(aid, doc, _with_an_empty_reading(doc), actor)
+
+    gate = trade_review.document_gate(aid, doc)
+    assert gate["instances_interpretive"] == 1
+    undecided = next(b for b in gate["blockers"] if b["kind"] == "instances_undecided")
+    assert "i-hollow" not in undecided["ids"], "an empty reading is holding the gate shut"
+    assert set(undecided["ids"]) == {"i-budget", "i-commission"}
+    # every clause is still accounted for, which is the guarantee that matters
+    assert gate["clauses_total"] == 5
+    assert sum(gate["dispositions"].values()) == 5
+
+
+def test_promoting_an_interpretation_makes_it_a_proposal_that_must_be_decided(store):
+    actor = "dana"
+    aid, doc = _agreement_in_review(actor)
+    trade_store.save_extraction(aid, doc, _with_an_empty_reading(doc), actor)
+
+    before = trade_review.document_gate(aid, doc)
+    assert "i-hollow" not in next(
+        b for b in before["blockers"] if b["kind"] == "instances_undecided")["ids"]
+
+    trade_review.promote_instance(aid, doc, "i-hollow", actor)
+
+    after = trade_review.document_gate(aid, doc)
+    assert after["instances_interpretive"] == 0
+    assert "i-hollow" in next(
+        b for b in after["blockers"] if b["kind"] == "instances_undecided")["ids"], (
+        "a promoted reading still does not block approval, so promoting it did nothing")
+    # and the standings the screen reads agree with the gate
+    extraction = trade_store.load_extraction(aid, doc)
+    review = trade_store.load_review(aid, doc)
+    assert trade_review.standings(extraction, review)["i-hollow"]["standing"] == "confident"
+
+
+def test_promoting_a_term_that_already_carries_values_is_refused(store):
+    actor = "dana"
+    aid, doc = _agreement_in_review(actor)
+    with pytest.raises(ValueError, match="already a proposal"):
+        trade_review.promote_instance(aid, doc, "i-budget", actor)
