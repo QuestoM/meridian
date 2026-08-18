@@ -229,6 +229,10 @@ const thinned = renderToStaticMarkup(React.createElement(MoneyDetail, {
 
 process.stdout.write(JSON.stringify({
   drill_open: money.includes('clients-detail'),
+  // The whole tile strip, so the dropped-spot line can be read as it renders
+  // rather than as it is composed. A count with no rule named is what this
+  // surface carried for a long time.
+  tiles: money.match(/<small[^>]*>[^<]*<\/small>/g) || [],
   campaign_cell: cell(money, payload.campaign),
   break_chip: cell(money, payload.break_id),
   agency_cell: cell(wired, payload.agency_id),
@@ -322,6 +326,20 @@ def rendered(tmp_path_factory, payload) -> dict:
     )
     assert result.returncode == 0, result.stderr
     return json.loads(result.stdout)
+
+
+def test_the_dropped_spot_line_names_the_rule_that_dropped_them(rendered, payload):
+    """A count beside the bare word "rule" tells a reader a figure is short and
+    nothing about what to change. The rule was always one drawer, one campaign
+    and one spot away, which is what made the omission easy to keep."""
+    rules = payload["money"]["totals"].get("dropped_rules") or []
+    if not rules:
+        pytest.skip("this day's ledger dropped nothing, so no rule is named")
+    sentence = rules[0]["sentence_he"]
+    assert sentence, "the vocabulary produced no sentence for the rule"
+    joined = " ".join(rendered["tiles"])
+    assert sentence in joined, (
+        f"the tile states a dropped count without naming the rule: {joined[:200]}")
 
 
 def test_the_campaign_that_carries_a_figure_opens_its_rows(rendered, payload):
