@@ -54,6 +54,22 @@ CARRIED_COLUMNS = ("Live", "Rerun", "ProgramCode", "HouseNumber", "Description")
 
 STAMP = "%d/%m/%Y %H:%M:%S"
 
+# Keshet publishes its own week here, and it needs no account at all. Measured
+# against the licensed aggregator this feeder was built for: the SAME 300
+# programmes, in the SAME shape, thirteen days in one call — this module's
+# converter reads it unchanged, 300 records in and 300 rows out.
+#
+# The aggregator's copy came with a signed-in session, a browser profile and a
+# PKCE handshake, all of which still work and none of which is required. That
+# machinery stays in the tree because it was expensive to learn and may matter
+# again; it is simply no longer on the daily path.
+MAKO_URL = "https://www.mako.co.il/AjaxPage?jspName=EPGResponse.jsp"
+
+# The publications this module was measured against both answer a plain request.
+# Naming the caller is the courteous thing to do when reading somebody else's
+# feed every morning.
+USER_AGENT = "kairos-competitor-feed/1.0 (+broadcast planning)"
+
 
 class EpgShapeError(ValueError):
     """The publication did not have the shape this converter was built for."""
@@ -61,6 +77,24 @@ class EpgShapeError(ValueError):
 
 class UnknownChannel(ValueError):
     """A channel name this engine's own history has never used."""
+
+
+def fetch_published() -> Any:
+    """Keshet's own published week, without a credential."""
+    import json as _json
+    import urllib.error
+    import urllib.request
+
+    request = urllib.request.Request(MAKO_URL, headers={
+        "User-Agent": USER_AGENT, "Accept": "application/json",
+    })
+    try:
+        with urllib.request.urlopen(request, timeout=45) as response:
+            return _json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        raise EpgShapeError(f"the publication answered {exc.code}") from exc
+    except urllib.error.URLError as exc:
+        raise EpgShapeError(f"the publication could not be reached ({exc.reason})") from exc
 
 
 def _normalised(name: str) -> str:

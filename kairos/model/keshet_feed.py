@@ -47,29 +47,59 @@ DEFAULT_TARGET = Path(__file__).resolve().parents[2] / "data" / "reference" / "C
 # here.
 DEFAULT_CHANNEL = "קשת 12"
 
-# Which channels this engine can actually pull, and from where.
+# Which channels this engine can pull, and from where — in order of preference.
 #
 # The optimizer reads the whole competitive lineup out of one file, so a rival
-# with no source is not a different feature — it is a missing row in this table.
-# A channel with no entry is refused BY NAME rather than pulled as an empty
+# with no source is not a different feature but a missing row in this table. A
+# channel with no entry is refused BY NAME rather than pulled as an empty
 # schedule, because an empty schedule for a channel that is broadcasting is the
 # most expensive lie a plan can be told.
 #
-# Keshet stays on the licensed publication rather than moving to the free one.
-# Measured, mako.co.il/AjaxPage?jspName=EPGResponse.jsp answers 200 with no
-# account at all and returns the SAME 300 programmes in the SAME shape — the
-# existing converter reads it unchanged, 300 in and 300 out. So the credential
-# is not technically required. It is kept because the subscription is paid for,
-# it carries fields the free feed does not, and swapping a licensed data path
-# for the competitor's own website is a commercial decision and not a
-# refactoring. The alternative is recorded so the choice can be made rather
-# than discovered.
+# NO CHANNEL NEEDS A CREDENTIAL. Keshet's own publication answers without an
+# account and carries the richer fields — thirteen days in one call, with the
+# house number and programme code the aggregator had — so it leads, with FreeTV
+# behind it as an independent second opinion. The Kway session machinery is off
+# this path entirely; it still works and stays in the tree, because a licensed
+# feed may matter again and it was expensive to learn, but nothing daily depends
+# on a session that can expire while nobody is watching.
+#
+# The list is ordered, not a fallback of last resort: the first source that
+# returns a usable schedule wins, and a source that fails is reported rather
+# than hidden by the one after it.
 SOURCES = {
-    "קשת 12": "kway",
-    "כאן 11": "freetv",
-    "רשת 13": "freetv",
-    "עכשיו 14": "freetv",
+    "קשת 12": ("mako", "freetv"),
+    "כאן 11": ("freetv",),
+    "רשת 13": ("freetv",),
+    "עכשיו 14": ("freetv",),
 }
+
+# How each named source is fetched and converted. One place, so adding a rival
+# is a row in SOURCES and a row here, and neither is a new module.
+def _fetchers() -> dict[str, Any]:
+    from kairos.model import freetv_epg, keshet_epg as epg
+
+    return {
+        "mako": (
+            lambda channel, days: epg.fetch_published(),
+            lambda payload, *, channel: epg.to_contract_rows(payload, channel=channel),
+        ),
+        "freetv": (
+            lambda channel, days: freetv_epg.fetch(channel, days=days),
+            lambda records, *, channel: freetv_epg.to_contract_rows(records, channel=channel),
+        ),
+        "kway": (
+            lambda channel, days: _kway_payload(),
+            lambda payload, *, channel: epg.to_contract_rows(payload, channel=channel),
+        ),
+    }
+
+
+def _kway_payload() -> Any:
+    """The licensed publication, for a caller that explicitly asks for it."""
+    session, status = kway_session.current()
+    if session is None:
+        raise RuntimeError(status.get("reason") or "no Kway session")
+    return kway_session.fetch_epg(session)
 
 
 def known_channels() -> tuple[str, ...]:
@@ -140,12 +170,12 @@ def pull(
                 "do_this": "Name the rival's channel, not the operator's own",
             }
 
-    source = SOURCES.get(resolved)
-    if source is None:
-        # An honest gap, named. Every rival matters to the optimizer and only one
-        # of them publishes somewhere this engine can reach today; saying so is
-        # the difference between a feature that is unfinished and a schedule
-        # that is quietly missing a channel nobody thinks to look for.
+    sources = SOURCES.get(resolved)
+    if not sources:
+        # An honest gap, named. Every rival matters to the optimizer and saying
+        # which one has no source is the difference between a feature that is
+        # unfinished and a schedule quietly missing a channel nobody thinks to
+        # look for.
         return {
             "refreshed": False,
             "reason": (
@@ -161,40 +191,28 @@ def pull(
             "sources_available": sorted(SOURCES),
         }
 
-    if source == "freetv":
-        from kairos.model import freetv_epg
-
+    catalogue = _fetchers()
+    attempts: list[dict[str, str]] = []
+    for name in sources:
+        fetch, convert = catalogue[name]
         result = keshet_refresh.refresh(
-            fetch=lambda: freetv_epg.fetch(resolved, days=days),
-            convert=lambda records, *, channel: freetv_epg.to_contract_rows(
-                records, channel=channel),
+            fetch=lambda: fetch(resolved, days),
+            convert=convert,
             channel=resolved,
             target=target,
             history_dir=history_dir,
         )
         result["channel"] = resolved
-        result["source"] = "freetv"
-        return result
-
-    session, status = kway_session.current(allow_renew=allow_renew)
-    if session is None:
-        result = keshet_refresh.refresh(fetch=None, channel=resolved, target=target)
-        result["reason"] = f"{status.get('reason', 'no session')} ({result['reason']})"
-        result["session"] = status
-        if status.get("do_this"):
-            result["needs_human"] = True
-            result["do_this"] = status["do_this"]
-        return result
-
-    result = keshet_refresh.refresh(
-        fetch=lambda: kway_session.fetch_epg(session),   # SOURCES[resolved] == "kway"
-        channel=resolved,
-        target=target,
-        history_dir=history_dir,
-    )
-    result["session"] = status
-    result["channel"] = resolved
-    result["source"] = "kway"
+        result["source"] = name
+        if result.get("refreshed"):
+            if attempts:
+                result["attempts"] = attempts
+            return result
+        attempts.append({"source": name, "reason": str(result.get("reason", ""))})
+    # Every source failed. The LAST result is returned because it holds the
+    # kept-row count and the age, and every attempt rides along, so a reader is
+    # never told "the pull failed" without being told what was tried.
+    result["attempts"] = attempts
     return result
 
 

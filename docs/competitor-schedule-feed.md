@@ -51,12 +51,18 @@ old. A missing stamp degrades to unknown, never to fresh.
 
 ## Where each rival comes from
 
-| Channel | Source | Auth | Window |
+| Channel | Sources, in order | Auth | Window |
 |---|---|---|---|
-| קשת 12 | Kway (`api.kway.co.il`) | signed-in session, renewed below | 13 days, one call |
-| כאן 11 | FreeTV (`web.freetv.tv`) | none | 9 days, one call per day |
-| עכשיו 14 | FreeTV | none | 9 days, one call per day |
-| רשת 13 | FreeTV | none | skipped while it is the operator's own channel |
+| קשת 12 | mako (`mako.co.il`), then FreeTV | **none** | 13 days, one call |
+| כאן 11 | FreeTV (`web.freetv.tv`) | **none** | 9 days, one call per day |
+| עכשיו 14 | FreeTV | **none** | 9 days, one call per day |
+| רשת 13 | FreeTV | **none** | skipped while it is the operator's own channel |
+
+**No channel needs a credential.** The list is ordered and is a preference, not
+a last resort: the first source that returns a usable schedule wins, and a
+source that failed on the way is reported in `attempts` rather than hidden by
+the one after it. Keshet has two independent publications, so one being down is
+not an outage.
 
 A channel with no source is refused **by name**. An empty schedule for a channel
 that is broadcasting is the most expensive lie a plan can be told, so the
@@ -96,19 +102,20 @@ The real flag is `liveBroadcast`. `repeat` is trustworthy and corroborated: on a
 real window, 40 of 40 titles carrying "(ש.ח.)" have it set and 0 of 42 without
 it do.
 
-### Keshet stays on the licensed source, and here is the alternative
+### Keshet without a credential
 
-Measured: `mako.co.il/AjaxPage?jspName=EPGResponse.jsp` answers **200 with no
-account at all** and returns the same 300 programmes in the same shape — the
-existing converter reads it unchanged, 300 in and 300 out. So the credential
-below is not technically required for Keshet.
+`mako.co.il/AjaxPage?jspName=EPGResponse.jsp` answers **200 with no account at
+all** and returns the same 300 programmes in the same shape the licensed
+aggregator returned — the existing converter reads it unchanged, 300 in and 300
+out, thirteen days in one call, carrying the house number and programme code.
 
-It is kept anyway: the subscription is paid for, it carries fields the free feed
-does not, and swapping a licensed data path for the competitor's own website is
-a commercial decision rather than a refactoring. The alternative is written down
-so the choice can be made rather than discovered.
+So the daily pull needs no session, and does not open one. The Kway machinery
+below still works and stays in the tree — it was expensive to learn and a
+licensed feed may matter again — but nothing daily depends on a session that can
+expire while nobody is watching. It is reachable as the `kway` source for a
+caller that asks for it by name.
 
-## The session, which is the hard part
+## The session that is no longer on the daily path
 
 The publication answers 401 to anyone not signed in, and the session it issues
 lives about twenty-one hours. A daily pull would therefore fail daily, which is

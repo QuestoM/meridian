@@ -333,20 +333,27 @@ def test_the_feed_stops_on_an_unknown_channel_before_it_signs_in(tmp_path):
     assert not (tmp_path / "x.csv").exists()
 
 
-def test_the_feed_reports_a_missing_session_as_stale_and_not_as_quiet(monkeypatch, tmp_path):
-    """'We could not sign in' must never read as 'the rival changed nothing'."""
+def test_a_source_that_cannot_be_read_is_stale_and_never_quiet(monkeypatch, tmp_path):
+    """'We could not read it' must never arrive as 'the rival changed nothing'.
+
+    This used to be about a missing signed-in session, which was the only way
+    Keshet could fail. It is not any more — no channel needs a credential — but
+    the property it was protecting is the same one and outlives the reason.
+    """
     from kairos.model import keshet_feed
 
-    monkeypatch.setattr(keshet_feed.kway_session, "current", lambda **_: (None, {
-        "state": "needs_human", "reason": "Google is asking for a person",
-        "do_this": "sign in once",
-    }))
+    def broken(channel, days):
+        raise ConnectionError("the publication is down")
+
+    monkeypatch.setattr(keshet_feed, "_fetchers", lambda: {
+        "mako": (broken, lambda p, *, channel: ([], {})),
+        "freetv": (broken, lambda p, *, channel: ([], {})),
+    })
     result = keshet_feed.pull(channel="קשת 12", operator_channel="",
                               target=tmp_path / "x.csv")
     assert result["refreshed"] is False
-    assert result["needs_human"] is True
     assert "לא רוענן" in keshet_feed.headline(result, "he")
-    assert "sign in once" in keshet_feed.headline(result, "he")
+    assert "קשת 12" in keshet_feed.headline(result, "he"), "the line does not say which rival"
 
 
 # -------------------------------------------------- one file, every rival
@@ -489,3 +496,59 @@ def test_the_channel_that_failed_keeps_its_older_stamp(payload, tmp_path):
     stamps = refresh.read_freshness(target)
     assert stamps["קשת 12"].startswith("2026-08-01"), "a failed pull moved the stamp"
     assert stamps["כאן 11"].startswith("2026-08-03")
+
+
+# ------------------------------------------------- more than one way in
+
+def test_the_second_source_is_used_when_the_first_cannot_be_read(payload, tmp_path, monkeypatch):
+    """Keshet has two independent publications. One being down is not an outage.
+
+    The order is a preference and not a last resort: the first source that
+    returns a usable schedule wins, and what was tried before it is reported
+    rather than hidden.
+    """
+    from kairos.model import keshet_feed
+
+    def broken(channel, days):
+        raise ConnectionError("the publication is down")
+
+    monkeypatch.setattr(keshet_feed, "_fetchers", lambda: {
+        "mako": (broken, lambda p, *, channel: (_ for _ in ()).throw(AssertionError)),
+        "freetv": (lambda channel, days: payload,
+                   lambda p, *, channel: epg.to_contract_rows(p, channel=channel)),
+    })
+    result = keshet_feed.pull(channel="קשת 12", operator_channel="",
+                              target=tmp_path / "x.csv")
+    assert result["refreshed"] is True
+    assert result["source"] == "freetv"
+    assert result["attempts"][0]["source"] == "mako", "the first attempt was not reported"
+
+
+def test_every_source_failing_still_says_what_was_tried(tmp_path, monkeypatch):
+    from kairos.model import keshet_feed
+
+    def broken(channel, days):
+        raise ConnectionError("the publication is down")
+
+    monkeypatch.setattr(keshet_feed, "_fetchers", lambda: {
+        "mako": (broken, lambda p, *, channel: ([], {})),
+        "freetv": (broken, lambda p, *, channel: ([], {})),
+    })
+    result = keshet_feed.pull(channel="קשת 12", operator_channel="",
+                              target=tmp_path / "x.csv")
+    assert result["refreshed"] is False
+    assert [a["source"] for a in result["attempts"]] == ["mako", "freetv"]
+
+
+def test_no_rival_needs_a_credential(monkeypatch):
+    """The daily pull must not depend on a session that can expire unwatched.
+
+    Every channel's FIRST source is one that answers without an account. Kway
+    stays in the catalogue and stays working; nothing daily reaches for it.
+    """
+    from kairos.model import keshet_feed
+
+    for channel, sources in keshet_feed.SOURCES.items():
+        assert sources, channel
+        assert sources[0] in ("mako", "freetv"), (
+            f"{channel} leads with {sources[0]}, which needs a credential")
