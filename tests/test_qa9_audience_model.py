@@ -328,6 +328,10 @@ def test_status_is_tri_state_honest(tmp_path):
         "activation": False,
         "gates": {},
         "base_summary": None,
+        # Every activated family's reach into the week that was pulled. Absent
+        # here for the same reason everything else is: there is no artifact to
+        # ask. A key that is always present is a key a reader can rely on.
+        "forward_reach": None,
     }
     model = _contrast_free_model(tmp_path)
     target = tmp_path / "audience_model.json"
@@ -337,6 +341,9 @@ def test_status_is_tri_state_honest(tmp_path):
     assert present["computed_at"] == STAMP
     assert set(present["gates"]) == set(FAMILIES)
     assert present["base_summary"]["n_observations"] == 120
+    # The status carries reach beside the gate, so a +9.5 percent held-out
+    # figure cannot be read as a claim about a week the factor barely touches.
+    assert "forward_reach" in present
 
 
 def test_null_competitor_pressure_is_family_not_applicable(tmp_path):

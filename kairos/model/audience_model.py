@@ -442,10 +442,24 @@ def audience_model_status(
     except (OSError, json.JSONDecodeError, ValueError):
         return {
             "available": False, "computed_at": None, "activation": activation,
-            "gates": {}, "base_summary": None,
+            "gates": {}, "base_summary": None, "forward_reach": None,
         }
+    # What each activated family can actually SPEAK ABOUT in the week that was
+    # pulled, beside what it scored on held-out history. Measured: weekday_slot
+    # reaches 704 of 704 broadcasts and series reaches 57, because the series
+    # factor is substantially memorising titles rather than carrying an identity
+    # forward (docs/liveness-and-the-gate.md). A reader given only the gate
+    # percentage reads +9.5% as a statement about the plan; it is a statement
+    # about the 8%. Best effort by construction: a missing or unreadable forward
+    # schedule leaves this None, never a fabricated coverage.
+    try:
+        from kairos.model.audience_reach import forward_reach
+        reach = forward_reach(model)
+    except Exception:  # a report is never worth failing a status read for
+        reach = None
     return {
         "available": True, "computed_at": model.computed_at,
         "activation": activation, "gates": model.gates,
         "base_summary": model.base.summary(),
+        "forward_reach": reach,
     }

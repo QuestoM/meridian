@@ -30,9 +30,12 @@
 // budget stops being a guard.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const SRC = 'src';
+// Resolved against this file, not against the shell's cwd. A guard that only
+// runs from one directory is a guard that quietly stops running.
+const SRC = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'src');
 
 // Measured 2026-08-19: zero of each, after the Commercial workspace was fixed.
 const BUDGET_UNDERSPECIFIED = 0;

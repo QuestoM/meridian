@@ -42,7 +42,7 @@
 /* A COMMAND looks like a button. A TAB does not.
  *
  * This rule used to include `.pacing-views button`, which is every control in
- * the strip — both tabs and the reload command — so all three were painted with
+ * the strip, both tabs and the reload command alike, so all three were painted with
  * the same border and the same surface. The file said so itself, a few rules
  * down: "Read again sits beside them in .pacing-views and looks identical." It
  * was noticed, written down, and left, and the report that reopened it was that
@@ -89,7 +89,7 @@
 }
 
 /* The two tabs, in their own element so the tablist holds tabs and nothing
-   else — and now looking like a tab strip rather than like the command next to
+   else, and now looking like a tab strip rather than like the command next to
    them. The strip carries the rule the selected tab sits on, which is what
    makes two controls read as two views of one thing instead of two buttons. */
 .pacing-view-tabs {
@@ -115,7 +115,7 @@
 }
 
 /* The command sits apart from the views it re-reads, with the reading time
-   beside it — "read again" says nothing without "read when". */
+   beside it. "Read again" says nothing without "read when". */
 .pacing-read-state {
   display: inline-flex;
   align-items: center;

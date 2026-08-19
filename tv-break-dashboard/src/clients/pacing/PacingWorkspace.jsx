@@ -4,6 +4,7 @@ import { Figure } from '../../shell/bidi';
 import { WALLS, fetchSession, payloadCanEdit } from '../../session';
 import MakeGoodLedger from './MakeGoodLedger';
 import PacingBoard from './PacingBoard';
+import PacingViews, { BOARD, LEDGER } from './PacingViews';
 import { acceptRisk, loadBoard, loadLedger, moveMakeGood, raiseMakeGood, refusalOpens, refusalText } from './pacing-api';
 import { isolate, localized, pick, term, vocabularyLabel } from './pacing-helpers';
 import { rememberCampaign, takeRememberedCampaign } from './pacing-place';
@@ -15,9 +16,6 @@ import './pacing-days.css';
 import './makegood.css';
 
 // One destination for measuring a shortfall and settling what it creates.
-
-const BOARD = 'board';
-const LEDGER = 'ledger';
 
 // A read that failed, with the act that retries it, for both views.
 function Failed({ locale, en, he, onRetry }) {
@@ -56,9 +54,9 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
   // language does, because a stale sentence is worse than none.
   useEffect(() => { setRefusal(''); setRefusalOpen(null); setNotice(''); setUndoable(null); }, [locale]);
 
-  // When WE last read, which is not the same fact as the board's own as_of —
-  // that is the broadcast instant the figures are cut at. Conflating the two
-  // would answer "how fresh is this screen" with "how far the day has got".
+  // When WE last read. That is not the board's own as_of, which is the
+  // broadcast instant the figures are cut at. Conflating the two would answer
+  // "how fresh is this screen" with "how far the day has got".
   const [readAt, setReadAt] = useState('');
 
   const reload = useCallback(() => {
@@ -329,53 +327,8 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
             {seededLine ? <span className="pacing-seeded">{seededLine}</span> : null}
           </p>
         </div>
-        {/* The tablist holds tabs and nothing else. Read again is a command and
-            not a view, and inside a role=tablist it made a reader count three
-            tabs and find two. It sits beside the list, in the same group. */}
-        <div className="pacing-views">
-          <nav className="pacing-view-tabs" role="tablist" aria-label={pick(locale, 'Pacing views', 'תצוגות קצב')} onKeyDown={moveView}>
-            <Button type="button" role="tab" id="pacing-tab-board" aria-controls="pacing-panel-board" data-pacing-view={BOARD}
-                    tabIndex={view === BOARD ? 0 : -1} aria-selected={view === BOARD}
-                    className={view === BOARD ? 'active' : ''} onClick={() => setView(BOARD)}>
-              {pick(locale, 'Campaign pacing', 'קצב אספקה של הקמפיינים')}
-            </Button>
-            <Button type="button" role="tab" id="pacing-tab-ledger" aria-controls="pacing-panel-ledger" data-pacing-view={LEDGER}
-                    tabIndex={view === LEDGER ? 0 : -1} aria-selected={view === LEDGER}
-                    className={view === LEDGER ? 'active' : ''} onClick={() => setView(LEDGER)}>
-              {pick(locale, 'Decision ledger', 'ספר ההחלטות')}
-              {ledger.status === 'ready' && (ledger.payload.open_count + ledger.payload.accepted_count)
-                ? (
-                  <Figure className="pacing-open-count">
-                    {ledger.payload.open_count + ledger.payload.accepted_count}
-                  </Figure>
-                )
-                : null}
-            </Button>
-          </nav>
-          {/* A command, not a third tab, and it now says what it re-reads and
-              when that reading happened. "Read again" beside two views is a
-              question with no answer on screen: again since when, and again of
-              what. Both are on the line now. */}
-          <span className="pacing-read-state">
-            {readAt ? (
-              <Figure>
-                {pick(locale, `Read at ${readAt}`, `נקרא ב־${readAt}`)}
-              </Figure>
-            ) : null}
-            <Button
-              type="button"
-              className="pacing-refresh"
-              onClick={reload}
-              title={pick(
-                locale,
-                'Read the pacing board and the decision ledger again from the server',
-                'קוראים מחדש מהשרת את לוח קצב האספקה ואת ספר ההחלטות',
-              )}
-            >
-              {pick(locale, 'Read again', 'קראו שוב')}
-            </Button>
-          </span>
-        </div>
+        <PacingViews locale={locale} view={view} setView={setView} moveView={moveView}
+                     ledger={ledger} readAt={readAt} onReload={reload} />
       </div>
 
       {refusal ? (

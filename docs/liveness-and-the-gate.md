@@ -216,13 +216,69 @@ in-window temporal folds where the same titles recur across every fold, is
 Nothing here is a reason to change the key. It is a reason to stop reading the
 gate percentage as if it described the plan.
 
+## So what DOES survive into the week being planned
+
+The obvious rescue is the one the feed hands over for free: it flags Live and
+Rerun on 100% of the coming fortnight, correctly, already inside the contract.
+If the series factor is silent on 91.9% of those rows, surely a repeat factor
+should speak there, where there is nothing left for it to be collinear with.
+
+It was measured, by scoring the folds' test rows split into those whose series
+cell WAS seen in training and those whose was not. The unseen rows are the
+forward condition reproduced inside the data we have.
+
+| held-out log RMSE | base | + weekday_slot | + series | + repeat |
+|---|---|---|---|---|
+| test rows with a **seen** series cell (n≈604) | 0.92096 | 0.67865 | **0.59980** | 0.71535 |
+| test rows with an **unseen** series cell (n≈87) | 1.05027 | **0.81887** | 0.81887 | 0.84414 |
+
+Three things, and the middle one is the good news:
+
+- **The series factor contributes exactly 0.0% on unseen rows.** Not
+  approximately: by construction, there is no cell.
+- **weekday_slot keeps nearly all of its value: +22.0% on unseen rows against
+  +26.3% on seen ones.** Its cells are a weekday crossed with a slot band, and
+  every future broadcast has both, so it reaches 100% of any week. The forward
+  model is a weekday_slot model, and that family is genuinely carrying it.
+- **The repeat factor makes unseen rows 3.09% WORSE**, so the rescue does not
+  exist. The composed gate refused a repeat family in-sample for being collinear
+  with the series key; it turns out to be right forward as well, for a different
+  reason. The overnight slot cells already carry when repeats air.
+
+So there is no missing lever here. There is a model whose two halves cover a
+future week very differently, and that fact is now published rather than
+inferred: `kairos/model/audience_reach.py` measures, per family, the share of a
+pulled schedule that family can reach, and `audience_model_status` carries it
+beside the gate. Against the live artifact and the 704 broadcasts on disk:
+weekday_slot 704 of 704, series 57 of 704.
+
+## The repeat flag reaches nothing, which is why it was not "fixed"
+
+The plan above this said to read the feed's `Rerun` flag instead of re-deriving
+it from the title, on the strength of a real 39.5% miss rate. Before building it,
+the field was traced. **`Classification.is_rerun` is read by no decision in this
+repository.** The only non-test references are a pass-through in
+`ai_classifier.py` and the docstring correcting itself in `keshet_epg.py`; the
+whole of `kairos/`, `kairos_api/` and the dashboard contain no other reader.
+
+It is computed on every classify call, carried in the dataclass, emitted as a
+column by `classify_series`, counted by `coverage_report`, asserted by two tests
+about itself, and consumed by nothing. Making it 39.5% more accurate would move
+no number on any screen. That is worth knowing before building, not after, and
+it is the same class as the inert levers already recorded elsewhere in this
+engine. The flag stays carried and correct in the contract, the miss rate stays
+documented, and the fix waits for a reader that would notice.
+
 ## What is worth doing, in order
 
 1. **Archive the feed daily.** It is the only source that has ever carried
    liveness, and every day not archived is a day that can never be labelled.
    Cheap, certain, and it is the precondition for every answer below.
-2. **Read the feed's own Rerun flag** instead of re-deriving it from the title.
-   It is already in the contract and it is 39.5% better.
+2. **Give the repeat flag a reader before making it accurate.** The feed's own
+   `Rerun` is 39.5% better than the title-derived one and nothing consumes
+   either, so the accuracy fix is worth nothing until something reads it. Not a
+   forecast factor: measured above, a repeat family is worse on exactly the rows
+   where it had room to help.
 3. **Leave the series key alone** until the effect it smuggles has a name of its
    own, and disclose that it is doing so. Both are done.
 4. **Do not build a liveness factor yet.** There is nothing to fit it on, and the
