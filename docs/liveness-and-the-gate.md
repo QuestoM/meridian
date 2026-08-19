@@ -150,6 +150,72 @@ never sees either column, and it misses **111 of the 281** broadcasts the feed
 flags as repeats — 39.5% — with **zero** false positives the other way. The feed's
 flag is strictly better than the title marker. It is carried, correct, and unread.
 
+## The tagging idea, tested and answered
+
+The obvious next move is to generate the label rather than wait for it: number
+every airing of a programme, and everything after the first is a repeat. It was
+built and measured. **It does not work, for a reason the data states plainly.**
+
+Airings were reconstructed properly first — spots clustered into broadcasts by a
+two-hour gap, 2,419 airings over 47,124 spots, 19.5 spots each — because a spot
+is not an airing and grouping by spot time answers a different question. Then:
+
+| | TVR |
+|---|---|
+| first airing in window | 3.889 |
+| later airings | 3.974 |
+| **ratio** | **0.98** |
+
+No separation at all. The cross-tab says why:
+
+| | TVR |
+|---|---|
+| first + unmarked | 5.678 |
+| later + unmarked | **5.300** |
+| first + marked | 1.528 |
+| later + marked | 1.152 |
+
+The **marker** separates the ratings. The **ordinal** does not. A title in the
+spots log names a SERIES, not an episode — `פרק N` appears in exactly zero of
+50,386 titles — so the twentieth airing of a daily strip is its twentieth new
+episode, not a repeat. There is nothing to number.
+
+That is a negative result with a positive corollary, and it closes an open
+question: **the marker is not systematically missing repeats in training.**
+Unmarked later airings rate 5.300 against 5.678 for unmarked first airings. If
+hidden repeats were sitting in that bucket they would drag it toward 1.2.
+
+## And the factor is not what any of us thought it was
+
+The series factor separates repeat from first-run perfectly — 302 marked cells,
+301 clean, zero mixed — so it looked like a repeat detector wearing another
+name. Every attempt to replace it with an explicit, semantically clean key lost
+accuracy, and the pattern in the losses gives the real answer:
+
+| key | cells | held-out log RMSE |
+|---|---|---|
+| clean series | 218 | 0.66665 |
+| clean × repeat | 295 | 0.64164 |
+| clean × repeat × season | 343 | 0.64494 |
+| **shipped (the defective key)** | **603** | **0.63075** |
+| **raw title, no normalisation at all** | **617** | **0.63299** |
+
+Accuracy tracks CELL COUNT, and the raw title matches the shipped key. The
+factor is not capturing programme identity, or repeat-ness, or season. **It is
+memorising the title**, and on one month with shrinkage that is the best
+predictor available. The clean repeat separation is a consequence of the marker
+living inside the title, not the mechanism of the factor's value.
+
+**Which means it does not generalise, and this is measurable.** On the 704
+broadcasts actually pulled for the coming fortnight, the shipped series factor
+finds a cell for **57 — 8.1%**. Per channel: כאן 11 5.0%, קשת 12 8.3%,
+עכשיו 14 11.5%. The second-strongest family in the model, worth +9.5% on
+in-window temporal folds where the same titles recur across every fold, is
+**silent on 91.9% of the week it exists to plan**.
+
+Nothing here is a reason to change the key. It is a reason to stop reading the
+gate percentage as if it described the plan.
+
 ## What is worth doing, in order
 
 1. **Archive the feed daily.** It is the only source that has ever carried
