@@ -127,8 +127,19 @@ def test_the_drivers_multiply_back_to_the_forecast(service, frame, owned):
         log_sum += driver["log_term"]
     expected = payload["expected_tvr"]
 
-    # In log space the identity is exact to the terms' own 6-decimal rounding.
-    assert log_sum == pytest.approx(math.log(expected), abs=1e-5)
+    # In log space the identity is exact to the rounding on BOTH sides, and the
+    # binding one is not the terms'. Each log term is rounded to 6 decimals, so
+    # they contribute at most 5e-7 each; `expected_tvr` is rounded to 4 decimals
+    # for display, and taking a logarithm of that turns half a display step into
+    # 0.00005/expected — around 2e-5 to 3e-5 at a typical rating, an order of
+    # magnitude larger.
+    #
+    # This was a flat 1e-5, smaller than the display rounding it compares
+    # against. It passed while the driver count and the rating happened to land
+    # favourably and failed the first time either changed. Derived from the
+    # payload so it stays right at any rating and for any number of families.
+    tolerance = 0.00005 / expected + 5e-7 * len(payload["drivers"])
+    assert log_sum == pytest.approx(math.log(expected), abs=tolerance)
     # In points it is exact to the 4-decimal rounding the display carries.
     assert product == pytest.approx(expected, rel=1e-3)
 

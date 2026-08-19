@@ -8,10 +8,6 @@
       "רשת 13": 0.5183086704091057
     },
     "factors": {
-      "competitor_lineup": {
-        "beta": 0.07563804565150448,
-        "reference": 4.65404969497221
-      },
       "series": {
         "cells": {
           "כאן 11|not available": 0.04329765111510111,
@@ -1473,53 +1469,53 @@
     },
     "tvr_floor": 0.01
   },
-  "computed_at": "2026-07-29T06:41:29.045699+00:00",
+  "computed_at": "2026-08-19T00:21:10.562850+00:00",
   "gates": {
     "calendar_hanukkah": {
       "held_out_delta_pct": null,
-      "measured_at": "2026-07-29T06:41:29.045699+00:00",
+      "measured_at": "2026-08-19T00:21:10.562850+00:00",
       "reason": "no Hanukkah days in the measured window; nothing to contrast against ordinary days",
       "verdict": "off"
     },
     "calendar_religious_blackout": {
-      "held_out_delta_pct": 0.05719931778615862,
-      "measured_at": "2026-07-29T06:41:29.045699+00:00",
-      "reason": "the calendar_religious_blackout factor does not beat the pooled base by the required 2 percent held-out RMSE margin (measured 0.1 percent over 5 temporal folds); factor stays off",
+      "held_out_delta_pct": -0.34623208108242237,
+      "measured_at": "2026-08-19T00:21:10.562850+00:00",
+      "reason": "the calendar_religious_blackout factor does not beat the pooled base by the required 2 percent held-out RMSE margin (measured -0.3 percent over 5 temporal folds); factor stays off",
       "verdict": "off"
     },
     "calendar_school_and_chol_hamoed": {
       "held_out_delta_pct": null,
-      "measured_at": "2026-07-29T06:41:29.045699+00:00",
+      "measured_at": "2026-08-19T00:21:10.562850+00:00",
       "reason": "no school-holiday or chol-hamoed days in the measured window; nothing to contrast against ordinary days",
       "verdict": "off"
     },
     "competitor_lineup": {
-      "held_out_delta_pct": 2.162518438605128,
-      "measured_at": "2026-07-29T06:41:29.045699+00:00",
-      "reason": "the competitor_lineup factor beats the pooled base by 2.2 percent held-out RMSE on average over 5 temporal folds (bar 2 percent); factor activated",
-      "verdict": "on"
+      "held_out_delta_pct": -5.452571703137724,
+      "measured_at": "2026-08-19T00:21:10.562850+00:00",
+      "reason": "the competitor_lineup factor does not beat the pooled base by the required 2 percent held-out RMSE margin (measured -5.5 percent over 5 temporal folds); factor stays off",
+      "verdict": "off"
     },
     "operator_events": {
       "held_out_delta_pct": null,
-      "measured_at": "2026-07-29T06:41:29.045699+00:00",
+      "measured_at": "2026-08-19T00:21:10.562850+00:00",
       "reason": "every one of the 3459 observations falls on operator-event days; no ordinary days to contrast against",
       "verdict": "off"
     },
     "season": {
       "held_out_delta_pct": null,
-      "measured_at": "2026-07-29T06:41:29.045699+00:00",
+      "measured_at": "2026-08-19T00:21:10.562850+00:00",
       "reason": "fewer than two season cells with at least 10 observations (1 of 1 cells qualify); no contrast to measure",
       "verdict": "off"
     },
     "series": {
-      "held_out_delta_pct": 16.077659469636586,
-      "measured_at": "2026-07-29T06:41:29.045699+00:00",
-      "reason": "the series factor beats the pooled base by 16.1 percent held-out RMSE on average over 5 temporal folds (bar 2 percent); factor activated",
+      "held_out_delta_pct": 9.621475771338062,
+      "measured_at": "2026-08-19T00:21:10.562850+00:00",
+      "reason": "the series factor beats the pooled base by 9.6 percent held-out RMSE on average over 5 temporal folds (bar 2 percent); factor activated",
       "verdict": "on"
     },
     "weekday_slot": {
       "held_out_delta_pct": 25.55474249870453,
-      "measured_at": "2026-07-29T06:41:29.045699+00:00",
+      "measured_at": "2026-08-19T00:21:10.562850+00:00",
       "reason": "the weekday_slot factor beats the pooled base by 25.6 percent held-out RMSE on average over 5 temporal folds (bar 2 percent); factor activated",
       "verdict": "on"
     }

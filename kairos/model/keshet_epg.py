@@ -19,9 +19,15 @@ broadcasts (70 distinct programmes):
 * ``ProgramName`` always, ``EventDescription`` on 123, ``EnglishName`` on 126
 * ``StartTime`` as ``DD/MM/YYYY HH:MM:SS`` and ``DurationMs``, from which the
   end clock is computed rather than trusted from a second field
-* ``LiveBroadcast`` / ``RerunBroadcast`` on every record — which the programme
-  classifier already understands, so a rival's repeat is not counted as a fresh
-  premiere
+* ``LiveBroadcast`` / ``RerunBroadcast`` on every record. THEY REACH NOTHING.
+  An earlier version of this paragraph said the programme classifier understands
+  them, "so a rival's repeat is not counted as a fresh premiere". That was
+  written from intent rather than from the code and it is false:
+  :meth:`ProgramClassifier.classify` takes a TITLE and nothing else, and derives
+  its own ``is_rerun`` from markers inside that title. It never sees either
+  column, and it misses 111 of the 281 broadcasts this feed flags as repeats —
+  39.5% — which are therefore read as fresh premieres. The flags are carried in
+  the contract and are correct; what is missing is a reader.
 * ``Season`` and ``Episode`` present as fields and EMPTY on all 127. They are
   not available here at any price, and only 5 of 127 descriptions mention them
   in prose. Filling them is a separate, explicit inference step

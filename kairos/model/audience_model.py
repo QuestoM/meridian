@@ -363,10 +363,14 @@ def fit_audience_model(
                 pressure_reason or "competitor lineup unavailable", computed_at,
             )
             continue
+        # Measured against the model as it stands, not against the bare base.
+        # The families already in `factors` are what prediction will add to this
+        # one, so they are what it has to beat.
         gates[family] = gate_family(
             frame, family, base_fit,
             log_tvr=log_tvr, shrinkage_k=shrinkage_k,
             pressure=pressure if family == "competitor_lineup" else None,
+            active=tuple(factors),
             min_relative_improvement=min_relative_improvement,
             measured_at=computed_at,
         )
