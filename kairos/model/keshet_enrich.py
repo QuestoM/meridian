@@ -236,6 +236,64 @@ class SeriesMemory:
         return len(self._entries)
 
 
+# Where the resolved series live. Written by :func:`enrich` and, until this was
+# wired, read by nothing at all: 26 series carried a category, a reason and a
+# confidence each, and no module and no screen ever asked.
+MEMORY_PATH = Path(__file__).resolve().parents[2] / "data" / "reference" / "keshet-series-memory.json"
+
+_MEMORY_CACHE: dict[str, "SeriesMemory"] = {}
+
+
+def shipped_memory(path: str | Path = MEMORY_PATH) -> "SeriesMemory":
+    """The resolved-series memory on disk, loaded once per path.
+
+    An absent or unreadable file yields an EMPTY memory rather than raising, so
+    a machine without it simply gets the classifier's own answers.
+    """
+    key = str(path)
+    if key not in _MEMORY_CACHE:
+        _MEMORY_CACHE[key] = SeriesMemory(path)
+    return _MEMORY_CACHE[key]
+
+
+def remembered_category(
+    title: Any, description: Any = None, *, memory: Optional["SeriesMemory"] = None,
+) -> tuple[str, str]:
+    """``(category, state)`` for a title whose genre nothing else could read.
+
+    LAST in the ladder, and deliberately so. These categories were decided by a
+    MODEL from a synopsis, which is weaker evidence than a taxonomy keyword and
+    must never overrule one. MEASURED on the pulled fortnight: the memory
+    disagrees with the taxonomy on 48 broadcasts it can already place -- it calls
+    "חדשות הבוקר עם יואב לימור" a Morning Program where the keywords say News,
+    and both are real categories in the taxonomy. Those 48 keep the taxonomy's
+    answer, and the disagreement is reported rather than acted on, because which
+    of the two is right is a decision for a person.
+
+    Only a FRESH entry answers. The memory stamps every decision with the
+    description it was made from precisely so a broadcaster who changes a
+    synopsis gets re-asked instead of answered from a stale reading, and using a
+    stale entry here would quietly undo the whole point of that design. A stale
+    or restamped entry is returned with its state so a caller can report the
+    enrichment work that is pending.
+
+    Returns ``("", state)`` when there is nothing to say.
+    """
+    series, _ = series_of(str(title or ""))
+    if not series:
+        return "", "absent"
+    store = shipped_memory() if memory is None else memory
+    entry, state = store.get(series, str(description or ""))
+    if state != "fresh" or not entry:
+        return "", state
+    category = str(entry.get("category") or "")
+    if not category or category == UNFITTABLE:
+        # unfittable is the module's own honest refusal: the taxonomy has no home
+        # for this series. It is never a category, and never becomes one here.
+        return "", "unfittable"
+    return category, "fresh"
+
+
 def plan(
     rows: Iterable[Mapping[str, Any]],
     *,
@@ -292,6 +350,59 @@ def plan(
         "stale": stale,
         "restamped": restamped,
         "calls_needed": len(ask),
+    }
+
+
+def pending(
+    rows: Optional[Iterable[Mapping[str, Any]]] = None,
+    *,
+    memory: Optional[SeriesMemory] = None,
+    classifier: Optional[Any] = None,
+) -> dict[str, Any]:
+    """What the enrichment could resolve if it were run, and what it already has.
+
+    :func:`plan` has always been able to answer this and nothing ever asked it,
+    which is how 26 resolved series sat on disk unread. MEASURED on the pulled
+    fortnight: the memory can match 38 of the 138 broadcasts the taxonomy and the
+    synopsis together cannot place, but only 19 of those are FRESH -- the other
+    19 carry a description the broadcaster has since rewritten, so by this
+    module's own drift rule they must be asked again rather than answered from a
+    stale reading.
+
+    Reporting that is the point. An enrichment that silently answers 19 and says
+    nothing about the 119 it could not looks finished when it is barely started.
+    """
+    if rows is None:
+        from kairos.model import future_epg
+
+        epg = future_epg.load_future_competitor_epg()
+        epg = epg[0] if isinstance(epg, tuple) else epg
+        if epg is None or not len(epg):
+            return {"reason": "no forward schedule has been pulled", "series_total": 0}
+        rows = epg.to_dict("records")
+    if classifier is None:
+        from kairos.data.classifier import ProgramClassifier
+
+        classifier = ProgramClassifier.from_yaml()
+    store = shipped_memory() if memory is None else memory
+
+    def classify(series: str) -> Any:
+        return classifier.classify(series)
+
+    work = plan(rows, classify=classify, memory=store)
+    return {
+        "series_total": work["series_total"],
+        "settled_by_taxonomy": len(work["settled"]),
+        "answered_from_memory": len(work["remembered"]),
+        "would_be_asked": work["calls_needed"],
+        "stale": work["stale"],
+        "reasked_after_rule_change": work["restamped"],
+        "memory_size": len(store),
+        "note": (
+            f"{len(work['remembered'])} series answered from memory, "
+            f"{work['calls_needed']} would need asking "
+            f"({len(work['stale'])} of them because their synopsis changed)"
+        ),
     }
 
 

@@ -572,3 +572,90 @@ def test_a_workbook_beside_the_schedule_stops_the_pull(tmp_path):
     line = keshet_feed.headline(result, "he")
     assert "לא רוענן" not in line, "a shadowed pull was worded as staleness"
     assert "CompetitorProgrammes.xlsx" in line
+
+
+# ------------------------------- the memory, finally wired, and its limits
+#
+# data/reference/keshet-series-memory.json held 26 series with a category, a
+# reason and a confidence each, and NOTHING read it - not a module, not a screen.
+# MEASURED once wired: it matches 38 of the 138 broadcasts the taxonomy and the
+# synopsis together cannot place, and only 19 of those are fresh.
+
+def test_a_remembered_series_answers_a_title_nothing_else_could_read():
+    from kairos.model.keshet_enrich import SeriesMemory, remembered_category
+
+    memory = SeriesMemory("/nonexistent")
+    memory.put("רוקדים עם כוכבים", "תחרות ריקודים", {"category": "Reality"})
+    category, state = remembered_category(
+        "רוקדים עם כוכבים - ששת הגדולים", "תחרות ריקודים", memory=memory)
+    assert category == "Reality" and state == "fresh"
+
+
+def test_a_series_whose_synopsis_changed_is_not_answered_from_the_stale_reading():
+    """The memory stamps every decision with the description it was made from
+    precisely so a rewritten synopsis gets re-asked. Answering from a stale entry
+    here would quietly undo that. MEASURED: 19 of the 38 matchable broadcasts in
+    the pulled fortnight are stale for exactly this reason."""
+    from kairos.model.keshet_enrich import SeriesMemory, remembered_category
+
+    memory = SeriesMemory("/nonexistent")
+    memory.put("כותרות הבוקר", "מגזין בוקר עם נסלי ברדה", {"category": "Morning Program"})
+    category, state = remembered_category(
+        "כותרות הבוקר", "מגזין בוקר עם מגיש אחר לגמרי", memory=memory)
+    assert category == "" and state == "stale"
+
+
+def test_an_unfittable_series_never_becomes_a_category():
+    """unfittable is the module's own honest refusal - the taxonomy has no home
+    for this series. It is the one value in the memory that is not a category."""
+    from kairos.model.keshet_enrich import SeriesMemory, UNFITTABLE, remembered_category
+
+    memory = SeriesMemory("/nonexistent")
+    memory.put("פרטים יפורסמו בהמשך", "", {"category": UNFITTABLE})
+    category, _ = remembered_category("פרטים יפורסמו בהמשך", "", memory=memory)
+    assert category == ""
+
+
+def test_the_memory_never_overrules_a_taxonomy_that_can_answer():
+    """MEASURED: the memory disagrees with the taxonomy on 48 broadcasts the
+    taxonomy CAN place - it calls "חדשות הבוקר עם יואב לימור" a Morning Program
+    where the keywords say News, and both are real categories. Those keep the
+    taxonomy's answer; which is right is a decision for a person."""
+    import pandas as pd
+
+    from kairos.data.classifier import ProgramClassifier
+    from kairos.model.competitor_features import _programme_category_lookup
+
+    frame = pd.DataFrame([{
+        "Channel": "קשת 12", "Title": "חדשות הבוקר עם יואב לימור",
+        "Description": "מגזין הבוקר של החדשות.",
+        "start_dt": pd.Timestamp("2026-08-21 07:00"),
+        "end_dt": pd.Timestamp("2026-08-21 09:00"),
+    }])
+    lookup = _programme_category_lookup(frame, ProgramClassifier.from_yaml())
+    assert lookup["קשת 12"][0][2] == "News"
+
+
+def test_an_absent_memory_leaves_every_verdict_where_it_was():
+    from kairos.model.keshet_enrich import SeriesMemory, remembered_category
+
+    category, state = remembered_category(
+        "משהו", "כלשהו", memory=SeriesMemory("/nonexistent/at/all.json"))
+    assert category == "" and state == "absent"
+
+
+def test_the_pending_report_names_the_work_that_has_not_been_done():
+    """An enrichment that answers some series and says nothing about the rest
+    looks finished when it is barely started."""
+    from kairos.data.classifier import ProgramClassifier
+    from kairos.model.keshet_enrich import SeriesMemory, pending
+
+    rows = [
+        {"Title": "מבזק חדשות", "Description": "עדכוני חדשות."},
+        {"Title": "שם שאיש לא מזהה", "Description": "תיאור שלא אומר דבר מזוהה."},
+    ]
+    report = pending(rows, memory=SeriesMemory("/nonexistent"),
+                     classifier=ProgramClassifier.from_yaml())
+    assert report["series_total"] == 2
+    assert report["would_be_asked"] >= 1
+    assert "would need asking" in report["note"]

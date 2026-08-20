@@ -59,6 +59,21 @@ logger = logging.getLogger(__name__)
 # could read counted as a rival airing the viewer's genre.
 _UNKNOWN_GENRE = "Other"
 
+
+def _remembered(title: str, description: Optional[str]) -> tuple[str, str]:
+    """A resolved series from the enrichment memory, or an honest nothing.
+
+    Imported lazily and guarded, because this module states in its own header
+    that it is pure pandas and numpy and unit-tests without the rest of the
+    engine. A memory that cannot be loaded simply has nothing to say.
+    """
+    try:
+        from kairos.model.keshet_enrich import remembered_category
+
+        return remembered_category(title, description)
+    except Exception:  # noqa: BLE001 - an absent memory is not a failure
+        return "", "absent"
+
 FORWARD_FEATURES: tuple[str, ...] = ("competitor_strength", "competitor_genre_contrast")
 # The counter-programming junction signal: a rival programme STARTING during or
 # just after the break window is a capture point for viewers surfing away
@@ -150,11 +165,19 @@ def _programme_category_lookup(
             end = getattr(row, "end_dt")
             if pd.isna(start) or pd.isna(end):
                 continue
+            title = str(getattr(row, "Title"))
             synopsis = getattr(row, "Description", None) if has_synopsis else None
-            category = classifier.classify(
-                str(getattr(row, "Title")),
-                description=None if synopsis is None or pd.isna(synopsis) else str(synopsis),
-            ).category
+            synopsis = None if synopsis is None or pd.isna(synopsis) else str(synopsis)
+            category = classifier.classify(title, description=synopsis).category
+            if category == _UNKNOWN_GENRE:
+                # Last in the ladder: a series a model already resolved from its
+                # synopsis, remembered and stamped with the description it was
+                # decided from. It answers only where the taxonomy said nothing,
+                # because it disagrees with the taxonomy on 48 broadcasts the
+                # taxonomy CAN place and those keep the taxonomy's answer.
+                remembered, _state = _remembered(title, synopsis)
+                if remembered:
+                    category = remembered
             records.append((start, end, str(category)))
         lookup[str(channel)] = records
     return lookup
