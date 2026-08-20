@@ -9,6 +9,15 @@
   schedule, so a quiet log line means the rivals did not move — never that the
   pull broke.
 
+  EVERY PULL IS ARCHIVED, without a flag. This publication is the only source
+  this engine has that carries Live and Rerun, and it publishes only the coming
+  fortnight, so a morning that is not kept is a morning whose labels are gone
+  for good. They land in data/reference/feed-archive as one gzipped snapshot per
+  pull; an identical pull is recorded without storing the bytes twice. The log
+  line "archive: N of M pulls kept" is the one to watch — refresh() archiving on
+  its own is what makes it impossible to lose this by forgetting an argument,
+  which is exactly how it was lost before.
+
   Install:
     cp scripts/competitor-feed/com.questo.kairos-competitor-feed.plist ~/Library/LaunchAgents/
     launchctl load ~/Library/LaunchAgents/com.questo.kairos-competitor-feed.plist

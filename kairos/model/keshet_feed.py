@@ -31,7 +31,7 @@ the one step for them to take.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable, Mapping, Optional
 
 from kairos.model import keshet_epg, keshet_refresh, kway_session
 
@@ -278,6 +278,27 @@ def headline(result: dict[str, Any], locale: str = "he") -> str:
     return line
 
 
+def _archive_line(results: Iterable[Mapping[str, Any]]) -> str:
+    """One line saying the liveness of this pull was kept, or that it was not.
+
+    It goes in the daily log because the archive is the only defence against a
+    fact that expires: this publication carries Live and Rerun and covers only
+    the next fortnight, so a morning where the keep silently failed is a morning
+    whose labels are gone. A log that says "refreshed" and nothing else is what
+    let every pull before this one overwrite the last.
+    """
+    kept = [r.get("archived") or {} for r in results]
+    good = [k for k in kept if k.get("kept")]
+    if not kept:
+        return "archive: nothing was pulled, so nothing was kept."
+    if not good:
+        why = next((str(k.get("reason")) for k in kept if k.get("reason")), "unknown")
+        return f"archive: NOTHING KEPT ({why}). This morning's liveness is not recoverable."
+    unchanged = sum(1 for k in good if k.get("unchanged_since"))
+    note = f" {unchanged} identical to an earlier pull (recorded, not stored twice)." if unchanged else ""
+    return f"archive: {len(good)} of {len(kept)} pulls kept.{note}"
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     import argparse
     import json
@@ -321,6 +342,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         else:
             for channel, result in results.items():
                 print(f"{channel}: {headline(result)}")
+            print(_archive_line(results.values()))
         return 0 if all(r.get("refreshed") for r in results.values()) else 1
 
     result = one(args.channel)

@@ -271,7 +271,23 @@ def refresh(
                    / f"CompetitorProgrammes-{channel}-{stamp:%Y%m%dT%H%M%S}.csv")
         keshet_epg.write_contract_csv(rows, archive)
 
+    # Kept ALWAYS, not on a flag. This publication is the only source in the
+    # repository that has ever carried Live and Rerun, it publishes only the
+    # coming fortnight, and the daily job that has been pulling it for weeks
+    # passed no archive flag — so every pull erased the one before it and those
+    # days are gone for good. Archiving is now what happens; not archiving is
+    # what needs an argument. Best effort by construction: the schedule is
+    # already written and a full disk must not turn a good pull into a failure.
+    archived: Optional[dict[str, Any]] = None
+    try:
+        from kairos.model import feed_archive
+
+        archived = feed_archive.keep(rows, channel=channel, at=stamp)
+    except Exception as exc:  # noqa: BLE001 - the pull succeeded either way
+        archived = {"kept": False, "reason": f"{type(exc).__name__}: {exc}"}
+
     return {
+        "archived": archived,
         "refreshed": True,
         "at": stamp.isoformat(timespec="seconds"),
         "channel": channel,
