@@ -143,3 +143,71 @@ def test_attach_competitor_features_empty_frame_keeps_columns() -> None:
     assert out.empty
     for name in ALL_FEATURES:
         assert name in out.columns
+
+
+# ------------------------------------------- "unreadable" is not a genre
+#
+# The classifier answers "Other" both for a programme whose genre it read as
+# none-of-these and, far more often, for a title it could not place at all.
+# Compared with ==, two of those match. MEASURED before this was changed: 56 of
+# 638 slots in the pulled fortnight (8.8%) whose own genre was unknown scored a
+# positive contrast anyway, mean 0.5714 - the engine asserting that most rivals
+# were airing the viewer's genre while knowing what none of them were airing.
+
+def _lookup(entries):
+    import pandas as pd
+
+    out = {}
+    for channel, category in entries.items():
+        out[channel] = [(pd.Timestamp("2026-08-21 20:00"),
+                         pd.Timestamp("2026-08-21 21:00"), category)]
+    return out
+
+
+def _minutes():
+    import pandas as pd
+
+    return [pd.Timestamp("2026-08-21 20:30")]
+
+
+def test_two_programmes_we_could_not_read_are_not_the_same_genre():
+    from kairos.model.competitor_features import _genre_contrast
+
+    lookup = _lookup({"rival a": "Other", "rival b": "Other"})
+    assert _genre_contrast(_minutes(), "Other", ("rival a", "rival b"), lookup) == 0.0
+
+
+def test_an_unknown_own_genre_produces_no_contrast_even_against_known_rivals():
+    """The function has always documented this for a missing programme. "Other"
+    is the same fact spelled differently, and it was not covered."""
+    from kairos.model.competitor_features import _genre_contrast
+
+    lookup = _lookup({"rival a": "News", "rival b": "News"})
+    assert _genre_contrast(_minutes(), "Other", ("rival a", "rival b"), lookup) == 0.0
+
+
+def test_a_rival_we_could_not_read_is_not_counted_as_airing_our_genre():
+    from kairos.model.competitor_features import _genre_contrast
+
+    lookup = _lookup({"rival a": "News", "rival b": "Other"})
+    assert _genre_contrast(_minutes(), "News", ("rival a", "rival b"), lookup) == 0.5
+
+
+def test_an_unreadable_rival_still_counts_in_the_denominator():
+    """DELIBERATE, and measured. Dropping unreadable rivals from the denominator
+    moves 33 further slots and takes the mean contrast back up from 0.1889 to
+    0.2147, because it manufactures confidence: one readable rival airing our
+    genre would score 1.0, "every rival is airing your genre", from a single
+    observation. Understating the hazard is the direction that invents nothing."""
+    from kairos.model.competitor_features import _genre_contrast
+
+    lookup = _lookup({"rival a": "News", "rival b": "Other", "rival c": "Other"})
+    got = _genre_contrast(_minutes(), "News", ("rival a", "rival b", "rival c"), lookup)
+    assert got == pytest.approx(1.0 / 3.0)
+
+
+def test_a_real_genre_match_is_unaffected():
+    from kairos.model.competitor_features import _genre_contrast
+
+    lookup = _lookup({"rival a": "News", "rival b": "Drama"})
+    assert _genre_contrast(_minutes(), "News", ("rival a", "rival b"), lookup) == 0.5
