@@ -222,3 +222,82 @@ def test_the_live_archive_holds_what_the_contract_cannot(tmp_path):
     live = pd.read_csv(contract, encoding="utf-8-sig", dtype=str, keep_default_na=False)
     assert len(frame) >= len(live)
     assert set(feed_archive.LIVENESS_COLUMNS) <= set(frame.columns)
+
+
+# --------------------------- what an adversarial re-read of this module found
+#
+# Every test below is a defect that shipped in the first version and was caught
+# by measurement afterwards, not by reading. They are here so that none of them
+# can come back quietly.
+
+def test_a_refresh_into_a_temporary_directory_cannot_touch_the_real_archive(tmp_path):
+    """THE WORST OF THEM. refresh() called keep() with no root, and refresh()
+    took no archive argument, so every test that wrote a contract to a temporary
+    directory archived its fixture into the REAL record. Fifty-two fabricated
+    pulls accumulated in one afternoon - 127-row Keshet fixtures filed under
+    כאן 11, under עכשיו 14, and one under a channel named "ק" - in a store whose
+    entire value is that it is not fabricated. The archive now follows the
+    schedule it archives, so there is nothing for a caller to remember."""
+    from kairos.model import keshet_refresh
+
+    def convert(payload, *, channel):
+        return list(payload), {"window_start": "21/08/2026", "window_end": "21/08/2026",
+                               "days": ["21/08/2026"]}
+
+    before = len(feed_archive.read_index())
+    result = keshet_refresh.refresh(
+        fetch=lambda: _rows(3), channel="קשת 12",
+        target=tmp_path / "CompetitorProgrammes.csv", convert=convert)
+    assert result["archived"]["kept"] is True
+    assert (tmp_path / "feed-archive" / "index.json").exists()
+    assert len(feed_archive.read_index()) == before  # the real archive is untouched
+
+
+def test_a_corrupt_index_plus_one_more_pull_does_not_erase_the_record(tmp_path):
+    """read_index answers an unparseable file with an empty list and _append_index
+    then wrote a ONE-entry index over everything: five pulls became one, the
+    snapshots stayed on disk with nothing mapping them to a channel or a time,
+    and coverage() read as complete."""
+    at = datetime(2026, 8, 21, 2, 30, tzinfo=timezone.utc)
+    for day in range(3):
+        feed_archive.keep(_rows(2 + day), channel="קשת 12",
+                          at=at + timedelta(days=day), root=tmp_path)
+    feed_archive.index_path(tmp_path).write_text('[{"at": "2026-08', encoding="utf-8")
+    feed_archive.keep(_rows(9), channel="קשת 12", at=at + timedelta(days=4), root=tmp_path)
+    assert list(tmp_path.glob("*.broken-*.json")), "the unreadable index is kept as evidence"
+    assert len(list(tmp_path.glob("*.csv.gz"))) == 4  # every snapshot survives
+
+
+def test_the_index_write_is_atomic(tmp_path):
+    """A single write_text is what CREATES the corruption above when a process
+    dies or a disk fills mid-write."""
+    feed_archive.keep(_rows(2), channel="קשת 12", root=tmp_path)
+    assert not list(tmp_path.glob("*.writing.json"))
+
+
+def test_a_backdated_pull_does_not_become_the_last_word(tmp_path):
+    """Both readers walked the index in APPEND order and treated the last line as
+    the latest pull. This archive was seeded with backdated entries - stamped at
+    their real pull time rather than at now - so an OLDER statement about a
+    broadcast overwrote a newer one, and coverage reported a last_pull earlier
+    than its first_pull."""
+    newer = datetime(2026, 8, 20, 2, 30, tzinfo=timezone.utc)
+    older = datetime(2026, 8, 10, 2, 30, tzinfo=timezone.utc)
+    feed_archive.keep(_rows(1, live="False"), channel="קשת 12", at=newer, root=tmp_path)
+    feed_archive.keep(_rows(1, live="True"), channel="קשת 12", at=older, root=tmp_path)
+    frame = feed_archive.broadcasts(tmp_path)
+    assert frame.iloc[0]["Live"] == "False"  # the NEWER pull has the last word
+    report = feed_archive.coverage(tmp_path)
+    assert report["first_pull"] < report["last_pull"]
+
+
+def test_a_pull_crossing_a_month_boundary_records_its_window_forwards(tmp_path):
+    """window came from a LEXICOGRAPHIC sort of DD/MM/YYYY, so 01/09 sorted
+    before 31/08 and a fortnight pull recorded ['01/09/2026', '31/08/2026'].
+    coverage() then counted 2 broadcast days instead of 14. The 05:30 job runs a
+    fortnight window every morning, so it meets a month boundary monthly."""
+    rows = [dict(_rows(1)[0], Date=day, **{"Start time": f"{h:02d}:00:00"})
+            for h, day in enumerate(["30/08/2026", "31/08/2026", "01/09/2026", "02/09/2026"])]
+    result = feed_archive.keep(rows, channel="קשת 12", root=tmp_path)
+    assert result["entry"]["window"] == ["30/08/2026", "02/09/2026"]
+    assert feed_archive.coverage(tmp_path)["broadcast_days_covered"] == 4

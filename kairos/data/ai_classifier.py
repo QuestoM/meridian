@@ -34,20 +34,31 @@ _OTHER = "Other"
 _DEFAULT_MODEL = "gemini-2.5-flash"
 
 
-def unclassified_titles(titles: Iterable[Any], classifier: ProgramClassifier) -> list[str]:
+def unclassified_titles(
+    titles: Iterable[Any], classifier: ProgramClassifier,
+    descriptions: Iterable[Any] = (),
+) -> list[str]:
     """Return the distinct titles the rule-based classifier could not place.
 
     Only ``category == "Other"`` (no keyword evidence) counts as unclassified; a
     title with a real genre is classified even when its legacy pricing class is
     "Other". Order is preserved and blanks/``nan`` are skipped.
+
+    ``descriptions`` is positional against ``titles`` and read where present.
+    This list is what gets PAID FOR: every title on it becomes a model call. The
+    classifier now answers 122 of the pulled feed's titles from their synopsis,
+    and without this those 122 would still be queued and asked about, which is
+    money spent to be told what the engine already knew.
     """
+    notes = list(descriptions)
     seen: set[str] = set()
     out: list[str] = []
-    for title in titles:
+    for index, title in enumerate(titles):
         text = str(title).strip()
         if not text or text.lower() == "nan" or text in seen:
             continue
-        if classifier.classify(title).category == _OTHER:
+        synopsis = notes[index] if index < len(notes) else None
+        if classifier.classify(title, description=synopsis).category == _OTHER:
             seen.add(text)
             out.append(text)
     return out
@@ -228,8 +239,20 @@ class CachedClassifier:
     def categories(self) -> list[str]:
         return self._base.categories
 
-    def classify(self, raw_title: Any) -> Classification:
-        result = self._base.classify(raw_title)
+    def classify(self, raw_title: Any, *, description: Any = None) -> Classification:
+        """The base verdict, with a resolved AI override where there is one.
+
+        ``description`` is forwarded rather than accepted and dropped. This class
+        documents itself as a drop-in for the base classifier, and the base
+        signature grew a keyword; a drop-in that raises TypeError on the new
+        argument is a drop-in only until somebody uses it. It stays dormant on a
+        machine with no override cache, which is how it went unnoticed.
+
+        The AI override is consulted only where BOTH the title and the synopsis
+        came back with nothing, so a cached override cannot overrule a category
+        the description just established.
+        """
+        result = self._base.classify(raw_title, description=description)
         if result.category != _OTHER:
             return result
         category = self._overrides.get(str(raw_title).strip())

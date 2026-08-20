@@ -174,3 +174,49 @@ def test_classify_series_takes_descriptions_positionally_and_tolerates_fewer():
     )
     assert len(frame) == 3
     assert frame["rule"].iloc[0] == "description"
+
+
+def test_a_programme_name_in_a_synopsis_cannot_reach_its_category_by_any_path():
+    """Blocking the `specific` rule was NOT enough, and the claim that it removed
+    the class was wrong. 34 of the names in specific_programs are ALSO category
+    keywords, so the same hijack came straight back through the keyword path and
+    was live on the feed: an expose whose synopsis introduces a guest as a star
+    of "האח הגדול" was classified Reality. The names are now removed from a
+    synopsis before it is scored, which costs exactly one resolution out of 122
+    and the one it costs is this false positive."""
+    c = _classifier()
+    verdict = c.classify(
+        "חשיפה - הפרשה המטורפת של כוכב הריאליטי",
+        description='תום חיימוב, כוכב "האח הגדול", מצא את אהבת חייו וניהל קרב משפטי.')
+    assert verdict.category == "Other"
+
+
+def test_a_programme_name_in_a_TITLE_is_still_its_identity():
+    """The removal applies to synopses only. In a title the programme name is
+    exactly what identifies it, and stripping there would break the specific rule
+    that resolves 1,261 historical titles."""
+    c = _classifier()
+    assert c.classify("האח הגדול").category != "Other"
+
+
+def test_the_cached_ai_classifier_accepts_a_description_like_the_base():
+    """It documents itself as a drop-in and the base signature grew a keyword. A
+    drop-in that raises TypeError on the new argument is a drop-in only until
+    somebody uses it - dormant here because no override cache exists on most
+    machines, which is how it went unnoticed."""
+    from kairos.data.ai_classifier import CachedClassifier
+
+    cached = CachedClassifier(_classifier(), {})
+    verdict = cached.classify("לילה ישראלי", description="לקט קליפים ישראלים.")
+    assert verdict.category == "Music"
+
+
+def test_the_ai_queue_does_not_pay_to_be_told_what_the_synopsis_already_said():
+    """Every title on this list becomes a model call."""
+    from kairos.data.ai_classifier import unclassified_titles
+
+    c = _classifier()
+    titles = ["לילה ישראלי", "שם שבאמת אף אחד לא מזהה"]
+    notes = ["לקט קליפים ישראלים מכל הזמנים.", "אין כאן שום רמז."]
+    assert "לילה ישראלי" in unclassified_titles(titles, c)
+    assert "לילה ישראלי" not in unclassified_titles(titles, c, notes)

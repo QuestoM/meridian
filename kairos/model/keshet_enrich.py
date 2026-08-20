@@ -283,9 +283,17 @@ def remembered_category(
     if not series:
         return "", "absent"
     store = shipped_memory() if memory is None else memory
-    entry, state = store.get(series, str(description or ""))
+    synopsis = str(description or "")
+    entry, state = store.get(series, synopsis)
     if state != "fresh" or not entry:
         return "", state
+    if not synopsis.strip() or not str(entry.get("fingerprint") or "").strip():
+        # An entry decided from an EMPTY description fingerprints the empty
+        # string, and would then read as FRESH against every row that carries no
+        # synopsis at all -- which is the whole of data/Programmes.csv. Freshness
+        # would be asserting that a description had not changed when there was
+        # never one to change. A decision with nothing behind it answers nothing.
+        return "", "no_description"
     category = str(entry.get("category") or "")
     if not category or category == UNFITTABLE:
         # unfittable is the module's own honest refusal: the taxonomy has no home

@@ -282,7 +282,14 @@ def refresh(
     try:
         from kairos.model import feed_archive
 
-        archived = feed_archive.keep(rows, channel=channel, at=stamp)
+        # Beside the schedule it archives, never at a fixed path. Passing the
+        # root as an argument was tried and failed exactly the way the old
+        # --history-dir flag failed: nothing passed it, so every test that wrote
+        # a contract into a temporary directory archived its fixture into the
+        # REAL record instead. Fifty-two fabricated pulls accumulated that way
+        # before this line changed.
+        archived = feed_archive.keep(
+            rows, channel=channel, at=stamp, root=feed_archive.root_beside(target))
     except Exception as exc:  # noqa: BLE001 - the pull succeeded either way
         archived = {"kept": False, "reason": f"{type(exc).__name__}: {exc}"}
 

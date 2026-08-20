@@ -92,12 +92,28 @@ def _root(root: Optional[str | Path]) -> Path:
 
     A default argument of ``DEFAULT_ARCHIVE`` binds once when this module is
     first imported, so the root could never afterwards be redirected -- not by a
-    test, not by an operator with a different disk. It was found the only way
-    such a bug is found: a test that redirected the root wrote its three-row
-    fixture into the real archive instead, and two fabricated pulls had to be
-    taken back out of a record whose whole value is that it is not fabricated.
+    test, not by an operator with a different disk.
     """
     return Path(DEFAULT_ARCHIVE if root is None else root)
+
+
+def root_beside(target: str | Path) -> Path:
+    """The archive that belongs to a given contract file.
+
+    THE ARCHIVE FOLLOWS THE SCHEDULE IT ARCHIVES, and this is a correctness
+    mechanism rather than a convenience. Passing the root as an argument was
+    tried and it failed the same way ``--history-dir`` failed: ``refresh()``
+    called ``keep()`` with no root, so every test that wrote a contract to a
+    temporary directory archived its fixture into the REAL record. Fifty-two
+    fabricated pulls accumulated that way in a single afternoon -- 127-row
+    Keshet fixtures filed under כאן 11, under עכשיו 14, and one under a channel
+    named "ק" -- in a store whose entire value is that it is not fabricated.
+
+    Deriving the root from the target means a caller cannot forget, because
+    there is nothing to remember: a schedule written somewhere is archived
+    beside itself, and only the real contract path reaches the real archive.
+    """
+    return Path(target).parent / DEFAULT_ARCHIVE.name
 
 
 def index_path(root: Optional[str | Path] = None) -> Path:
@@ -116,15 +132,49 @@ def read_index(root: Optional[str | Path] = None) -> list[dict[str, Any]]:
         # still on disk. Saying "nothing" here would be a claim; the caller can
         # see the files. This returns nothing and never deletes.
         return []
-    return list(loaded) if isinstance(loaded, list) else []
+    if not isinstance(loaded, list):
+        return []
+    # Sorted by WHEN THE PULL HAPPENED, not by when the line was appended. A
+    # backdated entry is normal here -- this archive was seeded from a schedule
+    # on disk stamped at its real pull time -- and in append order that entry
+    # became "the last pull that named this broadcast", so an older statement
+    # about a programme overwrote a newer one and coverage reported a last_pull
+    # earlier than its first_pull.
+    return sorted((e for e in loaded if isinstance(e, Mapping)),
+                  key=lambda e: str(e.get("at") or ""))
 
 
 def _append_index(root: Path, entry: Mapping[str, Any]) -> None:
+    """Append one pull to the index, atomically, and never shrink it.
+
+    Two failures, both found by measurement rather than by reading. ``read_index``
+    answers an unparseable file with an empty list, so appending after a
+    corruption wrote a ONE-entry index over the whole record: five pulls became
+    one, the snapshots stayed on disk with nothing mapping them to a channel or a
+    time, and ``coverage`` then read as complete. And the write was a single
+    ``write_text``, so a crash or a full disk mid-write CREATES that corruption.
+
+    So: write to a temporary file and replace, which is atomic on every
+    filesystem this runs on; and refuse to write an index shorter than the one
+    already there, keeping the unreadable file beside it as evidence. An archive
+    that loses its own record silently is worse than one that stops appending.
+    """
     entries = read_index(root)
+    existing = index_path(root)
+    if existing.exists() and not entries:
+        # The file is there and unreadable. Do not overwrite the only copy.
+        broken = existing.with_suffix(f".broken-{entry.get('at', 'unknown')}.json")
+        try:
+            if not broken.exists():
+                broken.write_bytes(existing.read_bytes())
+        except OSError:
+            pass
     entries.append(dict(entry))
     root.mkdir(parents=True, exist_ok=True)
-    index_path(root).write_text(
+    temporary = existing.with_suffix(".writing.json")
+    temporary.write_text(
         json.dumps(entries, ensure_ascii=False, indent=1), encoding="utf-8")
+    temporary.replace(existing)
 
 
 def keep(
@@ -148,7 +198,11 @@ def keep(
         return {"kept": False, "reason": "an empty pull is not evidence of an empty schedule"}
 
     digest = _digest(rows)
-    dates = sorted({str(r.get("Date") or "") for r in rows} - {""})
+    # Sorted as DATES. Lexicographic order on DD/MM/YYYY puts 01/09 before
+    # 31/08, so a pull crossing a month boundary recorded its window backwards
+    # and coverage counted two broadcast days instead of fourteen. This job runs
+    # every morning on a fortnight window, so it meets a month boundary monthly.
+    dates = sorted({str(r.get("Date") or "") for r in rows} - {""}, key=_as_date)
     entry: dict[str, Any] = {
         "at": stamp.isoformat(timespec="seconds"),
         "channel": str(channel),
@@ -289,6 +343,15 @@ def coverage(root: Optional[str | Path] = None) -> dict[str, Any]:
             f"before that date can be labelled, at any price."
         ),
     }
+
+
+def _as_date(day: str) -> tuple[int, int, int]:
+    """``DD/MM/YYYY`` as a sortable triple; an unparseable day sorts last."""
+    try:
+        moment = datetime.strptime(day, "%d/%m/%Y")
+    except ValueError:
+        return (9999, 99, 99)
+    return (moment.year, moment.month, moment.day)
 
 
 def _broadcast_day(stamp: Any) -> str:

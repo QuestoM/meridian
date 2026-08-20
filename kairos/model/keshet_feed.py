@@ -287,9 +287,13 @@ def _archive_line(results: Iterable[Mapping[str, Any]]) -> str:
     whose labels are gone. A log that says "refreshed" and nothing else is what
     let every pull before this one overwrite the last.
     """
-    kept = [r.get("archived") or {} for r in results]
+    outcomes = [r.get("archived") for r in results]
+    kept = [k for k in outcomes if isinstance(k, Mapping)]
     good = [k for k in kept if k.get("kept")]
     if not kept:
+        # Every pull failed before it had rows, so there was nothing to archive.
+        # Reporting an archive failure here would blame the wrong thing: the
+        # refresh lines above already say what actually went wrong.
         return "archive: nothing was pulled, so nothing was kept."
     if not good:
         why = next((str(k.get("reason")) for k in kept if k.get("reason")), "unknown")

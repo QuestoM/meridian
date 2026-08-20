@@ -81,9 +81,33 @@ class ProgramClassifier:
             reverse=True,
         )
 
+        # Programme names, longest first, for removal from a SYNOPSIS before it
+        # is scored. Never from a title: there a programme name is the identity.
+        self._programme_names: tuple[str, ...] = tuple(
+            sorted((key for key, _ in self._specific if key), key=len, reverse=True)
+        )
+
         self._legacy_map: dict[str, str] = {
             str(k): str(v) for k, v in (config.get("legacy_mapping") or {}).items()
         }
+
+    def _without_programme_names(self, text: str) -> str:
+        """A synopsis with the names of other programmes taken out of it.
+
+        Blocking the ``specific`` rule on descriptions was not enough and the
+        claim that it "removed the class" was wrong. 34 of the names in
+        ``specific_programs`` are ALSO category keywords, so a synopsis that
+        names another programme still reaches that programme's category through
+        the keyword path. It happened on the live feed: an exposé whose synopsis
+        introduces a guest as a star of "האח הגדול" was classified Reality.
+
+        MEASURED: removing the names costs exactly ONE resolution out of 122 on
+        the pulled fortnight, and that one is the false positive itself.
+        """
+        for name in self._programme_names:
+            if name in text:
+                text = text.replace(name, " ")
+        return re.sub(r"\s+", " ", text).strip()
 
     @classmethod
     def from_yaml(cls, path: str | Path | None = None) -> "ProgramClassifier":
@@ -143,12 +167,16 @@ class ProgramClassifier:
           חדשות" becomes Documentary because its synopsis says "דיווחי
           אקטואליה". A title that resolves is the better evidence and wins
           outright.
-        * The ``specific`` rule matches a programme NAME anywhere in the text, and
-          a synopsis names other programmes: a guest introduced as a star of
-          "האח הגדול" made an unrelated broadcast Reality. Inside a description a
-          programme name is a mention, not an identity, so only the weighted
-          keywords run there. It costs one resolution out of 122 and removes the
-          whole class.
+        * A synopsis names OTHER programmes, and inside a synopsis a programme
+          name is a mention rather than an identity: a guest introduced as a star
+          of "האח הגדול" made an unrelated exposé Reality. Two things are needed
+          to stop that, and the first alone was not enough. The ``specific`` rule
+          does not run on a description -- and 34 of the names it matches are
+          ALSO category keywords, so the same hijack came straight back through
+          the keyword path and was live on the feed. So the programme names are
+          REMOVED from a synopsis before it is scored. Measured: that costs
+          exactly one resolution out of 122, and the one it costs is the false
+          positive.
 
         The verdict says where it came from (``rule == "description"``), because
         a genre read out of a synopsis is weaker evidence than one read out of a
@@ -174,6 +202,7 @@ class ProgramClassifier:
         # carries a synopsis on 632 of 638 broadcasts, and reading it takes the
         # unknown rate to 21.6%.
         synopsis = _normalise_token(description) if description is not None else ""
+        synopsis = self._without_programme_names(synopsis) if synopsis else ""
         if synopsis:
             scores = self._keyword_scores(synopsis)
             if scores:

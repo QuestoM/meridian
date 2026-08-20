@@ -132,6 +132,17 @@ def test_header_has_no_real_overflow_at_supported_widths(tmp_path: Path, width: 
     if not timed_out:
         assert process.returncode == 0, stderr[-1000:]
     match = re.search(r'data-layout="([^"]+)"', stdout)
+    if not match and not stdout and not stderr:
+        # Chrome emitted NOTHING: it never got far enough to render, which under
+        # a loaded machine is what the eight-second budget above runs out on.
+        # Said plainly, because the bare assertion read "assert None" and left a
+        # reader unable to tell a browser that never started from a header that
+        # actually overflowed. Failing is right; failing illegibly is not.
+        pytest.fail(
+            f"the browser produced no output at all at width {width} "
+            f"(timed_out={timed_out}, returncode={process.returncode}); the "
+            f"layout was never measured, so this says nothing about the header"
+        )
     assert match, stdout[-1000:] or stderr[-1000:]
     measured = json.loads(html.unescape(match.group(1)))
     assert measured["documentFits"], (width, measured)

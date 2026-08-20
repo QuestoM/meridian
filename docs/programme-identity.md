@@ -213,14 +213,26 @@ repeat, smuggled through a bug rather than named. Making it explicit is the next
 piece, and it has to be measured family by family the way everything else here
 is — `test_series_identity.py` pins the current behaviour so it is not "fixed"
 by reasoning alone.
-3. **Read the description.** The classifier reads a title; the feed carries a
-   synopsis for nearly every broadcast. That is free coverage and the cheapest
-   way to move 38% down.
-4. **Connect the enrichment that exists**, keyed on the coarse series key, so a
-   retitled episode does not re-ask and a returning season inherits what was
-   learned.
-5. **Stop counting unknown as a genre.** A behaviour change to a live feature,
-   measured before and after rather than assumed.
+3. **Read the description — DONE.** 40.8% to 21.6% on the feed, history
+   unchanged at 3.3%, zero already-correct titles disturbed. The title wins
+   outright (scoring both together corrupts 39 of 378) and programme names are
+   removed from a synopsis before it is scored, because 34 of them are also
+   category keywords and a guest introduced as a star of "האח הגדול" was
+   turning an unrelated exposé into Reality. That last part was claimed fixed
+   once before it was: blocking the `specific` rule alone left the keyword path
+   wide open, and the hijack was live on the feed.
+4. **Connect the enrichment that exists — DONE**, and measured rather than
+   assumed. It answers 21.6% to 18.7%, last in the ladder, never overruling the
+   taxonomy on the 48 broadcasts where they disagree, and only from FRESH
+   entries: 19 of the 38 it could match carry a synopsis the broadcaster has
+   since rewritten. Keying it on the coarse `series_join_key` was measured and
+   NOT done — both keys answer exactly the same 38 broadcasts here, so it would
+   have been a rename that sounded better and did nothing.
+5. **Stop counting unknown as a genre — DONE.** 56 of 638 forward slots were
+   scoring a positive contrast with an unknown own genre, mean 0.5714. No
+   shipped number moved: the same defect touches 2 of 2,532 history breaks
+   (0.08%), because the corpus that judged the feature is 3.3% unknown and the
+   corpus it is applied to is 21.6%.
 6. **Join a future programme to its own history.** The largest forecast win and
    the largest change — and the one this corpus cannot yet honestly support: one
    month of history, twenty-one months before the week being planned. Behind a
