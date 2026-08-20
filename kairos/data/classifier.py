@@ -113,8 +113,47 @@ class ProgramClassifier:
         text = text.replace("[", " ").replace("]", " ").replace(" * ", " ")
         return _normalise_token(text), is_rerun
 
-    def classify(self, raw_title: Any) -> Classification:
-        """Classify a single title into a rich genre with a confidence score."""
+    def _keyword_scores(self, norm: str) -> dict[str, int]:
+        scores: dict[str, int] = {}
+        for category, keywords in self._category_keywords.items():
+            total = sum(len(keyword) for keyword in keywords if keyword in norm)
+            if total > 0:
+                scores[category] = total
+        return scores
+
+    def _best(self, scores: dict[str, int]) -> tuple[str, float]:
+        ranked = sorted(
+            scores.items(),
+            key=lambda item: (item[1], -self._priority[item[0]]),
+            reverse=True,
+        )
+        best, top = ranked[0]
+        second = ranked[1][1] if len(ranked) > 1 else 0
+        return best, (round(top / (top + second), 3) if (top + second) else 0.5)
+
+    def classify(self, raw_title: Any, *, description: Any = None) -> Classification:
+        """Classify a single title into a rich genre with a confidence score.
+
+        ``description`` is consulted ONLY when the title yields nothing, and only
+        through the keyword rules. Both restrictions were measured on the pulled
+        feed rather than assumed:
+
+        * Scoring the title and description TOGETHER changes the verdict on 39 of
+          378 titles the classifier already reads correctly (10.3%) -- "מבזק
+          חדשות" becomes Documentary because its synopsis says "דיווחי
+          אקטואליה". A title that resolves is the better evidence and wins
+          outright.
+        * The ``specific`` rule matches a programme NAME anywhere in the text, and
+          a synopsis names other programmes: a guest introduced as a star of
+          "האח הגדול" made an unrelated broadcast Reality. Inside a description a
+          programme name is a mention, not an identity, so only the weighted
+          keywords run there. It costs one resolution out of 122 and removes the
+          whole class.
+
+        The verdict says where it came from (``rule == "description"``), because
+        a genre read out of a synopsis is weaker evidence than one read out of a
+        title and a reader downstream should be able to tell.
+        """
         norm, is_rerun = self._prepare_title(raw_title)
         if not norm:
             return Classification(_OTHER, 0.0, "empty", is_rerun, self._legacy(_OTHER))
@@ -123,30 +162,42 @@ class ProgramClassifier:
             if key and key in norm:
                 return Classification(category, 1.0, "specific", is_rerun, self._legacy(category))
 
-        scores: dict[str, int] = {}
-        for category, keywords in self._category_keywords.items():
-            total = sum(len(keyword) for keyword in keywords if keyword in norm)
-            if total > 0:
-                scores[category] = total
+        scores = self._keyword_scores(norm)
+        if scores:
+            best, confidence = self._best(scores)
+            return Classification(best, confidence, "keyword", is_rerun, self._legacy(best))
 
-        if not scores:
-            return Classification(_OTHER, 0.0, "fallback", is_rerun, self._legacy(_OTHER))
+        # The title said nothing. MEASURED on the pulled feed: the classifier
+        # falls to Other on 3.3% of the history it was tuned against and 40.8% of
+        # the schedule it is applied to, because 156 of 417 historical titles
+        # resolve through a hand-written list taken from that corpus. The feed
+        # carries a synopsis on 632 of 638 broadcasts, and reading it takes the
+        # unknown rate to 21.6%.
+        synopsis = _normalise_token(description) if description is not None else ""
+        if synopsis:
+            scores = self._keyword_scores(synopsis)
+            if scores:
+                best, confidence = self._best(scores)
+                return Classification(
+                    best, confidence, "description", is_rerun, self._legacy(best))
 
-        ranked = sorted(
-            scores.items(),
-            key=lambda item: (item[1], -self._priority[item[0]]),
-            reverse=True,
-        )
-        best, top = ranked[0]
-        second = ranked[1][1] if len(ranked) > 1 else 0
-        confidence = round(top / (top + second), 3) if (top + second) else 0.5
-        return Classification(best, confidence, "keyword", is_rerun, self._legacy(best))
+        return Classification(_OTHER, 0.0, "fallback", is_rerun, self._legacy(_OTHER))
 
-    def classify_series(self, titles: Iterable[Any]):
-        """Classify many titles. Returns a DataFrame with one row per title."""
+    def classify_series(self, titles: Iterable[Any], descriptions: Iterable[Any] = ()):
+        """Classify many titles. Returns a DataFrame with one row per title.
+
+        ``descriptions`` is positional against ``titles`` and may be shorter or
+        empty; a title with no description beside it is classified from the title
+        alone, which is what every corpus that carries no synopsis does.
+        """
         import pandas as pd
 
-        records = [self.classify(title) for title in titles]
+        titles = list(titles)
+        notes = list(descriptions)
+        records = [
+            self.classify(title, description=(notes[i] if i < len(notes) else None))
+            for i, title in enumerate(titles)
+        ]
         return pd.DataFrame(
             {
                 "title": list(titles),
@@ -158,10 +209,22 @@ class ProgramClassifier:
             }
         )
 
-    def coverage_report(self, titles: Iterable[Any], low_confidence: float = 0.6) -> dict[str, Any]:
-        """Summarise classification over a set of titles for taxonomy tuning."""
+    def coverage_report(
+        self, titles: Iterable[Any], low_confidence: float = 0.6,
+        descriptions: Iterable[Any] = (),
+    ) -> dict[str, Any]:
+        """Summarise classification over a set of titles for taxonomy tuning.
+
+        Reads descriptions when given them, so a report on a corpus that carries
+        synopses measures the coverage that corpus will actually get rather than
+        an unknown rate the engine no longer has.
+        """
         titles = list(titles)
-        results = [(title, self.classify(title)) for title in titles]
+        notes = list(descriptions)
+        results = [
+            (title, self.classify(title, description=(notes[i] if i < len(notes) else None)))
+            for i, title in enumerate(titles)
+        ]
         by_category: dict[str, int] = {}
         by_rule: dict[str, int] = {}
         uncovered: list[str] = []

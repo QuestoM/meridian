@@ -125,8 +125,17 @@ def _programme_category_lookup(
 
     The category is the genre the classifier assigns to the programme title, which
     is what ``competitor_genre_contrast`` compares across channels.
+
+    The SYNOPSIS is read where the frame carries one. The classifier was tuned on
+    `Programmes.csv`, where 156 of 417 titles resolve through a hand-written list
+    taken from that same corpus, so on titles it has never seen its coverage
+    collapses: it falls to Other on 3.3% of that history and on 40.8% of the
+    pulled feed. The feed carries a description for 632 of its 638 broadcasts and
+    reading it takes that to 21.6%. The title still decides wherever it can --
+    a description is consulted only when the title says nothing at all.
     """
     frame = programmes[programmes["start_dt"].notna()].copy()
+    has_synopsis = "Description" in frame.columns
     lookup: dict[str, list[tuple[pd.Timestamp, pd.Timestamp, str]]] = {}
     for channel, group in frame.groupby("Channel", sort=False):
         records: list[tuple[pd.Timestamp, pd.Timestamp, str]] = []
@@ -135,7 +144,11 @@ def _programme_category_lookup(
             end = getattr(row, "end_dt")
             if pd.isna(start) or pd.isna(end):
                 continue
-            category = classifier.classify(str(getattr(row, "Title"))).category
+            synopsis = getattr(row, "Description", None) if has_synopsis else None
+            category = classifier.classify(
+                str(getattr(row, "Title")),
+                description=None if synopsis is None or pd.isna(synopsis) else str(synopsis),
+            ).category
             records.append((start, end, str(category)))
         lookup[str(channel)] = records
     return lookup
