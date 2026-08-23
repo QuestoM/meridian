@@ -97,6 +97,16 @@ INPUTS: list[dict[str, str]] = [
     {"kind": "spots", "label_en": "Historical spots", "label_he": "תשדירים היסטוריים", "cadence": "reference"},
     {"kind": "dayparts", "label_en": "Dayparts (ratings by time)", "label_he": "חלקי יום (רייטינג לפי שעה)", "cadence": "reference"},
     {"kind": "advertiser_rules", "label_en": "Advertiser rules", "label_he": "כללי מפרסמים", "cadence": "config"},
+    # rate_card: DECIDED 2026-08-24 (owner-delegated) - the kind STAYS despite
+    # nothing pricing from the CSV. The Sources screen already discloses "nothing
+    # reads it" with the reason naming optimization_weights.yaml, that honesty is
+    # pinned by test_journey_inspector_pricing, and the seven-kind offer is part
+    # of the frozen P6 contract; removing a row that tells the truth to ship a
+    # smaller truth is a trade down. The LIVE rate card is the settings-backed
+    # pricing page (pricing_from_settings). When the pricing hierarchy S2+ ships,
+    # this CSV either becomes its import format - modernised to the trade's
+    # 1-5+L position vocabulary WITH its validator - or retires with this
+    # comment. Not before, and never half-way.
     {"kind": "rate_card", "label_en": "Rate card", "label_he": "כרטיס תעריפים", "cadence": "config"},
     {"kind": "campaign_flights", "label_en": "Campaign flights (delivery pacing)", "label_he": "קמפיינים ויעדי אספקה (קצב)", "cadence": "config"},
 ]
