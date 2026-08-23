@@ -20,6 +20,7 @@ COPY --from=node:26-slim /usr/local/bin/node /usr/local/bin/node
 COPY kairos/ kairos/
 COPY kairos_api/ kairos_api/
 COPY config/ config/
+COPY scripts/init_auth.py scripts/
 COPY deploy/serve-dist.mjs deploy/entrypoint.sh deploy/
 COPY --from=dashboard /build/dist tv-break-dashboard/dist
 # Demo data rides as a SEED, not as live state: the entrypoint copies it onto

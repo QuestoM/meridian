@@ -6,3 +6,4 @@ docs
 tests
 data/reference/feed-archive
 *.png
+data/auth

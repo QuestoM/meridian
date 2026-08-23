@@ -323,7 +323,14 @@ def test_the_editor_s_save_leaves_the_day_standing_and_its_own_way_back(client):
         "the whole-date scope binds every programme on the day, which is the defect"
     )
     survived = wrecked["totals"]["revenue"] / before["totals"]["revenue"]
-    assert survived < 0.30, "the measured cost of the old default was 74.3 per cent of the day"
+    # The claim is that the OLD date-scope default wrecks MOST of the day's
+    # money - originally measured at 74.3 per cent destroyed. After the promo
+    # decision the surviving share moved from 0.257 to 0.306, because a chunk
+    # of the revenue the old scope used to destroy sat on promo blocks that no
+    # longer carry breaks at all. Destroying 69 per cent of the day still makes
+    # the point this test exists for; a threshold tuned to the exact plan does
+    # not survive the plan being corrected.
+    assert survived < 0.5, "the old default must still cost a majority of the day"
     assert [row["break_id"] for row in wrecked["breaks"] if row["saved_placement"]] == [], (
         "and it wrote no record, so nothing on the board offered to reverse it"
     )

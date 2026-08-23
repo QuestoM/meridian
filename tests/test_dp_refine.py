@@ -216,24 +216,38 @@ def test_never_worse_on_real_days(loader, channel, day, mode):
     ), "DP-adopted plan is not compliant"
 
 
-def test_dp_tier_strictly_improves_a_known_day(loader):
-    """A guard against a no-op tier: the largest day must actually improve on.
+def test_dp_tier_strictly_improves_some_real_day(loader):
+    """A guard against a no-op tier: SOME real day must actually improve.
 
     Measured on the true net-ILS money basis (the reported ``objective`` field is
     always the blend scalar regardless of mode), so the improvement is stated in
     real shekels, not a normalised contribution.
+
+    This used to pin the single largest day. After the promo decision (a
+    Promo-classified segment carries zero breaks) that day converged to the
+    greedy+F1 answer, and a 20-day random scan measured the DP tier's surviving
+    strict wins at ONE day - קשת 12 / 2024-11-09, +1,975 ILS. Much of the
+    tier's former recovery room was redistribution inside commercial blocks
+    that are no longer sellable. The liveness guard therefore scans the known
+    real days and passes on the first strict win, and the day that still wins
+    is pinned first so the common path stays one optimization pair.
     """
-    segs = loader(*LARGEST_DAY)
-    by_id = {s.segment_id: s for s in segs}
+    for channel, day in [("קשת 12", "2024-11-09"), *REAL_DAYS]:
+        segs = loader(channel, day)
+        if not segs:
+            continue
+        by_id = {s.segment_id: s for s in segs}
 
-    def money(res):
-        return sum(segment_net_revenue(by_id[p.segment_id], p.num_breaks) for p in res.segments)
+        def money(res):
+            return sum(segment_net_revenue(by_id[p.segment_id], p.num_breaks) for p in res.segments)
 
-    off = optimize_breaks(segs, GR, revenue_weight=0.6, risk_lambda=0.0,
-                          refine=True, dp_refine=False, objective_mode=OBJECTIVE_REVENUE_NET)
-    on = optimize_breaks(segs, GR, revenue_weight=0.6, risk_lambda=0.0,
-                         refine=True, dp_refine=True, objective_mode=OBJECTIVE_REVENUE_NET)
-    assert money(on) > money(off) + 1000.0, "DP tier did not improve the largest day"
+        off = optimize_breaks(segs, GR, revenue_weight=0.6, risk_lambda=0.0,
+                              refine=True, dp_refine=False, objective_mode=OBJECTIVE_REVENUE_NET)
+        on = optimize_breaks(segs, GR, revenue_weight=0.6, risk_lambda=0.0,
+                             refine=True, dp_refine=True, objective_mode=OBJECTIVE_REVENUE_NET)
+        if money(on) > money(off) + 1000.0:
+            return
+    raise AssertionError("DP tier improved no real day by over 1000 ILS - a no-op tier")
 
 
 # ---------------------------------------------------------------------------
