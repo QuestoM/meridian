@@ -6,9 +6,7 @@ import { formatDay, formatSpan } from '../shell/dates';
 import { formatNumber, formatPercent, pageText } from '../shell/format';
 import { termName } from './trade-terms';
 import { contractMoney } from './term-language';
-import {
-  alarmLabel, ALARM_ORDER, alarmTone, scopeResolution, windowOf,
-} from './trade-vocabulary';
+import { ALARM_ORDER, alarmLabel, alarmTone, openEndedLabel, scopeResolution, windowOf } from './trade-vocabulary';
 
 // What the agreement committed the channel to, measured continuously.
 //
@@ -103,7 +101,14 @@ function ObligationRow({ obligation, locale }) {
           <dt>{pageText(locale, 'Measurement window', 'חלון המדידה')}</dt>
           <dd>
             {span.openEnded ? (
-              <span>{pageText(locale, 'open-ended', 'ללא מועד סיום')}</span>
+              // The shared sentence, not a shorter one written here. Every
+              // agreement HAS an end date -- the store records a far-future
+              // sentinel with an open_ended flag precisely so a commitment
+              // always has a measurement window -- and this board printed a bare
+              // "open-ended" that dropped the half saying why. The detail screen
+              // already used the vocabulary's own wording; this is the one site
+              // that did not.
+              <span>{openEndedLabel(locale)}</span>
             ) : (
               <Figure>{formatSpan(span.from, span.to, locale)}</Figure>
             )}

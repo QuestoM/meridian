@@ -112,6 +112,22 @@ class ProgramSegment:
             object.__setattr__(self, "impact_ci_low", None)
             object.__setattr__(self, "impact_ci_high", None)
 
+        # A SEGMENT CANNOT CARRY MORE ADVERTISING THAN IT IS LONG. Arithmetic,
+        # not a heuristic, and nothing enforced it: MEASURED on the saved plan,
+        # 831 segments were sold MORE ad seconds than their own duration -- a
+        # 10-second slot carrying 120 seconds of advertising, a 16-second slot
+        # carrying 120. That is inventory that cannot exist, and it was priced.
+        #
+        # Applied at construction so every builder and every dataclasses.replace()
+        # copy inherits it, and so no solver, refiner or override path can route
+        # around it. A segment shorter than one break gets zero, which is the
+        # honest answer: there is no room to sell.
+        if math.isfinite(self.duration_seconds) and math.isfinite(self.break_length_seconds):
+            if self.break_length_seconds > 0 and self.duration_seconds > 0:
+                fits = int(self.duration_seconds // self.break_length_seconds)
+                if self.max_breaks > fits:
+                    object.__setattr__(self, "max_breaks", max(0, fits))
+
     @property
     def hour(self) -> int:
         return int(self.start_seconds // 3600.0)

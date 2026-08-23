@@ -93,8 +93,17 @@ def delivered_state(day: str) -> dict[str, Any]:
         "covered_by": sorted(covered),
         "reason": "No spot ledger covers this broadcast day.",
         "reason_he": "אין יומן תשדירים המכסה את יום השידור הזה.",
-        "path_forward": "Supply a delivery or as-run feed for this week through Sources.",
-        "path_forward_he": "העלו קובץ שידור בפועל לשבוע הזה דרך מקורות.",
+        # NAMES AN UPLOAD THIS PRODUCT ACTUALLY ACCEPTS. This used to say "supply
+        # a delivery or as-run feed through Sources", and Sources has no as-run
+        # kind: its seven inputs are programmes, daily, spots, dayparts,
+        # advertiser_rules, rate_card and campaign_flights. An operator following
+        # that sentence reached the upload screen and found nothing to do. The
+        # daily ad log is the delivery record this engine reads today -- it is
+        # what `daily_input_days()` above is looking for -- so it is what the
+        # sentence names. A real As Run feed is a separate, later integration; the
+        # instruction must not promise it before it exists.
+        "path_forward": "Upload the daily ad log covering this day through Sources.",
+        "path_forward_he": "העלו דרך מקורות את קובץ הפרסומות היומי המכסה את היום הזה.",
     }
 
 

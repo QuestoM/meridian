@@ -337,7 +337,15 @@ class TestPositionColumnHonesty:
         # duration/(k+1) <= break_length/2 clamps the first break to the
         # programme's first second (_segment_break_objects), which real short
         # programmes hit; the row must say so instead of claiming "middle".
-        seg = self._segment("short", duration_seconds=100.0)
+        #
+        # 120 seconds, not 100. A segment cannot carry more advertising than it
+        # is long, and ProgramSegment now enforces that at construction, so a
+        # 100-second programme holds ZERO 120-second breaks and this test was
+        # asserting inventory that cannot exist. 120 is the shortest duration
+        # that both holds one break and still trips the start-clamp geometry
+        # (duration/2 <= break_length/2), which is what this test is actually
+        # about.
+        seg = self._segment("short", duration_seconds=120.0)
         result = optimize_breaks([seg], Guardrails(), revenue_weight=1.0)
         assert result.segments[0].num_breaks >= 1
         row = rows_from_result([seg], result)[0]

@@ -172,13 +172,32 @@ def build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) -> 
         ) or {}
         program_type = str(schedule_row.get("program_type") or "Other")
         planned_breaks = int(max(0, _safe_number(schedule_row.get("num_breaks"), 0)))
-        capacity_breaks = int(max(0, duration_minutes // 18))
-        break_count = max(0, min(5, planned_breaks, capacity_breaks if duration_minutes >= 18 else 0))
         has_plan = bool(schedule_row)
         revenue_total = _money(schedule_row.get("predicted_revenue", 0.0)) if has_plan else None
         retention = round(_percent(schedule_row.get("predicted_retention", 0.0)), 1) if has_plan else None
         break_seconds = int(max(30, min(360, _safe_number(schedule_row.get("break_length"), 120))))
         lane = f"{channel} / {day}"
+
+        # THE PLAN DECIDES HOW MANY BREAKS A PROGRAMME CARRIES. This used to clamp
+        # the plan's own count by a display-side rule of one break per 18 minutes,
+        # zeroing anything shorter, while the money beside it stayed the plan's
+        # full figure. MEASURED on the 524 programmes of the saved plan: it hid
+        # 269 of 563 planned breaks (47.8%), showed fewer breaks than the plan for
+        # 232 programmes, showed ZERO for 166 that carry one, and left 3,796,911
+        # ILS of revenue displayed against breaks the board denied existed. The
+        # week grid, in the same API response, published the plan's real count, so
+        # one payload asserted two different things about the same programme.
+        #
+        # The only real limit is placement: these break times are SYNTHESISED by
+        # even division (below), so breaks must not overlap each other. That is
+        # arithmetic, not a heuristic, and it is far looser than the 18-minute
+        # rule was - it drops 116 breaks where the old rule dropped 269.
+        placeable = max(0, (duration_seconds // break_seconds) - 1) if break_seconds else 0
+        break_count = max(0, min(planned_breaks, int(placeable)))
+        # What the plan holds and this board cannot draw. Published rather than
+        # swallowed: a board that quietly shows fewer breaks than the plan is
+        # priced on is the exact failure this replaced.
+        breaks_not_shown = max(0, planned_breaks - break_count)
 
         programs.append(
             {
@@ -198,6 +217,12 @@ def build_break_operations(programmes: pd.DataFrame, schedule: pd.DataFrame) -> 
                 "revenue": revenue_total,
                 "retention": retention,
                 "break_markers": break_count,
+                # The plan's own count beside the drawn one, and the gap between
+                # them. Equal in the ordinary case; when they differ the board can
+                # say "3 of 4 planned breaks shown" instead of quietly disagreeing
+                # with the money printed next to it.
+                "planned_breaks": planned_breaks,
+                "breaks_not_shown": breaks_not_shown,
             }
         )
 

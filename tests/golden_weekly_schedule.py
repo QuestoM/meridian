@@ -67,9 +67,23 @@ FROZEN_PACING_DATE = date(2026, 6, 15)
 # already superseded; the honest DP delta is the +11.95M measured off the current
 # dp-off baseline. The committed CSV and both hashes were recomputed from the same
 # shipped recompute path; this baseline is the new plan of record.
-GOLDEN_CSV_SHA256 = "1b9d42983fc0cb38c0c288984e2e69b2f6c042cdca084b40672fc62b392b8f5c"
+#
+# REBASED 2026-08-23 for the segment capacity guard. A segment cannot carry more
+# advertising than it is long, and nothing enforced that: MEASURED on the prior
+# baseline, 846 of 8,704 segments were sold MORE ad seconds than their own
+# duration -- 89,576 seconds of inventory that cannot exist. The worst was a
+# SIX-SECOND programme row sold 480 seconds of advertising carrying 130,290 ILS,
+# and a four-second row sold the same 480. ProgramSegment now clamps max_breaks
+# to duration // break_length at construction, so no solver, refiner or override
+# path can route around it.
+#
+# The plan loses 11,804,030 ILS (221,891,590 -> 210,087,560, -5.32%) and 66
+# breaks; mean retention rises slightly (68.8004 -> 68.8176). That money was
+# never sellable. This is a REDUCTION IN CLAIMED REVENUE and it is the correct
+# direction: the prior number priced airtime that no clock has room for.
+GOLDEN_CSV_SHA256 = "d17e230e5387445e748594309692180508f50d82937030d7112cbdf3f796968e"
 GOLDEN_ROWS = 8704
-GOLDEN_AGG_SHA256 = "4d77669cb52f156cae90a5fec07d2c9c5cd2618ac41ec79ffea13901e7dac491"
+GOLDEN_AGG_SHA256 = "f6ea46fdb7125825277b755febd1333da1105821b5643115d69dd59232254334"
 
 # Per-channel-day aggregate baseline, one entry per channel-day as
 # [channel, date, predicted_revenue, predicted_retention, num_breaks], sorted by

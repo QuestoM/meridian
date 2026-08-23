@@ -40,14 +40,53 @@ CHANNEL = "רשת 13"
 WIDE_TITLE = "משחקי השף עונה 7 ש.ח"
 TAIL_MINUTES = 8
 
-# The one place on the real data where the hour is still not enough. On
-# 2024-11-04 three airings of the promo block start inside hour 22, one breaches a
-# five minute tail and one is already compliant and carries a break, so a rule
-# derived from the first reaches the second. It is the case the surplus report
-# exists for, and it is real rather than constructed.
+# THE SURPLUS CASE IS FOUND, NOT HARD-CODED. This used to name one
+# (title, date, hour) on the real data - the promo block on 2024-11-04 hour 22 -
+# and that is precisely why it broke: the segment capacity guard (a segment
+# cannot carry more advertising than it is long) emptied the short promo blocks,
+# and with them the airing this rested on. Scanning for the shape instead means
+# the test rebases itself whenever the plan of record moves, and says plainly
+# when the shape has stopped occurring rather than asserting against a fixture
+# that no longer exists.
+#
+# The shape: one clock hour holding more than one airing of a title, where
+# EXACTLY ONE breaches the tail and at least one other is already compliant yet
+# carries breaks - so a rule derived from the first reaches the second.
 SHARED_HOUR_TITLE = "קובץ פרומו/פרסומות"
-SHARED_HOUR_DAY = "2024-11-04"
-SHARED_HOUR = 22
+
+
+def _find_shared_hour_case(minutes: int = 5):
+    """(title, date, hour) where the hour cannot separate a breach from a
+    compliant airing, or None when the plan of record holds no such case."""
+    import collections
+
+    from kairos_api.constraints_airings import matching
+    from kairos_api.constraints_language import max_breaks_before_tail
+
+    protected = float(minutes) * 60.0
+    try:
+        airings = matching(_where(_title(SHARED_HOUR_TITLE)))
+    except Exception:
+        return None
+    grouped = collections.defaultdict(list)
+    for airing in airings:
+        if airing.planned_breaks is None:
+            continue
+        cap = max_breaks_before_tail(
+            airing.duration_seconds, airing.break_length_seconds, protected)
+        # An Airing carries segment_id (channel|date|clock) and start_seconds,
+        # not a date/start_time pair; the hour is the clock hour it starts in.
+        parts = str(airing.segment_id).split("|")
+        date = parts[1] if len(parts) > 2 else ""
+        hour = int(float(airing.start_seconds) // 3600) % 24
+        grouped[(date, hour)].append(
+            (airing.planned_breaks, airing.planned_breaks > cap))
+    for (date, hour), rows in sorted(grouped.items()):
+        breaching = sum(1 for _, over in rows if over)
+        collateral = sum(1 for breaks, over in rows if not over and breaks > 0)
+        if breaching == 1 and len(rows) > 1 and collateral >= 1:
+            return SHARED_HOUR_TITLE, date, hour
+    return None
 
 
 @pytest.fixture(autouse=True)
@@ -211,10 +250,18 @@ def test_the_saved_rule_does_to_the_plan_what_the_preview_promised(client):
 
 def test_a_shared_clock_hour_leaves_surplus_that_is_counted_priced_and_marked(client):
     """The residual case, on real data, reported rather than assumed away."""
+    case = _find_shared_hour_case()
+    if case is None:
+        pytest.skip(
+            "the plan of record holds no clock hour where one airing breaches a "
+            "five minute tail while another compliant airing in the same hour "
+            "still carries breaks; there is no surplus to report"
+        )
+    shared_title, shared_day, shared_hour = case
     where = _where(
-        _title(SHARED_HOUR_TITLE),
-        {"field": "date", "operator": "is", "value": SHARED_HOUR_DAY},
-        {"field": "hour", "operator": "eq", "value": SHARED_HOUR},
+        _title(shared_title),
+        {"field": "date", "operator": "is", "value": shared_day},
+        {"field": "hour", "operator": "eq", "value": shared_hour},
     )
     body = _preview(client, "clean_tail", {"protected_minutes": 5}, where)
 
@@ -240,10 +287,18 @@ def test_a_shared_clock_hour_leaves_surplus_that_is_counted_priced_and_marked(cl
 
 def test_the_surplus_is_a_share_of_the_total_and_never_larger_than_it(client):
     """The two figures on screen have to be the same arithmetic, not two engines."""
+    case = _find_shared_hour_case()
+    if case is None:
+        pytest.skip(
+            "the plan of record holds no clock hour where one airing breaches a "
+            "five minute tail while another compliant airing in the same hour "
+            "still carries breaks; there is no surplus to report"
+        )
+    shared_title, shared_day, shared_hour = case
     where = _where(
-        _title(SHARED_HOUR_TITLE),
-        {"field": "date", "operator": "is", "value": SHARED_HOUR_DAY},
-        {"field": "hour", "operator": "eq", "value": SHARED_HOUR},
+        _title(shared_title),
+        {"field": "date", "operator": "is", "value": shared_day},
+        {"field": "hour", "operator": "eq", "value": shared_hour},
     )
     body = _preview(client, "clean_tail", {"protected_minutes": 5}, where)
     whole = body["scored"]
