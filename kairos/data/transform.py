@@ -106,6 +106,35 @@ def _segment_impact_estimate(
     )
 
 
+# The classifier's name for promotional/commercial filler. One constant, because
+# the decision below must not fork between the weekly and daily builders.
+_PROMO_CATEGORY = "Promo"
+
+
+def _sellable_max_breaks(category: str, assumptions) -> int:
+    """How many breaks a segment of this category may carry. Zero for Promo.
+
+    OWNER-DELEGATED DECISION, 2026-08-24: a promo row is a break, not inventory.
+    The EPG this engine reads is 59.1% "קובץ פרומו/פרסומות" rows -- the
+    commercial blocks themselves, median 152 seconds -- and the optimizer was
+    scheduling breaks INSIDE them: 2,009 breaks across 4,902 ad blocks, carrying
+    24.1% of the plan's revenue. Advertising cannot be interrupted by
+    advertising; a retention cost for "viewers shed during the break" is
+    meaningless inside a block that IS a break; and the trade's own account
+    (docs/media-domain-from-the-trade.md) separates programme content from the
+    commercial files that air between it. So a segment the classifier reads as
+    Promo stays in the plan -- it exists, and hiding it would misstate the day --
+    but carries zero breaks and therefore zero break revenue, honestly.
+
+    The rows themselves remain valuable elsewhere: their TVR is the measured
+    audience DURING commercial blocks, which the retention model trains on.
+    Nothing here touches that path.
+    """
+    if str(category) == _PROMO_CATEGORY:
+        return 0
+    return int(assumptions.default_max_breaks)
+
+
 def _segment_impact_kwargs(
     impact_model: ImpactModel | None,
     pricing_class: str,
@@ -295,7 +324,7 @@ def build_segments_from_daily_input(
             **impact_fields,
             retention_baseline=assumptions.retention_baseline,
             premium=_segment_premium(pricing, pricing_class, _daily_weekday(day), day),
-            max_breaks=assumptions.default_max_breaks,
+            max_breaks=_sellable_max_breaks(classification[1], assumptions),
             break_length_seconds=assumptions.default_break_length_seconds,
             first_break_multiplier=_first_break_multiplier(impact_model, assumptions),
             **rating_provenance,
@@ -432,7 +461,7 @@ def build_segments_from_programmes(
             premium=_segment_premium(
                 pricing, pricing_class, start.isoweekday(), segment_date,
             ),
-            max_breaks=assumptions.default_max_breaks,
+            max_breaks=_sellable_max_breaks(classification.category, assumptions),
             break_length_seconds=assumptions.default_break_length_seconds,
             first_break_multiplier=_first_break_multiplier(impact_model, assumptions),
             **rating_provenance,

@@ -126,7 +126,14 @@ def test_net_refined_beats_net_greedy_per_group_on_real_data() -> None:
     weight = settings_map["revenue_weight"] / 100.0
     risk_lambda = settings_map["risk_lambda"]
 
-    channel_days = _real_channel_days(limit=6)
+    # 24 days, not 6. MEASURED after the promo decision (a Promo segment
+    # carries zero breaks): the refiner's strict improvements fell from common
+    # to 2 of 24 sampled channel-days (+3,262 ILS total, both on רשת 13),
+    # because much of its shuffle-room was inside commercial blocks that are no
+    # longer sellable. The never-regress invariant held on all 24. A sample of
+    # six missed both surviving recoveries and failed the liveness assertion
+    # against a refiner that is still doing real, smaller work.
+    channel_days = _real_channel_days(limit=24)
     assert channel_days, "no real channel-days built from the corpus"
 
     any_strictly_better = False

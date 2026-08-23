@@ -1,6 +1,6 @@
 {
   "artifact": "weekly_break_schedule.csv",
-  "sha256": "d17e230e5387445e748594309692180508f50d82937030d7112cbdf3f796968e",
+  "sha256": "e0b3980f671fc2b7ef561d1ae79da79055317c1968948780e30e80ccf753f53a",
   "rows": 8704,
   "settings": {
     "revenue_weight": 60,
