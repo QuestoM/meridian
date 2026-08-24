@@ -110,6 +110,28 @@ reset credentials. The password exists in no image, no repository, no chat
 transcript and no shell history; the operator reads it from the Secrets Manager
 console when signing in the first time, and the dashboard forces a change.
 
+## Kai in the cloud — owner decision, 2026-08-24
+
+The assistant-absent default was reversed for the demo: Kai answers at
+kairos.questo.media for every signed-in account, on the operator's own model
+key. The key lives in `kairos/anthropic-api-key` (Secrets Manager; its VALUE
+was loaded by the operator alone), rides into the task as `ANTHROPIC_API_KEY`
+— the first name in the assistant's own `KEY_ENVS` — and decides only who
+PAYS, never what anyone MAY DO: Kai still holds exactly the signed-in user's
+permissions. Setting the stack's `AssistantKeySecretArn` back to '' restores
+the assistant-absent state, which remains the handover default. Secrets are
+read at TASK START: after rotating the key value, bounce the service
+(`aws ecs update-service --cluster kairos --service <name>
+--force-new-deployment`, deploy scope suffices).
+
+**Proven the same hour: a stack update that touches IAM demands the admin
+profile.** The first Kai update ran under `kairos` (deploy) and CloudFormation
+was correctly refused `iam:PutRolePolicy` mid-update, landing the stack in
+UPDATE_ROLLBACK_FAILED — recovered with `continue-update-rollback` as
+`kairos-admin`, then the same update as admin, zero service interruption. The
+deploy role's IAM-lessness is the boundary working; template changes that add
+or widen roles/policies are break-glass by design, and now by demonstration.
+
 ## The access model — two layers, one principle
 
 **The principle, at both layers: an actor holds the authority of the signed-in
