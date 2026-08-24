@@ -72,7 +72,7 @@ Internet ──► ALB :80 ──► Fargate task (ARM64, 1 vCPU / 2 GB)
 | Piece | Where |
 |---|---|
 | Account | `666823182071`, org `o-j4l92avif2`, profile `kairos` |
-| Image | `666823182071.dkr.ecr.il-central-1.amazonaws.com/kairos:v1` (arm64, 821 MB) |
+| Image | `666823182071.dkr.ecr.il-central-1.amazonaws.com/kairos:v4` (arm64, 821 MB; v1-v3 superseded — see the incident record) |
 | Stack | CloudFormation `kairos` — `deploy/kairos-stack.yaml` |
 | Container build | `deploy/Dockerfile` (dashboard built in stage 1 from the lockfile; runtime from `requirements-api.txt`, the maintained minimal set) |
 | Entrypoint | `deploy/entrypoint.sh` (seed-if-empty, symlink, two processes) |

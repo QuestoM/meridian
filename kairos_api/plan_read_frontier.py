@@ -16,8 +16,10 @@ lru_cache instances, the lock and the state dict.
 from __future__ import annotations
 
 import copy
+import json
 import logging
 import threading
+from datetime import date
 from functools import lru_cache
 from typing import Any
 
@@ -38,6 +40,41 @@ from kairos_api.plan_read_scope import (
 logger = logging.getLogger(__name__)
 
 
+def pinned_pacing_json() -> str:
+    """The operator settings, captured ONCE and pinned to the frontier key.
+
+    The two cached computations below used to call ``_pacing_call_kwargs()``
+    INSIDE their bodies -- a live read of the settings file at whatever moment
+    the background thread reached that line -- while the cache key carried only
+    floor/bph/risk/weight/mode plus the data-file signature. The key and the
+    computation could therefore see two different settings. REPRODUCED, not
+    theorised: a test that doubles ``base_price_per_second_per_tvr_point`` for a
+    few milliseconds (and resets it) can land its window exactly on the bundle's
+    capture, and the bundle then prices the whole day at 2x base CPP -- same
+    plan, same breaks, exactly 2.000000x money -- and is cached forever under
+    the UNCHANGED key. That is the transient 2x the net-money suite caught once
+    in a full sweep: current.gross exactly double the sweep's own anchor.
+
+    So the settings are serialized here, once, at request time, and travel WITH
+    the key: the cached bodies parse this string instead of reading anything
+    live, which makes the key and the computation coherent by construction, and
+    makes a pricing-override edit invalidate the frontier instead of silently
+    not existing (the old key could serve pre-edit money until a data file
+    happened to change).
+    """
+    pacing = _pacing_call_kwargs()
+    return json.dumps(
+        {"today": pacing["today"].isoformat(), "settings": pacing["settings"]},
+        ensure_ascii=False, sort_keys=True, default=str,
+    )
+
+
+def _pacing_from_pinned(pacing_json: str) -> dict[str, Any]:
+    """The pinned settings back in the shape ``run_scenario`` expects."""
+    loaded = json.loads(pacing_json)
+    return {"today": date.fromisoformat(loaded["today"]), "settings": loaded["settings"]}
+
+
 @lru_cache(maxsize=32)
 def frontier_points_cached(
     signature: tuple[tuple[str, int], ...],
@@ -47,6 +84,7 @@ def frontier_points_cached(
     max_breaks_per_hour: int,
     risk_lambda: float,
     revenue_weight: int,
+    pacing_json: str,
 ) -> tuple[dict[str, Any], ...]:
     """Trace the genuine revenue-vs-retention Pareto frontier for one owned scope.
 
@@ -66,7 +104,9 @@ def frontier_points_cached(
     del signature  # part of the cache key only
     anchor = round(float(saved_floor), 4)
     floors = sorted({0.72, 0.80, 0.85, 0.90, 0.93, 0.97, anchor})
-    pacing = _pacing_call_kwargs()
+    # Parsed from the key's own pinned capture -- never a live read; see
+    # pinned_pacing_json for the measured 2x this closes.
+    pacing = _pacing_from_pinned(pacing_json)
     points: list[dict[str, Any]] = []
     for floor in floors:
         try:
@@ -191,6 +231,7 @@ def frontier_net_bundle_cached(
     risk_lambda: float,
     revenue_weight: int,
     objective_mode: str,
+    pacing_json: str,
 ) -> dict[str, Any]:
     """One net-focused whole-schedule scenario beside the sweep, with money.
 
@@ -211,7 +252,9 @@ def frontier_net_bundle_cached(
         return net_bundle_failure(
             channel, day, "owned channel has no dated programmes to scope the comparison"
         )
-    pacing = _pacing_call_kwargs()
+    # Parsed from the key's own pinned capture -- never a live read; see
+    # pinned_pacing_json for the measured 2x this closes.
+    pacing = _pacing_from_pinned(pacing_json)
 
     def _run(mode: str) -> dict[str, Any]:
         return run_scenario(
@@ -363,6 +406,11 @@ def frontier_state(
         float(settings.risk_lambda),
         int(settings.revenue_weight),
         str(getattr(settings, "objective_mode", "blend") or "blend"),
+        # The settings, pinned at request time. Part of the key so the cached
+        # computation and the key can never see two different settings (the
+        # reproduced 2x), and so a pricing-override edit refreshes the frontier
+        # instead of waiting for a data file to change.
+        pinned_pacing_json(),
     )
     with frontier_bg_lock:
         state = frontier_bg_state
@@ -382,7 +430,9 @@ def frontier_state(
 
     def _compute() -> None:
         try:
-            points = frontier_points_cached(*key[:7])
+            # key[:7] are the point sweep's own axes; key[8] is the pinned
+            # settings capture (key[7] is the bundle-only objective mode).
+            points = frontier_points_cached(*key[:7], key[8])
         except Exception:
             logger.exception("frontier background compute failed")
             points = ()
