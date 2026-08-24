@@ -28,8 +28,8 @@ than an ad-hoc assert per site: a fixture that is not at a BINDING constraint
 passes vacuously, in BOTH directions. Where nothing is scarce, the engine simply
 gives every candidate its maximum and no ranking preference can change anything
 -- so "the lever does nothing" is true of the fixture rather than of the lever.
-The first draft of the demand-weight test was written that way and passed while
-proving nothing; it was only sized to bind after the vacuity was caught by hand.
+A demand-weight test written that way passes while proving nothing; it must be
+sized to bind before its verdict means anything.
 
 So ``binds`` is a REQUIRED argument here, never defaulted. It is the difference
 between a measurement and a comfortable silence.

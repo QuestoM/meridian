@@ -42,9 +42,9 @@ def _double_base_cpp(settings_path: Path) -> None:
     """The polluter's exact write shape: a FLAT pricing_overrides key, the same
     one PUT /api/pricing persists (test_journey_inspector_pricing asserts
     ``persisted["pricing_overrides"]["base_price_per_second_per_tvr_point"]``).
-    The first draft of this helper nested it under a "base" sub-key nobody
-    reads, and the doubled pin priced exactly 1.0x -- a wrong-shape write is
-    silently a no-op, which is itself worth remembering."""
+    Nesting it under a "base" sub-key is silently a no-op nobody reads: the
+    doubled pin then prices exactly 1.0x and the test passes while testing
+    nothing, so the shape here must stay FLAT."""
     saved = json.loads(settings_path.read_text(encoding="utf-8"))
     overrides = dict(saved.get("pricing_overrides") or {})
     base = float(overrides.get("base_price_per_second_per_tvr_point") or 55.2)

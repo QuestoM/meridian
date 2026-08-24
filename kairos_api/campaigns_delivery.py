@@ -231,8 +231,8 @@ def _progress(counted: Optional[float], goal: Optional[float], *, measurable: bo
 
     A percentage is published only when there is a goal to divide by, the
     product can count in the goal's own currency, and at least one day of the
-    flight has a source at all. That last gate is the one a first draft misses:
-    with no source, ``counted`` is zero and the division yields a confident
+    flight has a source at all. That last gate is the subtle one: with no
+    source, ``counted`` is zero and the division yields a confident
     ``0%``, which tells the reader the campaign has delivered nothing when what
     is true is that nobody knows. Every other case returns ``None`` with the
     reason, so no surface can draw a bar out of a number nobody computed.

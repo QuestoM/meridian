@@ -34,11 +34,11 @@ ANSWER_TRUNCATION_MARKER = "[earlier answer shortened]"
 # it silently, and it is English like every other replay marker because it is
 # addressed to the model and not to a person.
 #
-# It is worded to carry neither word the rule keys on, which a first draft did
-# not and a test caught: a marker that trips the very rule it serves would be
-# read as a fresh claim by the recovery turn and struck on screen by the
-# surface. Nothing else about it is subtle, so the constraint is stated here
-# rather than left for the next person to rediscover.
+# It is worded to carry neither word the rule keys on: a marker that trips the
+# very rule it serves would be read as a fresh claim by the recovery turn and
+# struck on screen by the surface. Nothing else about it is subtle, so the
+# constraint is stated here rather than left for the next person to
+# rediscover.
 CLAIM_REMOVAL_MARKER = (
     "[a sentence was cut from this earlier answer: it told the person a change was waiting for "
     "their approval, and that turn had recorded nothing]"

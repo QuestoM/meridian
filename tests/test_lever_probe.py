@@ -3,8 +3,7 @@
 :mod:`tests.lever_probe` exists to catch a defect whose whole signature is
 silence, so every one of its own refusals is tested here with a case that
 triggers it. The most important is the VACUITY refusal: an unconstrained fixture
-makes both verdicts meaningless, and the first draft of the demand-weight test
-was written that way and passed while proving nothing.
+makes both verdicts meaningless and passes while proving nothing.
 """
 
 from __future__ import annotations

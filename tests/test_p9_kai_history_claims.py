@@ -86,9 +86,9 @@ def test_an_answer_that_was_nothing_but_the_claim_still_replays() -> None:
 
 
 def test_the_marker_itself_does_not_read_as_a_claim(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Caught by this test on the first draft, which used the words the rule
-    keys on. A marker that trips its own rule would be read as a fresh claim by
-    the recovery turn and struck on screen by the surface."""
+    """A marker that trips its own rule would be read as a fresh claim by the
+    recovery turn and struck on screen by the surface, so the marker must carry
+    neither word the rule keys on."""
     assert claimed.claims_recorded_proposal(history.CLAIM_REMOVAL_MARKER) is False
     assert claimed.without_claims(history.CLAIM_REMOVAL_MARKER) == history.CLAIM_REMOVAL_MARKER
     assert claimed.claims_recorded_proposal(history.ANSWER_TRUNCATION_MARKER) is False

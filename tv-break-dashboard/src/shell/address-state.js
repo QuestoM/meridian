@@ -1,20 +1,18 @@
 // Every place the operator can BE has an address, and Back walks them.
 //
-// The shell already had the whole machine: the hash is the view, params are
-// owned per domain (nav.js PARAM_DOMAIN), every history write announces
+// The shell provides the machine: the hash is the view, params are owned per
+// domain (nav.js PARAM_DOMAIN), every history write announces
 // kairos:addresschange, and a traversal (Back/Forward) REMOUNTS the workspace
-// so components re-read their state from the URL. What was missing is the last
-// mile, and it was missing in two ways at once: most feature states lived in
-// useState with no param at all, and the few in-place writes used
-// replaceState - which OVERWRITES the history entry, so Back skipped the very
-// states an operator had just walked through and landed somewhere else
-// entirely. That is the exact complaint this module closes.
+// so components re-read their state from the URL. This module is the last
+// mile: feature state that lives only in useState has no address, and an
+// in-place replaceState OVERWRITES the current entry, so Back would skip the
+// very states the operator just walked through.
 //
-// THE RULE, owner-stated 2026-08-24: every discrete place - page, tab, selected
-// advertiser, selected campaign, open drawer - is a pushState, so Back returns
-// to it. Continuous input (a filter being typed, a slider mid-drag) is
-// replaceState, so history holds places rather than keystrokes. Hover and
-// focus are nobody's address and never touch the URL.
+// The rule: every discrete place - page, tab, selected advertiser, selected
+// campaign, open drawer - is a pushState, so Back returns to it. Continuous
+// input (a filter being typed, a slider mid-drag) is replaceState, so history
+// holds places rather than keystrokes. Hover and focus are nobody's address
+// and never touch the URL.
 //
 // Usage inside a component:
 //   const [view, setView] = useAddressParam('pacingView', 'board');

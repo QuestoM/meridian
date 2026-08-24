@@ -99,10 +99,10 @@ export function actorForNeedle(actors, needle) {
 // search: it is served by the endpoint over the whole record, which is the one
 // thing the box beside it cannot do.
 //
-// The Hebrew opens on a Hebrew word deliberately. Measured in the browser with
-// the first draft, which opened on the name: every one of these actors is an
-// ASCII login, dir="auto" takes the direction from the first strong character,
-// and the whole sentence rendered left to right inside a right to left page.
+// The Hebrew opens on a Hebrew word deliberately. Measured in the browser: a
+// line that opens on the name renders left to right inside a right to left
+// page, because every one of these actors is an ASCII login and dir="auto"
+// takes the direction from the first strong character.
 export function byActorLine(name) {
   return [
     `${actorLabel(name, 'en')} is on the record, and the operator filter reads all of it rather than this page.`,
