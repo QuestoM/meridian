@@ -22,8 +22,20 @@ Parameters:
       HTTP listener into a 301 redirect, so real credentials never cross
       port 80 again.
 
+  AssistantKeySecretArn:
+    Type: String
+    Default: ''
+    Description: >-
+      Secrets Manager ARN holding Kai's model key. Empty means the assistant is
+      absent from the cloud (its original state); set, the key is injected as
+      ANTHROPIC_API_KEY and Kai answers for every signed-in account on the
+      operator's own model subscription. OWNER DECISION 2026-08-24: the demo
+      runs Kai in the cloud on the operator's key; per-user authority is
+      unchanged (Kai holds exactly the signed-in user's permissions).
+
 Conditions:
   HasCertificate: !Not [!Equals [!Ref CertificateArn, '']]
+  HasAssistantKey: !Not [!Equals [!Ref AssistantKeySecretArn, '']]
 
 Resources:
   # ---------------------------------------------------------------- network
@@ -167,7 +179,10 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: secretsmanager:GetSecretValue
-                Resource: !Ref AdminPassword
+                Resource: !If
+                  - HasAssistantKey
+                  - [!Ref AdminPassword, !Ref AssistantKeySecretArn]
+                  - [!Ref AdminPassword]
   TaskRole:
     Type: AWS::IAM::Role
     Properties:
@@ -225,6 +240,13 @@ Resources:
               - !Ref AWS::NoValue
           Secrets:
             - { Name: KAIROS_ADMIN_PASSWORD, ValueFrom: !Ref AdminPassword }
+            # Kai's key, present only once the operator has loaded the secret.
+            # The key exists in the account's own vault and in the task's
+            # environment - never in an image, the repository, or a transcript.
+            - !If
+              - HasAssistantKey
+              - { Name: ANTHROPIC_API_KEY, ValueFrom: !Ref AssistantKeySecretArn }
+              - !Ref AWS::NoValue
           LogConfiguration:
             LogDriver: awslogs
             Options:
