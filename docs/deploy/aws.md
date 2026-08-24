@@ -129,11 +129,16 @@ remediation line stays in the entrypoint as the record of the incident.
   of static files the container already serves, and a second vendor in front of
   the auth wall would dilute the "one account, one boundary" pitch. Vercel
   remains an option for a public marketing shell that carries no data.
-- **HTTP for the demo, HTTPS at naming time.** TLS needs a hostname the channel
-  will actually use; an ACM certificate plus a listener swap is a one-parameter
-  stack update the day a domain is chosen. The auth wall does not depend on it,
-  but real credentials should not cross plain HTTP beyond the demo — this is the
-  first item once a domain exists.
+- **HTTPS: `www.kairos.questo.media`** (owner-chosen, 2026-08-24). ACM
+  certificate `80cd82ae-6dc5-4d3d-b5e6-dad92c543d8b` in il-central-1, DNS
+  validation via the owner's Wix-managed zone. The stack takes `CertificateArn`
+  as a parameter: empty serves the pre-domain HTTP demo; set, it adds a TLS 1.3
+  listener on 443 and turns port 80 into a permanent 301 redirect, so a
+  credential can never be typed across plain HTTP by following an old link. A
+  watcher applies the parameter automatically the moment the certificate
+  validates; if it ever needs re-running:
+  `scratchpad/https-when-ready.sh` (session) or the update-stack line in the
+  runbook with `ParameterKey=CertificateArn`.
 - **No NAT gateway.** Tasks get public IPs inside a security group that admits
   only the ALB. For a single-service demo this removes the standing ~$32/month
   NAT cost without opening a port.

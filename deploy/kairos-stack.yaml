@@ -13,6 +13,17 @@ Parameters:
   DesiredCount:
     Type: Number
     Default: 1
+  CertificateArn:
+    Type: String
+    Default: ''
+    Description: >-
+      ACM certificate for the public hostname. Empty means the demo serves
+      plain HTTP; once set, the stack adds an HTTPS listener and turns the
+      HTTP listener into a 301 redirect, so real credentials never cross
+      port 80 again.
+
+Conditions:
+  HasCertificate: !Not [!Equals [!Ref CertificateArn, '']]
 
 Resources:
   # ---------------------------------------------------------------- network
@@ -67,6 +78,7 @@ Resources:
       VpcId: !Ref Vpc
       SecurityGroupIngress:
         - { IpProtocol: tcp, FromPort: 80, ToPort: 80, CidrIp: 0.0.0.0/0 }
+        - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: 0.0.0.0/0 }
   ServiceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -252,6 +264,28 @@ Resources:
       LoadBalancerArn: !Ref LoadBalancer
       Port: 80
       Protocol: HTTP
+      # With a certificate, port 80 exists only to say "use 443": a permanent
+      # redirect, so a credential can never be typed across plain HTTP by
+      # following an old link. Without one (the pre-domain demo), it forwards.
+      DefaultActions:
+        - !If
+          - HasCertificate
+          - Type: redirect
+            RedirectConfig:
+              Protocol: HTTPS
+              Port: '443'
+              StatusCode: HTTP_301
+          - Type: forward
+            TargetGroupArn: !Ref TargetGroup
+  HttpsListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: HasCertificate
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      SslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+      Certificates: [{ CertificateArn: !Ref CertificateArn }]
       DefaultActions: [{ Type: forward, TargetGroupArn: !Ref TargetGroup }]
 
 Outputs:
