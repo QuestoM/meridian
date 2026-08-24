@@ -211,6 +211,18 @@ Resources:
           Image: !Ref ImageUri
           PortMappings: [{ ContainerPort: 8080, Protocol: tcp }]
           MountPoints: [{ SourceVolume: state, ContainerPath: /app/state }]
+          Environment:
+            # Both exist only in the TLS deployment: the session cookie takes
+            # the Secure flag (the app's own KAIROS_COOKIE_SECURE switch, built
+            # for exactly this), and the proxy adds a year of HSTS.
+            - !If
+              - HasCertificate
+              - { Name: KAIROS_COOKIE_SECURE, Value: '1' }
+              - !Ref AWS::NoValue
+            - !If
+              - HasCertificate
+              - { Name: KAIROS_TLS, Value: '1' }
+              - !Ref AWS::NoValue
           Secrets:
             - { Name: KAIROS_ADMIN_PASSWORD, ValueFrom: !Ref AdminPassword }
           LogConfiguration:

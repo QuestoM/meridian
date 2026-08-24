@@ -8,12 +8,18 @@ import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 
 const [dist, port, api] = process.argv.slice(2);
+// Set only in the TLS deployment (KAIROS_TLS=1 rides the same stack condition
+// as the certificate): a year of HSTS, subdomains included, so a browser that
+// has seen the site once never issues a plain-HTTP request again - the 301 on
+// port 80 protects the first visit, this protects every later one.
+const HSTS = process.env.KAIROS_TLS === '1';
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
   '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png',
   '.woff2': 'font/woff2', '.ico': 'image/x-icon', '.map': 'application/json',
   '.webmanifest': 'application/manifest+json' };
 
 createServer(async (req, res) => {
+  if (HSTS) res.setHeader('strict-transport-security', 'max-age=31536000; includeSubDomains');
   if (req.url === '/healthz') { res.writeHead(200); return res.end('ok'); }
   if (req.url.startsWith('/api/') || req.url.startsWith('/auth/')) {
     const body = ['GET', 'HEAD'].includes(req.method) ? undefined
