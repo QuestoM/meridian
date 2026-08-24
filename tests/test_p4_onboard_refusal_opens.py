@@ -156,6 +156,18 @@ const CONTROLS = stub('controls.mjs', `
   }
 `);
 const CSS = stub('css.mjs', 'export default {};\\n');
+const MODAL = stub('modal.mjs', `
+  import React from 'react';
+  export function Dialog({ title, description, footer, children, className }) {
+    return React.createElement('section', { className, role: 'dialog' },
+      React.createElement('header', null,
+        React.createElement('h2', null, title),
+        description ? React.createElement('p', null, description) : null),
+      children,
+      footer ? React.createElement('footer', null, footer) : null);
+  }
+  export const Sheet = Dialog;
+`);
 const LUCIDE = stub('lucide.mjs', [...icons].map((icon) => `export function ${icon}() { return null; }`).join('\\n'));
 const BASE = stub('base.mjs', "export const API_BASE = '';\\n");
 
@@ -168,6 +180,7 @@ registerHooks({
     if (specifier.endsWith('shell/format')) return hit(FORMAT);
     if (specifier.endsWith('studio/actions')) return hit(ACTIONS);
     if (specifier.endsWith('studio/dom-controls')) return hit(CONTROLS);
+    if (specifier.endsWith('studio/modal')) return hit(MODAL);
     if (specifier.endsWith('shell/api')) return hit(BASE);
     if (specifier === 'lucide-react') return hit(LUCIDE);
     const stem = specifier.startsWith('./') ? specifier.slice(2).replace(/\\.jsx?$/, '') : '';

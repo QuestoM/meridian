@@ -1,36 +1,5 @@
-/* Four-step, full-height onboarding workflow. */
-.clients-onboard-layer {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-dialog);
-  display: grid;
-  place-items: center;
-  padding: var(--space-4);
-  background: var(--scrim);
-  backdrop-filter: blur(3px);
-}
-
-.clients-onboard-layer .clients-onboard {
-  position: relative;
-  inset: auto;
-  inline-size: min(780px, calc(100vw - var(--space-8)));
-  block-size: calc(100dvh - var(--space-8));
-  max-block-size: none;
-  flex: none;
-  padding: var(--surface-inset-major);
-  border-color: var(--line-strong);
-  background: var(--surface);
-  box-shadow: var(--shadow-2);
-  overflow-y: auto;
-}
-
-.clients-onboard-layer .clients-record-head {
-  inset-block-start: calc(-1 * var(--surface-inset-major));
-  margin: calc(-1 * var(--surface-inset-major)) calc(-1 * var(--surface-inset-major)) 0;
-  padding: var(--surface-inset-major);
-  background: var(--surface);
-}
-
+/* The four-step onboarding workflow's own content. Its shell is the shared
+   studio Dialog, which owns the overlay, the frame and the sizing. */
 .clients-workflow-steps {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

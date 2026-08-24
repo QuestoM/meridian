@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Code, Name } from '../shell/bidi';
-import { Dialog, DialogActions, DialogContent, DialogTitle, Drawer, TextField, Tooltip } from '@mui/material';
+import { Drawer, TextField, Tooltip } from '@mui/material';
+import { Dialog } from '../studio/modal';
 import { Button } from '../studio/actions';
 import { Power, RotateCcw, Save, X } from 'lucide-react';
 import {
@@ -322,24 +323,23 @@ function AgencyDrawerBody({ row, locale, scopeOptions, notify, onSaved, onClose 
       <Dialog
         open={confirmSuspend}
         onClose={() => setConfirmSuspend(false)}
-        dir={locale === 'he' ? 'rtl' : 'ltr'}
-        aria-labelledby="agency-suspend-title"
-        aria-describedby="agency-suspend-description"
+        size="narrow"
+        title={pageText(locale, 'Suspend this agency', 'השהיית הסוכנות')}
+        closeLabel={pageText(locale, 'Cancel', 'ביטול')}
+        footer={(
+          <>
+            <Button className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirmSuspend(false)}>
+              {pageText(locale, 'Cancel', 'ביטול')}
+            </Button>
+            <Button className="secondary-button compact danger" type="button" variant="outlined" onClick={() => setStatusTo('suspended')}>
+              {pageText(locale, 'Suspend', 'השהיה')}
+            </Button>
+          </>
+        )}
       >
-        <DialogTitle id="agency-suspend-title">{pageText(locale, 'Suspend this agency', 'השהיית הסוכנות')}</DialogTitle>
-        <DialogContent>
-          <p className="agz-dialog-text" id="agency-suspend-description">
-            {pageText(locale, `The agency ${row.agency_id} will be marked suspended. Its rules and rebate go inert on the pricing path, its advertiser links and history are kept, nothing is deleted, and it can be reactivated at any time.`, `הסוכנות ${row.agency_id} תסומן כמושהית. הכללים והרבייט שלה מפסיקים לפעול בנתיב התמחור, קישורי המפרסמים וההיסטוריה נשמרים, דבר אינו נמחק, וניתן להפעיל אותה מחדש בכל עת.`)}
-          </p>
-        </DialogContent>
-        <DialogActions>
-          <Button autoFocus className="secondary-button compact" type="button" variant="outlined" onClick={() => setConfirmSuspend(false)}>
-            {pageText(locale, 'Cancel', 'ביטול')}
-          </Button>
-          <Button className="secondary-button compact danger" type="button" variant="outlined" onClick={() => setStatusTo('suspended')}>
-            {pageText(locale, 'Suspend', 'השהיה')}
-          </Button>
-        </DialogActions>
+        <p className="agz-dialog-text">
+          {pageText(locale, `The agency ${row.agency_id} will be marked suspended. Its rules and rebate go inert on the pricing path, its advertiser links and history are kept, nothing is deleted, and it can be reactivated at any time.`, `הסוכנות ${row.agency_id} תסומן כמושהית. הכללים והרבייט שלה מפסיקים לפעול בנתיב התמחור, קישורי המפרסמים וההיסטוריה נשמרים, דבר אינו נמחק, וניתן להפעיל אותה מחדש בכל עת.`)}
+        </p>
       </Dialog>
     </>
   );

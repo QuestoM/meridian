@@ -3,8 +3,7 @@
    again when it passed the cap itself: the onboarding form's own styles are in
    clients-onboard-form.css. Reads the tokens, defines none. */
 
-.clients-record,
-.clients-onboard {
+.clients-record {
   inline-size: 420px;
   flex: 0 0 420px;
   position: sticky;

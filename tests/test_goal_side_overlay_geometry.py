@@ -46,6 +46,35 @@ def test_custom_side_surfaces_are_bounded_to_the_remaining_viewport():
     assert "inset-block: calc(var(--shell-header-height) + var(--space-4)) var(--space-4);" in floating
 
 
+def test_dialogs_share_the_header_boundary_and_stay_viewport_clamped():
+    """Modal dialogs are the same citizens as the side surfaces: the operator
+    header stays visible above every overlay, and every frame width is clamped
+    to the viewport so a large dialog on a small screen keeps its margins."""
+    body = _rule("studio/studio-workspaces.css", ".studio-dialog")
+    assert "inset-block: var(--shell-header-height) 0;" in body
+
+    studio = (ROOT / "studio/studio-workspaces.css").read_text(encoding="utf-8")
+    frames = re.findall(
+        r"\.studio-dialog[^{]*\.studio-modal__frame\s*\{[^}]*inline-size:\s*([^;]+);",
+        studio,
+    )
+    assert frames, "the dialog frame no longer declares its widths"
+    for width in frames:
+        assert width.strip().startswith("min(100%"), width
+
+
+def test_popup_shells_come_from_the_modal_primitives():
+    """One overlay system: a popup's shell is the studio Dialog or Sheet, never
+    a hand-rolled aria-modal aside with its own geometry. Docked side panels
+    (MUI drawers, the record rail) are side surfaces, covered above."""
+    for path in ROOT.rglob("*.jsx"):
+        if path.name == "modal-primitives.jsx":
+            continue
+        assert 'aria-modal="true"' not in path.read_text(encoding="utf-8"), path.name
+    for css in (ROOT / "clients").glob("*.css"):
+        assert "clients-onboard-layer" not in css.read_text(encoding="utf-8"), css.name
+
+
 def test_sheets_and_mui_drawers_use_the_same_header_boundary():
     studio = (ROOT / "studio/studio-workspaces.css").read_text(encoding="utf-8")
     theme = (ROOT / "shell/theme-form-overrides.js").read_text(encoding="utf-8")

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../studio/actions';
-import { Check, Plus, Trash2, X } from 'lucide-react';
+import { Dialog } from '../studio/modal';
+import { Check, Plus, Trash2 } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { loadOnboardingOptions, onboardClient } from './clients-api';
 import { localized, refusalText, vocabularyLabel } from './clients-money-helpers';
@@ -13,45 +14,6 @@ const STEPS = [{ en: 'Identity', he: 'זהות' }, { en: 'Commercial terms', he:
   { en: 'Flights', he: 'טיסות שידור' }, { en: 'Review', he: 'בדיקה' }];
 const EMPTY_AGENCY = { name: '', agency_type: '', contact_name: '', contact_role: '', contact_phone: '',
   contact_email: '', vat_id: '', rebate_percent: '', commission_percent: '', credit_limit_ils: '', payment_terms_days: '60' };
-function useDialogFocus(containerRef, initialFocusRef, onClose) {
-  useEffect(() => {
-    if (typeof document === 'undefined') return undefined;
-    const before = document.activeElement;
-    const container = containerRef.current;
-    if (!container) return undefined;
-    const background = Array.from(document.querySelectorAll('.clients-workspace > .page-header, .clients-workspace > .clients-views, .clients-workspace > .clients-error, .clients-body > .clients-main, .clients-body > .clients-record'));
-    const previous = background.map((node) => ({ node, inert: node.inert, hidden: node.getAttribute('aria-hidden') }));
-    background.forEach((node) => {
-      node.inert = true;
-      node.setAttribute('aria-hidden', 'true');
-    });
-    const focusable = () => Array.from(container.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])')).filter((node) => !node.closest('[hidden]'));
-    const onKeyDown = (event) => {
-      if (event.key === 'Escape') { event.preventDefault(); onClose(); return; }
-      if (event.key !== 'Tab') return;
-      const nodes = focusable();
-      if (!nodes.length) return;
-      const [first] = nodes;
-      const last = nodes.at(-1);
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault(); last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault(); first.focus();
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    (initialFocusRef.current || focusable()[0] || container).focus();
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      previous.forEach(({ node, inert, hidden }) => {
-        node.inert = inert;
-        if (hidden === null) node.removeAttribute('aria-hidden');
-        else node.setAttribute('aria-hidden', hidden);
-      });
-      if (before && typeof before.focus === 'function') before.focus();
-    };
-  }, [containerRef, initialFocusRef, onClose]);
-}
 function openWord(kind, locale) {
   if (kind === 'campaign') return pageText(locale, 'Open that campaign', 'פתחו את הקמפיין הזה');
   if (kind === 'agency') return pageText(locale, 'Open that agency record', 'פתחו את כרטיס הסוכנות');
@@ -92,14 +54,11 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
   const [discount, setDiscount] = useState({ percent: '', weekdays: ['6'], asAgencyRule: false });
   const [flights, setFlights] = useState([{ ...EMPTY_FLIGHT }]);
   const [state, setState] = useState({ status: 'idle', error: '', opens: null, result: null });
-  const dialogRef = useRef(null);
-  const closeRef = useRef(null);
   const formRef = useRef(null);
   const stepTitleRef = useRef(null);
   // A choice already made outranks the later options read.
   const chosen = useRef({ mode: false, agency: false });
-  useDialogFocus(dialogRef, closeRef, onClose);
-  useEffect(() => { const target = step === STEPS.length - 1 ? closeRef.current : stepTitleRef.current; if (target) target.focus(); }, [step]);
+  useEffect(() => { if (step > 0 && stepTitleRef.current) stepTitleRef.current.focus(); }, [step]);
 
   useEffect(() => {
     let active = true;
@@ -198,15 +157,9 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
         ? localized(result.discount, 'covers', locale) : localized(result.discount, 'note', locale)],
     ];
     return (
-      <div className="clients-onboard-layer">
-      <aside className="card card-dense card-body clients-record clients-onboard" role="dialog" aria-modal="true"
-             aria-labelledby="clients-onboard-result-title" ref={dialogRef} tabIndex={-1}>
-        <header className="clients-record-head">
-          <h3 id="clients-onboard-result-title">{pageText(locale, 'The client is on file', 'הלקוח נקלט')}</h3>
-          <Button ref={closeRef} type="button" className="clients-icon-button" onClick={onClose} aria-label={pageText(locale, 'Close onboarding result', 'סגירת תוצאת הקליטה')}>
-            <X size={15} aria-hidden="true" />
-          </Button>
-        </header>
+      <Dialog open onClose={onClose} className="clients-onboard"
+              title={pageText(locale, 'The client is on file', 'הלקוח נקלט')}
+              closeLabel={pageText(locale, 'Close onboarding result', 'סגירת תוצאת הקליטה')}>
         <ul className="clients-result">
           {outcomeRows.map(([title, detail]) => (
             <li key={title}><Check size={13} aria-hidden="true" /><strong>{title}</strong><span>{detail}</span></li>
@@ -215,26 +168,17 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
         <Button type="button" className="clients-primary" onClick={() => onDone(result.campaign.advertiser)}>
           {pageText(locale, 'Open the client record', 'פתחו את כרטיס הלקוח')}
         </Button>
-      </aside>
-      </div>
+      </Dialog>
     );
   }
   return (
-    <div className="clients-onboard-layer">
-    <aside className="card card-dense card-body clients-record clients-onboard" role="dialog" aria-modal="true"
-           aria-labelledby="clients-onboard-title" aria-describedby="clients-onboard-intro"
-           aria-busy={!options || state.status === 'saving'} ref={dialogRef} tabIndex={-1}>
-      <header className="clients-record-head">
-        <h3 id="clients-onboard-title">{pageText(locale, 'Onboard a client', 'קליטת לקוח')}</h3>
-        <Button ref={closeRef} type="button" className="clients-icon-button" onClick={onClose} aria-label={pageText(locale, 'Cancel onboarding', 'ביטול הקליטה')}>
-          <X size={15} aria-hidden="true" />
-        </Button>
-      </header>
-      <p className="clients-basis-note" id="clients-onboard-intro">{pageText(locale,
-        'One insertion order, one submit. The agency, the client and the campaign are created and linked together.',
-        'הזמנה אחת, שליחה אחת. הסוכנות, הלקוח והקמפיין נוצרים ומקושרים יחד.')}</p>
-
-      <ol className="clients-workflow-steps" aria-label={pageText(locale, 'Onboarding progress', 'התקדמות הקליטה')}>
+    <Dialog open onClose={onClose} size="wide" className="clients-onboard" dismissOnBackdrop={false}
+            title={pageText(locale, 'Onboard a client', 'קליטת לקוח')}
+            description={pageText(locale,
+              'One insertion order, one submit. The agency, the client and the campaign are created and linked together.',
+              'הזמנה אחת, שליחה אחת. הסוכנות, הלקוח והקמפיין נוצרים ומקושרים יחד.')}
+            closeLabel={pageText(locale, 'Cancel onboarding', 'ביטול הקליטה')}>
+      <ol className="clients-workflow-steps" id="clients-onboard-steps" aria-label={pageText(locale, 'Onboarding progress', 'התקדמות הקליטה')}>
         {STEPS.map((entry, index) => (
           <li key={entry.en} className={index === step ? 'active' : index < step ? 'complete' : ''}>
             <span className="clients-workflow-step" aria-current={index === step ? 'step' : undefined}>
@@ -244,7 +188,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
           </li>
         ))}
       </ol>
-      <form ref={formRef} onSubmit={submit} className="clients-form">
+      <form ref={formRef} onSubmit={submit} className="clients-form" aria-busy={!options || state.status === 'saving'}>
         <div className="clients-workflow-panel" id="onboard-step-identity" hidden={step !== 0}>
         <h4 ref={step === 0 ? stepTitleRef : null} tabIndex={-1}>{pageText(locale, 'Identity', 'זהות')}</h4>
         <fieldset disabled={step !== 0}>
@@ -422,7 +366,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
         <RefusalNotice error={state.error} opens={state.opens} locale={locale} onOpen={onOpenRefused} />
         <div className="clients-form-actions">
           {step < STEPS.length - 1 ? (
-            <a href="#clients-onboard-title" role="button" className="clients-primary" onClick={(event) => { event.preventDefault(); nextStep(); }}
+            <a href="#clients-onboard-steps" role="button" className="clients-primary" onClick={(event) => { event.preventDefault(); nextStep(); }}
                onKeyDown={(event) => { if (event.key === ' ') { event.preventDefault(); nextStep(); } }}>
               {pageText(locale, 'Continue', 'המשך')}
             </a>
@@ -434,7 +378,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
             </Button>
           )}
           {step > 0 ? (
-            <a href="#clients-onboard-title" role="button" className="clients-secondary" onClick={(event) => { event.preventDefault(); setStep((current) => current - 1); }}
+            <a href="#clients-onboard-steps" role="button" className="clients-secondary" onClick={(event) => { event.preventDefault(); setStep((current) => current - 1); }}
                onKeyDown={(event) => { if (event.key === ' ') { event.preventDefault(); setStep((current) => current - 1); } }}>
               {pageText(locale, 'Back', 'חזרה')}
             </a>
@@ -444,7 +388,6 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
           </Button>
         </div>
       </form>
-    </aside>
-    </div>
+    </Dialog>
   );
 }

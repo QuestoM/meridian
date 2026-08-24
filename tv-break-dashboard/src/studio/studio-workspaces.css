@@ -87,14 +87,20 @@
   overflow: hidden;
 }
 
+/* Dialogs share the sheet's header boundary: the operator chrome stays
+   visible above every overlay, and the frame centers in what remains. Widths
+   are viewport-clamped, so a large dialog on a small screen keeps the
+   surrounding margin instead of overflowing it. */
 .studio-dialog {
+  inset-block: var(--shell-header-height) 0;
+  block-size: auto;
   place-items: center;
   overflow: auto;
 }
 
-.studio-dialog .studio-modal__frame { inline-size: min(100%, 640px); }
+.studio-dialog .studio-modal__frame { inline-size: min(100%, 760px); }
 .studio-dialog[data-size='narrow'] .studio-modal__frame { inline-size: min(100%, 480px); }
-.studio-dialog[data-size='wide'] .studio-modal__frame { inline-size: min(100%, 880px); }
+.studio-dialog[data-size='wide'] .studio-modal__frame { inline-size: min(100%, 1080px); }
 
 .studio-sheet {
   inset-block: var(--shell-header-height) 0;

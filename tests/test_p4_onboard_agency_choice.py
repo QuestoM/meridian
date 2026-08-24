@@ -181,6 +181,22 @@ export const ButtonBase = Button;
 export const IconButton = Button;
 """
 
+# The studio Dialog, hook-free so deep() can invoke it as a nested component:
+# the shell renders its title, description, body and footer in order, which is
+# all the finders below need.
+MODAL = """
+import React from 'react';
+export function Dialog({ title, description, footer, children, className }) {
+  return React.createElement('section', { className, role: 'dialog' },
+    React.createElement('header', null,
+      React.createElement('h2', null, title),
+      description ? React.createElement('p', null, description) : null),
+    children,
+    footer ? React.createElement('footer', null, footer) : null);
+}
+export const Sheet = Dialog;
+"""
+
 CONTROLS = """
 import React from 'react';
 export function InputControl(props) { return React.createElement('input', props); }
@@ -217,6 +233,7 @@ const ICONS = pathToFileURL(join(here, 'icons.mjs')).href;
 const FORMAT = pathToFileURL(join(here, 'format.mjs')).href;
 const ACTIONS = pathToFileURL(join(here, 'actions.mjs')).href;
 const CONTROLS = pathToFileURL(join(here, 'controls.mjs')).href;
+const MODAL = pathToFileURL(join(here, 'modal.mjs')).href;
 const API = pathToFileURL(join(here, 'clients-api.mjs')).href;
 const HELPERS = pathToFileURL(helpersPath).href;
 // The weekday coverage sentence lives in one shared module now, because two
@@ -247,6 +264,7 @@ registerHooks({
     if (specifier.endsWith('shell/format')) return { url: FORMAT, shortCircuit: true };
     if (specifier.endsWith('studio/actions')) return { url: ACTIONS, shortCircuit: true };
     if (specifier.endsWith('studio/dom-controls')) return { url: CONTROLS, shortCircuit: true };
+    if (specifier.endsWith('studio/modal')) return { url: MODAL, shortCircuit: true };
     if (specifier.endsWith('clients-api')) return { url: API, shortCircuit: true };
     if (specifier.endsWith('clients-money-helpers')) return { url: HELPERS, shortCircuit: true };
     if (specifier.endsWith('weekday-scope-helpers')) return { url: WEEKDAYS, shortCircuit: true };
@@ -403,7 +421,7 @@ def payload_path(tmp_path_factory) -> Path:
 
 def _run(tmp_path: Path, source: str, payload_path: Path) -> dict:
     """Drive one version of the form through the three sequences."""
-    stubs = {"react-runtime.mjs": RUNTIME, "icons.mjs": ICONS, "format.mjs": FORMAT, "actions.mjs": ACTIONS, "controls.mjs": CONTROLS,
+    stubs = {"react-runtime.mjs": RUNTIME, "icons.mjs": ICONS, "format.mjs": FORMAT, "actions.mjs": ACTIONS, "controls.mjs": CONTROLS, "modal.mjs": MODAL,
              "clients-api.mjs": API, "harness.mjs": HARNESS, "OnboardClientFlow.jsx": source}
     for name, body in stubs.items():
         (tmp_path / name).write_text(body, encoding="utf-8")
