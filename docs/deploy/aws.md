@@ -129,9 +129,14 @@ remediation line stays in the entrypoint as the record of the incident.
   of static files the container already serves, and a second vendor in front of
   the auth wall would dilute the "one account, one boundary" pitch. Vercel
   remains an option for a public marketing shell that carries no data.
-- **HTTPS: `www.kairos.questo.media`** (owner-chosen, 2026-08-24). ACM
-  certificate `80cd82ae-6dc5-4d3d-b5e6-dad92c543d8b` in il-central-1, DNS
-  validation via the owner's Wix-managed zone. The stack takes `CertificateArn`
+- **HTTPS: `kairos.questo.media`, canonical** (owner-refined, 2026-08-24: the
+  first request followed the owner's literal `www.` spelling; the owner then
+  asked why www at all, and nothing technical requires it -- the apex-CNAME
+  limitation applies to `questo.media` itself, not to a subdomain -- so the
+  bare name is canonical and `www.` answers with a 301, served over the same
+  certificate, which carries both names). ACM certificate
+  `9f5ba05d-ffff-4ec3-a2aa-3b2b8d2f9f04` in il-central-1, DNS validation via
+  the owner's Wix-managed zone; the www-only request was deleted. The stack takes `CertificateArn`
   as a parameter: empty serves the pre-domain HTTP demo; set, it adds a TLS 1.3
   listener on 443 and turns port 80 into a permanent 301 redirect, so a
   credential can never be typed across plain HTTP by following an old link. A

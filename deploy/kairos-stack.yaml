@@ -287,6 +287,26 @@ Resources:
       SslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
       Certificates: [{ CertificateArn: !Ref CertificateArn }]
       DefaultActions: [{ Type: forward, TargetGroupArn: !Ref TargetGroup }]
+  # One canonical address. The product lives at kairos.questo.media; www exists
+  # only so a typed-from-habit www never dead-ends, and it answers with a
+  # permanent redirect rather than a second identity. The certificate carries
+  # both names, so the redirect itself is served over valid TLS.
+  WwwToCanonicalRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Condition: HasCertificate
+    Properties:
+      ListenerArn: !Ref HttpsListener
+      Priority: 1
+      Conditions:
+        - Field: host-header
+          HostHeaderConfig: { Values: [www.kairos.questo.media] }
+      Actions:
+        - Type: redirect
+          RedirectConfig:
+            Host: kairos.questo.media
+            Protocol: HTTPS
+            Port: '443'
+            StatusCode: HTTP_301
 
 Outputs:
   DashboardUrl:
