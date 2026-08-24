@@ -110,6 +110,46 @@ reset credentials. The password exists in no image, no repository, no chat
 transcript and no shell history; the operator reads it from the Secrets Manager
 console when signing in the first time, and the dashboard forces a change.
 
+## The access model — two layers, one principle
+
+**The principle, at both layers: an actor holds the authority of the signed-in
+human, and not a millimetre beyond.** Stated by the owner, and it was already
+the product's own Rule 7 before it became infrastructure.
+
+**Inside the product** (measured — 38 auth/assistant-security tests green):
+three roles, `admin` / `operator` / `viewer`, enforced AT THE SERVER, not in
+the UI: a viewer session is refused on every mutating method (403), account
+management demands the admin role (403 otherwise), anonymous is walled with
+401. The full user lifecycle is in-app: `/auth/users` CRUD, per-user
+affiliation, password reset, forced change on first login, and the shell's
+UserAdminDialog gives the admin all of it on screen. **Kai runs under the
+caller's session**: a viewer's ask offers no propose tools and a forced
+propose is refused; threads are isolated per user; a proposal that touches a
+broadcast-licence limit carries the store's own permission verdict before the
+approval card renders. The assistant reaches exactly the controls the person
+behind it can reach.
+
+**On AWS** (each boundary verified live, allowed-and-denied both):
+
+| Role | Holds | Verified |
+|---|---|---|
+| `KairosDeploy` — **the AI's standing profile** (`kairos`) | image push, task-def + service update, stack update, logs; `iam:PassRole` on the task roles only | ECS list ✓, `iam:CreateUser` **AccessDenied** |
+| `KairosReadOnly` (`kairos-ro`) | AWS ReadOnlyAccess | describe ✓, `ecs:UpdateService` **AccessDenied** |
+| `OrganizationAccountAccessRole` (`kairos-admin`) | break-glass admin, reached by NAME only | — |
+
+The AI's routine authority is deploy-scope; admin is a deliberate human
+escalation. And the whole account is fenced by an organization SCP
+(`kairos-region-lock`, attached to this account alone): every regional API
+outside **il-central-1** meets an explicit deny, so the channel's data cannot
+drift out of Israel even by mistake — verified: `ec2 describe-vpcs` answers in
+il-central-1 and is denied in eu-central-1. IAM/STS/billing-class global
+services are exempted the standard way.
+
+At handover, the layers separate cleanly: the product's admin passes to the
+channel with the account; the org roles and the SCP die with the org
+membership; and whatever access the channel grants afterwards is theirs to
+define inside their own boundary.
+
 ## Incident record: the auth store that rode in the image
 
 The first image baked the operator's local `data/auth/users.json` — real
