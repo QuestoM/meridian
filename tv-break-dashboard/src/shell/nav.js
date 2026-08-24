@@ -104,6 +104,12 @@ const PARAM_DOMAIN = {
   pod: 'Broadcast',
   clients: 'Commercial',
   client: 'Commercial',
+  campaign: 'Commercial',
+  agency: 'Commercial',
+  rule: 'Commercial',
+  agreement: 'Commercial',
+  pacingView: 'Commercial',
+  makeGood: 'Commercial',
   sources: 'Sources',
   source: 'Sources',
   sourceView: 'Sources',
@@ -112,6 +118,11 @@ const PARAM_DOMAIN = {
   entry: 'History',
   historyKind: 'History',
   todaySection: 'Today',
+  programme: 'Today',
+  decision: 'Today',
+  moneyDay: 'Today',
+  input: 'Sources',
+  calendarView: 'Governance',
 };
 
 const VALID_VALUES = {
@@ -126,6 +137,8 @@ const VALID_VALUES = {
   rules: new Set(['restrictions', 'licence', 'rate_card', 'calendar', 'channel', 'levers']),
   modelSection: new Set(['gates', 'coverage', 'drift', 'candidates', 'training', 'versions', 'provenance']),
   todaySection: new Set(['economics', 'guardrails', 'yield']),
+  pacingView: new Set(['board', 'ledger']),
+  calendarView: new Set(['grid', 'list']),
 };
 
 function decodedHash() {

@@ -50,7 +50,7 @@ export function readParam(name, fallback = '') {
 // A reload clears it, because after a reload the URL is the address again.
 let writtenView = null;
 
-export function writeParams(next) {
+export function writeParams(next, { replace = false } = {}) {
   if (typeof window === 'undefined' || !window.history) {
     return;
   }
@@ -64,7 +64,17 @@ export function writeParams(next) {
   });
   const query = params.toString();
   const url = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`;
-  window.history.replaceState(null, '', url);
+  // Unchanged address: nothing to record. This is what keeps the mount-time
+  // sync effects from pushing a duplicate entry on every arrival.
+  if (url === `${window.location.pathname}${window.location.search}${window.location.hash}`) {
+    return;
+  }
+  // A changed place is a PUSH - owner rule 2026-08-24: Back returns to the tab
+  // and record the operator was just on, never to a different page entirely.
+  // replaceState remains for continuous edits via the option.
+  const state = { ...(window.history.state || {}), kairos: true };
+  if (replace) window.history.replaceState(state, '', url);
+  else window.history.pushState(state, '', url);
   if (Object.prototype.hasOwnProperty.call(next, VIEW_PARAM)) {
     writtenView = next[VIEW_PARAM];
   }

@@ -8,6 +8,7 @@ import PacingViews, { BOARD, LEDGER } from './PacingViews';
 import { acceptRisk, loadBoard, loadLedger, moveMakeGood, raiseMakeGood, refusalOpens, refusalText } from './pacing-api';
 import { isolate, localized, pick, term, vocabularyLabel } from './pacing-helpers';
 import { rememberCampaign, takeRememberedCampaign } from './pacing-place';
+import { useAddressParam } from '../../shell/address-state';
 import { headlineSentence, seededSentence } from './pacing-summary';
 import './pacing.css';
 import './pacing-row.css';
@@ -28,7 +29,9 @@ function Failed({ locale, en, he, onRetry }) {
 }
 
 export default function PacingWorkspace({ locale = 'he', notify = () => {}, refreshKey = 0, onOpenCampaign }) {
-  const [view, setView] = useState(BOARD);
+  // The inner tab is an address (registered as pacingView in shell/nav.js), so
+  // Back returns to the ledger the operator was reading, not to a reset board.
+  const [view, setView] = useAddressParam('pacingView', BOARD);
   const [board, setBoard] = useState({ status: 'loading', payload: null });
   const [ledger, setLedger] = useState({ status: 'loading', payload: null });
   const [session, setSession] = useState(null);
@@ -38,11 +41,11 @@ export default function PacingWorkspace({ locale = 'he', notify = () => {}, refr
   const [notice, setNotice] = useState('');
   // A refusal can name the campaign or decision that should open instead.
   const [refusalOpen, setRefusalOpen] = useState(null);
-  const [focusCampaign, setFocusCampaign] = useState('');
+  const [focusCampaign, setFocusCampaign] = useAddressParam('campaign', '');
   // Which record a control asked for, so the ledger opens on it rather than at
   // the top of itself. Both seams that name one passed an id into a handler that
   // threw it away.
-  const [focusMakeGood, setFocusMakeGood] = useState('');
+  const [focusMakeGood, setFocusMakeGood] = useAddressParam('makeGood', '');
   // The record the last write created, and the published transition that reverses
   // it. Measured: pressing a on a focused row recorded MG_0001 immediately and
   // the banner confirming it offered Dismiss and nothing else.

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../studio/actions';
+import { useAddressParam } from '../shell/address-state';
 import { ArrowRight } from 'lucide-react';
 import { Numeric, formatNumber } from '../shell/format';
 import { Code } from '../shell/bidi';
@@ -84,7 +85,9 @@ export function InputsView({ status, locale, canEdit, canEditReason, filter, onF
                              onReload, notify, focusKind = '', focusFile = '' }) {
   const [rowsIndex, setRowsIndex] = useState(-1);
   const [fields, setFields] = useState(readFields);
-  const [selectedKind, setSelectedKind] = useState('');
+  // The inspected input is an address (input in shell/nav.js), so Back steps
+  // from one inspected input to the previous one, and a URL can point at one.
+  const [selectedKind, setSelectedKind] = useAddressParam('input', '');
   const filterRefs = useRef([]);
 
   const inputs = Array.isArray(status.inputs) ? status.inputs : [];

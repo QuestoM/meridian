@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Button } from '../studio/actions';
 import { Numeric, finiteNumber, formatCurrency, formatNumber, formatPercent, pageText } from '../shell/format';
+import { useAddressParam } from '../shell/address-state';
 import { formatDay, formatSpan } from '../shell/dates';
 import { programTypeLabel, recommendationTitle } from '../shell/labels';
 import { Name, isolate } from '../shell/bidi';
@@ -54,7 +55,9 @@ function scopeLine(today, locale) {
 }
 
 export function TodayDecisions({ today, locale, onOpenInOptimizer, onOpenSettings }) {
-  const [openId, setOpenId] = useState('');
+  // The open decision is an address (decision in shell/nav.js): Back reopens
+  // the decision the operator was weighing rather than collapsing the queue.
+  const [openId, setOpenId] = useAddressParam('decision', '');
   // Where the keyboard came from, so closing returns it there rather than
   // dropping it at the top of the document.
   const rows = useRef({});

@@ -49,10 +49,12 @@ function writeParam(name, value) {
   if (value) params.set(name, value);
   else params.delete(name);
   const query = params.toString();
-  window.history.replaceState(
-    null, '',
-    `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`,
-  );
+  const url = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`;
+  if (url === `${window.location.pathname}${window.location.search}${window.location.hash}`) return;
+  // pushState, not replaceState: the sentence above says "Back returns to the
+  // list", and with replaceState that sentence was false - the entry was
+  // overwritten and Back left the panel entirely.
+  window.history.pushState({ ...(window.history.state || {}), kairos: true }, '', url);
 }
 
 // The alarm summary for one approved agreement, in the order that puts a breach

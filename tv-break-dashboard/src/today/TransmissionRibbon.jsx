@@ -5,6 +5,7 @@ import { formatDay, formatSpan } from '../shell/dates';
 import { Button } from '../studio/actions';
 import { Pressable } from '../studio/dom-controls';
 import { Code, Name } from '../shell/bidi';
+import { useAddressParam } from '../shell/address-state';
 import './transmission-ribbon.css';
 
 const MINUTE = 60;
@@ -75,7 +76,14 @@ export function TransmissionRibbon({ today, schedule, locale, onOpenPlan }) {
   const programs = useMemo(() => displayPrograms(schedule), [schedule]);
   const range = useMemo(() => rangeFor(programs), [programs]);
   const breaks = Array.isArray(schedule?.break_operations?.breaks) ? schedule.break_operations.breaks : [];
-  const [selectedId, setSelectedId] = useState(() => programs.find((program) => Number(program.break_markers || 0) > 0)?.id || programs[0]?.id || '');
+  // The selected programme is an address (programme in shell/nav.js): Back
+  // returns to the programme whose figures were open, and a shared URL opens on
+  // it. An address naming a programme this payload no longer carries falls back
+  // to the first with breaks, never to a blank panel.
+  const [addressedId, setAddressedId] = useAddressParam('programme', '');
+  const fallbackId = programs.find((program) => Number(program.break_markers || 0) > 0)?.id || programs[0]?.id || '';
+  const selectedId = programs.some((program) => program.id === addressedId) ? addressedId : fallbackId;
+  const setSelectedId = setAddressedId;
   const selected = programs.find((program) => program.id === selectedId) || programs[0] || null;
   const selectedBreaks = selected ? breaks.filter((item) => item.program_id === selected.id) : [];
   const visibleBreaks = range

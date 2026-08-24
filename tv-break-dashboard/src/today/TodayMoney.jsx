@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Button } from '../studio/actions';
 import { ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { Numeric, finiteNumber, formatCurrency, formatNumber, pageText } from '../shell/format';
+import { useAddressParam } from '../shell/address-state';
 import { formatDay, formatSpan } from '../shell/dates';
 import { WALLS } from '../session.js';
 import TargetForm from './TargetForm';
@@ -273,8 +274,21 @@ function exportDays(money) {
 }
 
 export function TodayMoney({ today, locale, onOpenPlan, onOpenSettings, onSaveTarget, onClearTarget, saveState }) {
-  const [drillOpen, setDrillOpen] = useState(false);
-  const [openDate, setOpenDate] = useState('');
+  // The open money day is an address (moneyDay in shell/nav.js). A day in the
+  // address means the drill is open on it, so Back walks day -> drill -> panel
+  // instead of leaping off the page.
+  const [openDate, setOpenDateAddress] = useAddressParam('moneyDay', '');
+  const [drillOpen, setDrillOpenState] = useState(() => Boolean(openDate));
+  const setDrillOpen = (next) => {
+    const resolved = typeof next === 'function' ? next(drillOpen) : next;
+    setDrillOpenState(resolved);
+    if (!resolved) setOpenDateAddress('');
+  };
+  const setOpenDate = (value) => {
+    const resolved = typeof value === 'function' ? value(openDate) : value;
+    setOpenDateAddress(resolved || '');
+    if (resolved) setDrillOpenState(true);
+  };
   const [formOpen, setFormOpen] = useState(false);
   const [clearReviewOpen, setClearReviewOpen] = useState(false);
   const cancelClearRef = useRef(null);

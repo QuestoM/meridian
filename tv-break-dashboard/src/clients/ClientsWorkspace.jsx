@@ -80,13 +80,13 @@ export default function ClientsWorkspace({
   // Which pricing row the records tab should open on. It is set only by a
   // control that already knows the row exists, so that tab is never entered
   // pointing at a card that cannot be there.
-  const [openRuleId, setOpenRuleId] = useState('');
+  const [openRuleId, setOpenRuleId] = useState(() => readParam('rule'));
   // The same device for the agency records tab, so the agency named on a client
   // record opens as that record rather than as a grid to search again.
-  const [openAgencyId, setOpenAgencyId] = useState('');
+  const [openAgencyId, setOpenAgencyId] = useState(() => readParam('agency'));
   // And for the campaign board, so a figure headed by a campaign name opens the
   // booking that carries it instead of naming it.
-  const [openCampaignId, setOpenCampaignId] = useState('');
+  const [openCampaignId, setOpenCampaignId] = useState(() => readParam('campaign'));
   // An array of section names that failed to load, or an empty array when all
   // loaded. Null while the initial fetch is still in flight.
   const [failed, setFailed] = useState(null);
@@ -144,9 +144,24 @@ export default function ClientsWorkspace({
     return () => { alive = false; };
   }, [refreshKey, reloadKey]);
 
+  // MEASURED before this flag existed: navigating to Commercial cost TWO
+  // history entries - the navigation's own push, then this effect pushing the
+  // default tab onto a bare address - so the first Back landed on the same
+  // page. Arrival normalization is not a place the operator chose: the first
+  // sync REPLACES, and only operator-driven changes after it push.
+  const syncedOnce = useRef(false);
   useEffect(() => {
-    writeParams({ [VIEW_PARAM]: active, [RECORD_PARAM]: openClient });
-  }, [active, openClient]);
+    // Every open record is part of the address, so Back reopens the exact
+    // record the operator left - not the bare grid it sat on.
+    writeParams({
+      [VIEW_PARAM]: active,
+      [RECORD_PARAM]: openClient,
+      campaign: openCampaignId,
+      agency: openAgencyId,
+      rule: openRuleId,
+    }, { replace: !syncedOnce.current });
+    syncedOnce.current = true;
+  }, [active, openClient, openCampaignId, openAgencyId, openRuleId]);
 
   const rows = useMemo(
     () => (tree

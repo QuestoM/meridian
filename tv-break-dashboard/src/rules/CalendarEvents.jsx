@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '../studio/actions';
+import { useAddressParam } from '../shell/address-state';
 import { Info, RefreshCcw } from 'lucide-react';
 import { API_BASE, pageText } from '../shell/surface-helpers';
 import { Name } from '../shell/bidi';
@@ -47,7 +48,10 @@ function CalendarEvents({ locale, notify, refreshKey, onGlobalRefresh, onOpenRat
   // new event land invisibly at the bottom of 60+ rows.
   const [highlightId, setHighlightId] = useState(null);
   // Grid (primary) or list; the choice persists across sessions.
-  const [view, setView] = useState(readStoredCalendarView);
+  // The calendar view is an address (calendarView in shell/nav.js); the stored
+  // preference remains the DEFAULT for a bare address, so a bookmark without
+  // the param still opens the way the operator likes.
+  const [view, setView] = useAddressParam('calendarView', readStoredCalendarView());
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   // A one-shot jump target for the month grid, set by the upcoming strip.
   const [gridFocus, setGridFocus] = useState(null);
