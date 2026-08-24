@@ -75,6 +75,16 @@ async function open(url) {
   globalThis.window = {
     location,
     history: {
+      // Both verbs, mirroring the browser: the write engine pushes when a
+      // place changes (Back walks places) and replaces only for arrival
+      // normalization. These tests assert ADDRESSES, which push and replace
+      // shape identically, so the sequences below hold for both verbs.
+      pushState(state, title, next) {
+        const now = new URL(next, 'http://127.0.0.1');
+        location.pathname = now.pathname;
+        location.search = now.search;
+        location.hash = now.hash;
+      },
       replaceState(state, title, next) {
         const now = new URL(next, 'http://127.0.0.1');
         location.pathname = now.pathname;

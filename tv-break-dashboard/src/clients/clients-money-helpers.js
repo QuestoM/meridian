@@ -64,20 +64,22 @@ export function writeParams(next, { replace = false } = {}) {
   });
   const query = params.toString();
   const url = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`;
-  // Unchanged address: nothing to record. This is what keeps the mount-time
+  // The view is recorded BEFORE the unchanged-address return: a mount onto an
+  // address already carrying the view is still this destination's own write,
+  // and without it the leftover would outrank the next entry in initialView.
+  if (Object.prototype.hasOwnProperty.call(next, VIEW_PARAM)) {
+    writtenView = next[VIEW_PARAM];
+  }
+  // Unchanged address: nothing to write. This is what keeps the mount-time
   // sync effects from pushing a duplicate entry on every arrival.
   if (url === `${window.location.pathname}${window.location.search}${window.location.hash}`) {
     return;
   }
-  // A changed place is a PUSH - owner rule 2026-08-24: Back returns to the tab
-  // and record the operator was just on, never to a different page entirely.
-  // replaceState remains for continuous edits via the option.
+  // A changed place is a PUSH so Back returns to the tab and record the
+  // operator was just on; replaceState remains for continuous edits.
   const state = { ...(window.history.state || {}), kairos: true };
   if (replace) window.history.replaceState(state, '', url);
   else window.history.pushState(state, '', url);
-  if (Object.prototype.hasOwnProperty.call(next, VIEW_PARAM)) {
-    writtenView = next[VIEW_PARAM];
-  }
 }
 
 // The view a navigation entry asked for, with an unknown one falling back to
