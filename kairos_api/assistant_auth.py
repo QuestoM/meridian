@@ -176,13 +176,37 @@ def _auth_token_from_env() -> AssistantAuth | None:
     )
 
 
+def _bridge_auth() -> Optional[AssistantAuth]:
+    """The subscription bridge: a short-lived access token the operator's
+    machine pushes to Secrets Manager, read here at call time. Configured by
+    the bridge secret ARN env, so a machine without it pays nothing."""
+    from kairos_api import assistant_bridge
+
+    if not os.environ.get(assistant_bridge.BRIDGE_SECRET_ARN_ENV, "").strip():
+        return None
+    payload = assistant_bridge.fetch_bridged_payload()
+    if payload is None:
+        return None
+    account = payload.get("account")
+    return AssistantAuth(
+        mode="oauth",
+        token=str(payload["accessToken"]),
+        source=f"bridge:{account}" if account else "bridge",
+        account_hint=account,
+        subscription_type=payload.get("subscriptionType"),
+        expires_at_ms=payload.get("expiresAt"),
+    )
+
+
 def resolve_auth() -> Optional[AssistantAuth]:
     """Pick the credential the assistant should use, or None.
 
     Order:
     1. Explicit ``ANTHROPIC_AUTH_TOKEN`` (Bearer / Max-style).
     2. Claude Code OAuth from Keychain / credentials file (when enabled).
-    3. Console API key from env.
+    3. The subscription bridge (cloud: the operator's machine pushes its live
+       access token; the refresh token never leaves that machine).
+    4. Console API key from env.
     """
     explicit = _auth_token_from_env()
     if explicit is not None:
@@ -194,6 +218,10 @@ def resolve_auth() -> Optional[AssistantAuth]:
             oauth = _oauth_from_blob(blob)
             if oauth is not None:
                 return oauth
+
+    bridge = _bridge_auth()
+    if bridge is not None:
+        return bridge
 
     return _api_key_from_env()
 

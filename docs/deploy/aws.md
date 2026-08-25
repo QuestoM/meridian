@@ -124,6 +124,37 @@ read at TASK START: after rotating the key value, bounce the service
 (`aws ecs update-service --cluster kairos --service <name>
 --force-new-deployment`, deploy scope suffices).
 
+### The subscription bridge — Kai in the cloud on the operator's own plan
+
+The console key above turned out to be the wrong pocket: locally Kai rides the
+operator's Claude subscription (the Claude Code OAuth token in the macOS
+Keychain), and console credit is a separate balance the subscription never
+fills. The owner wanted the cloud to bill the same plan, and accepted the
+honest tradeoff that this only works while the operator's machine keeps
+pushing. So:
+
+- **On the machine**: the launchd agent `com.questo.kairos-kai-bridge`
+  (`scripts/kai-bridge/`) pushes the CURRENT short-lived access token to
+  `kairos/assistant-oauth-token` every twenty minutes and at login, via
+  `kairos_api.assistant_bridge.push` — keychain → pipe → AWS CLI stdin, never
+  an argument, never printed. The payload is an allow-list
+  (`build_payload`): the long-lived refresh token can never cross. The deploy
+  role earned one scoped statement for this (`bridge-push`: Put/Create on that
+  one secret name).
+- **In the task**: `AssistantBridgeSecretArn` (stack parameter) arrives as
+  `KAIROS_ASSISTANT_BRIDGE_SECRET_ARN` — an ARN the app READS AT CALL TIME
+  (deliberately not an ECS Secret, which injects once at task start while this
+  token changes every few minutes). The task role holds `GetSecretValue` on
+  exactly that ARN. Resolution order (`assistant_auth.resolve_auth`): explicit
+  env token → local keychain → **bridge** → console API key; the freshness
+  rule refuses a token within five minutes of expiry, the same way the local
+  path refuses an expired one.
+- **When the machine is off** long enough for the last pushed token to age
+  out, the bridge reports stale on `/api/assistant/status` (`bridge.fresh:
+  false`) and resolution falls through to the console key — which answers
+  with its own honest no-credit error unless the owner has loaded credit.
+  Nothing fabricates availability.
+
 **Proven the same hour: a stack update that touches IAM demands the admin
 profile.** The first Kai update ran under `kairos` (deploy) and CloudFormation
 was correctly refused `iam:PutRolePolicy` mid-update, landing the stack in

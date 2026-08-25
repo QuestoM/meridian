@@ -33,9 +33,21 @@ Parameters:
       runs Kai in the cloud on the operator's key; per-user authority is
       unchanged (Kai holds exactly the signed-in user's permissions).
 
+  AssistantBridgeSecretArn:
+    Type: String
+    Default: ''
+    Description: >-
+      Secrets Manager ARN of the subscription bridge: the operator's machine
+      pushes its live short-lived Claude access token there, and the task
+      reads it at call time so Kai answers on the operator's own plan instead
+      of console credit. The refresh token never leaves the machine; when the
+      machine stops pushing, the token ages out and the assistant reports the
+      truth. Empty means no bridge.
+
 Conditions:
   HasCertificate: !Not [!Equals [!Ref CertificateArn, '']]
   HasAssistantKey: !Not [!Equals [!Ref AssistantKeySecretArn, '']]
+  HasBridgeSecret: !Not [!Equals [!Ref AssistantBridgeSecretArn, '']]
 
 Resources:
   # ---------------------------------------------------------------- network
@@ -204,6 +216,16 @@ Resources:
                   - ssmmessages:OpenControlChannel
                   - ssmmessages:OpenDataChannel
                 Resource: '*'
+        - !If
+          - HasBridgeSecret
+          - PolicyName: read-subscription-bridge
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action: secretsmanager:GetSecretValue
+                  Resource: !Ref AssistantBridgeSecretArn
+          - !Ref AWS::NoValue
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -237,6 +259,13 @@ Resources:
             - !If
               - HasCertificate
               - { Name: KAIROS_TLS, Value: '1' }
+              - !Ref AWS::NoValue
+            # The bridge is an ARN the app READS AT CALL TIME, deliberately not
+            # an ECS Secret: those inject once at task start, and this token
+            # changes every few minutes.
+            - !If
+              - HasBridgeSecret
+              - { Name: KAIROS_ASSISTANT_BRIDGE_SECRET_ARN, Value: !Ref AssistantBridgeSecretArn }
               - !Ref AWS::NoValue
           Secrets:
             - { Name: KAIROS_ADMIN_PASSWORD, ValueFrom: !Ref AdminPassword }

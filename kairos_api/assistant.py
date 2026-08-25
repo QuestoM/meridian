@@ -294,6 +294,11 @@ def assistant_status() -> dict[str, Any]:
     }
     if auth is not None:
         body["auth"] = auth.public_status()
+    from kairos_api import assistant_bridge
+
+    bridge = assistant_bridge.bridge_state()
+    if bridge is not None:
+        body["bridge"] = bridge
     return body
 
 

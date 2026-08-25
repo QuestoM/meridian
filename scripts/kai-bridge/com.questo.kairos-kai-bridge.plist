@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  launchd agent: keep Kai-in-the-cloud on the operator's own Claude plan.
+
+  Every twenty minutes (and at login) this pushes the CURRENT short-lived
+  Claude Code access token from the macOS Keychain to the one Secrets Manager
+  secret the cloud task reads at call time. The refresh token - the only
+  long-lived credential - never leaves this machine, so the cloud assistant
+  works while this machine keeps pushing and says so honestly once the last
+  pushed token expires. Nothing here prints or stores a token: it travels
+  keychain -> pipe -> AWS CLI stdin.
+
+  Install:
+    cp scripts/kai-bridge/com.questo.kairos-kai-bridge.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.questo.kairos-kai-bridge.plist
+  Run immediately (test):
+    launchctl start com.questo.kairos-kai-bridge
+  Uninstall:
+    launchctl unload ~/Library/LaunchAgents/com.questo.kairos-kai-bridge.plist
+  Logs: scripts/kai-bridge/bridge.log
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.questo.kairos-kai-bridge</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>-lc</string>
+    <string>cd /Users/home/Code/questo/meridian &amp;&amp; echo "--- $(date -Iseconds)" &amp;&amp; ~/.venvs/meridian/bin/python scripts/kai-bridge/kai_bridge_push.py</string>
+  </array>
+
+  <key>StartInterval</key>
+  <integer>1200</integer>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/home/Code/questo/meridian/scripts/kai-bridge/bridge.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/home/Code/questo/meridian/scripts/kai-bridge/bridge.log</string>
+</dict>
+</plist>
