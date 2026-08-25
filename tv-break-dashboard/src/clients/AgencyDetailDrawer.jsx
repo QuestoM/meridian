@@ -154,7 +154,7 @@ function AgencyDrawerBody({ row, locale, scopeOptions, notify, onSaved, onClose 
     setSaving(true);
     try {
       await putAgency(toAgencyPayload(draft));
-      notify(`Agency ${row.agency_id} saved.`, `הסוכנות ${row.agency_id} נשמרה.`);
+      notify(`Agency ${row.name || row.agency_id} saved.`, `הסוכנות ${row.name || row.agency_id} נשמרה.`);
       await onSaved();
     } catch (error) {
       notify(`Save failed for ${row.agency_id} (${error.message}).`, `השמירה נכשלה עבור ${row.agency_id} (${error.message}).`);

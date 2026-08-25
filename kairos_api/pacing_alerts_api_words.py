@@ -71,8 +71,8 @@ UNMEASURABLE_PATH_HE = "ספקו פילוח פאנל לקהל הזה, או נס�
 
 NO_SOURCE_EN = "No broadcast day of this flight carries a per-spot source, so what it delivered is unknown."
 NO_SOURCE_HE = "אף יום שידור של הטיסה הזו אינו נושא מקור ברמת התשדיר, ולכן מה שסופק אינו ידוע."
-NO_SOURCE_PATH_EN = "Upload a daily traffic file for the flight days, then run scripts/seed_campaigns.py to build the delivery ledger from it."
-NO_SOURCE_PATH_HE = "העלו קובץ שידור יומי לימי הטיסה, ואז הריצו את scripts/seed_campaigns.py כדי לבנות ממנו את ספר האספקה."
+NO_SOURCE_PATH_EN = "Delivery for these days will come from the daily as-run files; that feed is not connected yet, so days without one stay unknown rather than guessed."
+NO_SOURCE_PATH_HE = "האספקה לימים אלה תגיע מקובצי שידור יומיים (As Run); החיבור טרם הופעל, ולכן ימים ללא קובץ נשארים לא ידועים ואינם מנוחשים."
 
 GAP_IN_ELAPSED_EN = "Broadcast days that have already run carry no per-spot source, so what was delivered to date is a floor and no pace can be stated against it."
 GAP_IN_ELAPSED_HE = "ימי שידור שכבר חלפו אינם נושאים מקור ברמת התשדיר, ולכן מה שסופק עד כה הוא רף תחתון ואי אפשר לקבוע מולו קצב."

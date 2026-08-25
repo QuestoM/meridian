@@ -41,6 +41,7 @@ export function AdvertiserRecordsPanel({
   locale,
   notify,
   onGlobalRefresh,
+  refreshKey = 0,
   openAdvertiserId = '',
   onOpened = () => {},
 }) {
@@ -137,9 +138,12 @@ export function AdvertiserRecordsPanel({
     }
   }, [loadStats, loadIdentity]);
 
+  // refreshKey re-reads after a rule is created anywhere else on the page -
+  // the record rail and this grid share one workspace-level refresh signal, so
+  // the row count and the priced count can never sit one create behind.
   useEffect(() => {
     loadAdvertisers();
-  }, [loadAdvertisers]);
+  }, [loadAdvertisers, refreshKey]);
 
   // A caller that already resolved a row opens it here. The search box is set to
   // the same id so the grid behind the drawer holds that one card and nothing

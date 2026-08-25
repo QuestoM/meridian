@@ -4,7 +4,7 @@ import { Dialog } from '../studio/modal';
 import { Check, Plus, Trash2 } from 'lucide-react';
 import { pageText } from '../shell/format';
 import { loadOnboardingOptions, onboardClient } from './clients-api';
-import { localized, refusalText, vocabularyLabel } from './clients-money-helpers';
+import { goalLabel, localized, refusalText, vocabularyLabel } from './clients-money-helpers';
 import { weekdayCoverage } from './weekday-scope-helpers';
 import { isolate } from '../shell/bidi';
 import { formatSpan } from '../shell/dates';
@@ -33,11 +33,12 @@ export function RefusalNotice({ error, opens, locale, onOpen }) {
     </p>
   );
 }
-function Field({ label, value, onChange, type = 'text', ltr = false, list, required = false, hint }) {
+function Field({ label, value, onChange, type = 'text', ltr = false, list, required = false, hint, min, minLength }) {
   return (
     <label className="clients-field">
       <span>{label}</span>
       <InputControl type={type} value={value} list={list} required={required} dir={ltr ? 'ltr' : 'auto'}
+                    min={min || undefined} minLength={minLength || undefined}
                     onChange={(event) => onChange(event.target.value)} />
       {hint ? <small>{hint}</small> : null}
     </label>
@@ -103,6 +104,12 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
   function nextStep() {
     if (!formRef.current || formRef.current.reportValidity()) setStep((current) => Math.min(STEPS.length - 1, current + 1));
   }
+  // The agency by NAME wherever a person reads it; the id stays secondary.
+  function agencyWord() {
+    if (agencyMode !== 'existing') return agency.name;
+    const record = ((options && options.agencies) || []).find((entry) => entry.agency_id === agencyId);
+    return record ? `${record.name} (${record.agency_id})` : agencyId;
+  }
   async function submit(event) {
     event.preventDefault();
     setState({ status: 'saving', error: '', opens: null, result: null });
@@ -145,7 +152,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
   if (state.status === 'done') {
     const result = state.result;
     const outcomeRows = [
-      [result.agency.agency_id, result.agency.outcome === 'created'
+      [agencyWord(), result.agency.outcome === 'created'
         ? pageText(locale, 'agency created', 'סוכנות נוצרה') : pageText(locale, 'agency already existed, reused', 'הסוכנות כבר קיימת, נעשה בה שימוש')],
       [result.advertiser.advertiser, result.advertiser.outcome === 'linked'
         ? pageText(locale, 'client linked to the agency', 'הלקוח שויך לסוכנות') : pageText(locale, 'client was already linked', 'הלקוח כבר היה משויך')],
@@ -173,7 +180,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
   }
   return (
     <Dialog open onClose={onClose} size="wide" className="clients-onboard" dismissOnBackdrop={false}
-            title={pageText(locale, 'Onboard a client', 'קליטת לקוח')}
+            title={pageText(locale, 'Onboard a client and book a campaign', 'קליטת לקוח והזמנת קמפיין')}
             description={pageText(locale,
               'One insertion order, one submit. The agency, the client and the campaign are created and linked together.',
               'הזמנה אחת, שליחה אחת. הסוכנות, הלקוח והקמפיין נוצרים ומקושרים יחד.')}
@@ -254,6 +261,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
             onChange={setAdvertiser}
             list="clients-known-advertisers"
             required
+            minLength={2}
             hint={pageText(locale, 'pick one we have seen on air, or type a new one', 'בחרו לקוח שראינו בשידור, או הקלידו חדש')}
           />
           <datalist id="clients-known-advertisers">
@@ -269,9 +277,9 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
         <fieldset disabled={step !== 1}>
           <legend>{pageText(locale, 'Campaign', 'קמפיין')}</legend>
           <div className="clients-field-grid">
-            <Field label={pageText(locale, 'Campaign name', 'שם הקמפיין')} value={campaign.name} onChange={(value) => setCampaign({ ...campaign, name: value })} required />
+            <Field label={pageText(locale, 'Campaign name', 'שם הקמפיין')} value={campaign.name} onChange={(value) => setCampaign({ ...campaign, name: value })} required minLength={2} />
             <Field label={pageText(locale, 'Starts on', 'מתחיל ב')} value={campaign.starts_on} onChange={(value) => setCampaign({ ...campaign, starts_on: value })} type="date" ltr required />
-            <Field label={pageText(locale, 'Ends on', 'מסתיים ב')} value={campaign.ends_on} onChange={(value) => setCampaign({ ...campaign, ends_on: value })} type="date" ltr required />
+            <Field label={pageText(locale, 'Ends on', 'מסתיים ב')} value={campaign.ends_on} onChange={(value) => setCampaign({ ...campaign, ends_on: value })} type="date" ltr required min={campaign.starts_on} />
             <Field label={pageText(locale, 'Campaign rebate percent', 'אחוז רבייט לקמפיין')} value={campaign.rebate_percent} onChange={(value) => setCampaign({ ...campaign, rebate_percent: value })} type="number" ltr />
           </div>
         </fieldset>
@@ -320,7 +328,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
           {flights.map((flight, index) => (
             <div className="clients-flight-row" key={`flight-${index}`}>
               <Field label={pageText(locale, 'From', 'מתאריך')} value={flight.starts_on} onChange={(value) => setFlights(flights.map((entry, position) => (position === index ? { ...entry, starts_on: value } : entry)))} type="date" ltr />
-              <Field label={pageText(locale, 'To', 'עד תאריך')} value={flight.ends_on} onChange={(value) => setFlights(flights.map((entry, position) => (position === index ? { ...entry, ends_on: value } : entry)))} type="date" ltr />
+              <Field label={pageText(locale, 'To', 'עד תאריך')} value={flight.ends_on} onChange={(value) => setFlights(flights.map((entry, position) => (position === index ? { ...entry, ends_on: value } : entry)))} type="date" ltr min={flight.starts_on} />
               <label className="clients-field">
                 <span>{pageText(locale, 'Goal unit', 'יחידת יעד')}</span>
                 <SelectControl value={flight.goal_kind} onChange={(event) => setFlights(flights.map((entry, position) => (position === index ? { ...entry, goal_kind: event.target.value } : entry)))}>
@@ -352,11 +360,22 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
         <div className="clients-workflow-panel clients-workflow-review" id="onboard-step-review" hidden={step !== 3}>
           <h4 ref={step === 3 ? stepTitleRef : null} tabIndex={-1}>{pageText(locale, 'Review before creating', 'בדיקה לפני יצירה')}</h4>
           <dl>
-            <div><dt>{pageText(locale, 'Agency', 'סוכנות')}</dt><dd>{agencyMode === 'existing' ? agencyId : agency.name}</dd></div>
+            <div><dt>{pageText(locale, 'Agency', 'סוכנות')}</dt><dd>{agencyWord()}</dd></div>
             <div><dt>{pageText(locale, 'Client', 'לקוח')}</dt><dd>{advertiser}</dd></div>
             <div><dt>{pageText(locale, 'Campaign', 'קמפיין')}</dt><dd>{campaign.name}</dd></div>
             <div><dt>{pageText(locale, 'Window', 'חלון')}</dt><dd>{formatSpan(campaign.starts_on, campaign.ends_on, locale)}</dd></div>
-            <div><dt>{pageText(locale, 'Flights ready', 'טיסות מוכנות')}</dt><dd>{flights.filter((flight) => flight.starts_on && flight.ends_on && flight.goal_value !== '').length}</dd></div>
+            {campaign.rebate_percent !== '' ? (
+              <div><dt>{pageText(locale, 'Campaign rebate', 'רבייט לקמפיין')}</dt><dd>{`${campaign.rebate_percent}%`}</dd></div>
+            ) : null}
+            {discount.percent !== '' ? (
+              <div><dt>{pageText(locale, 'Surcharge discount', 'הנחה מהתוספת')}</dt><dd>{`${discount.percent}%`}</dd></div>
+            ) : null}
+            {flights.filter((flight) => flight.starts_on && flight.ends_on && flight.goal_value !== '').map((flight, index) => (
+              <div key={`review-flight-${index}`}>
+                <dt>{pageText(locale, `Flight ${index + 1}`, `טיסה ${index + 1}`)}</dt>
+                <dd>{`${formatSpan(flight.starts_on, flight.ends_on, locale)} · ${goalLabel(flight, locale, goalWords)}`}</dd>
+              </div>
+            ))}
           </dl>
           <p className="clients-basis-note">
             {pageText(locale, 'Nothing is written until you choose Create and link below.', 'דבר אינו נכתב עד לבחירה ב״יצירה וקישור״ למטה.')}

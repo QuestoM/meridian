@@ -109,6 +109,7 @@ export default function ClientsPanels({
             copy={copy}
             locale={locale}
             notify={notify}
+            refreshKey={refreshKey}
             openAdvertiserId={open.ruleId}
             onOpened={on.ruleOpened}
             onGlobalRefresh={on.globalRefresh}

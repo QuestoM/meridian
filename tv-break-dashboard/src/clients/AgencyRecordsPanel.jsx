@@ -74,12 +74,12 @@ function LedgerTotalsStrip({ summary, locale, setActiveView }) {
     );
   }
   const basis = summary.basis
-    ? pageText(locale, `Basis: the daily ledger (${summary.basis}). This net is the reporting net after agency rebates, not the retention net.`, `הבסיס: הלדג'ר היומי (${summary.basis}). זהו נטו לדיווח אחרי החזרי סוכנויות, לא הנטו של עלות השימור.`)
-    : pageText(locale, 'Basis: the daily ledger. This net is the reporting net after agency rebates, not the retention net.', "הבסיס: הלדג'ר היומי. זהו נטו לדיווח אחרי החזרי סוכנויות, לא הנטו של עלות השימור.");
+    ? pageText(locale, `Basis: the daily ledger (${summary.basis}). This net is the reporting net after agency rebates, not the retention net.`, `הבסיס: הלדג'ר היומי (${summary.basis}). זהו נטו לדיווח אחרי רבייט סוכנויות, לא הנטו של עלות השימור.`)
+    : pageText(locale, 'Basis: the daily ledger. This net is the reporting net after agency rebates, not the retention net.', "הבסיס: הלדג'ר היומי. זהו נטו לדיווח אחרי רבייט סוכנויות, לא הנטו של עלות השימור.");
   return (
     <div className="agz-totals-strip" role="group" aria-label={pageText(locale, 'Daily ledger totals', 'סיכומי הלדג\'ר היומי')}>
       <div className="agz-total agz-total-net">
-        <span className="agz-total-label">{pageText(locale, 'Net revenue after agency rebates', 'הכנסה נטו אחרי החזרי סוכנויות')}</span>
+        <span className="agz-total-label">{pageText(locale, 'Net revenue after agency rebates', 'הכנסה נטו אחרי רבייט סוכנויות')}</span>
         <span className="agz-total-value bidi-figure figure-nowrap">{formatCurrency(summary.net, locale)}</span>
       </div>
       <div className="agz-total">
@@ -87,7 +87,7 @@ function LedgerTotalsStrip({ summary, locale, setActiveView }) {
         <span className="agz-total-value bidi-figure figure-nowrap">{formatCurrency(summary.gross, locale)}</span>
       </div>
       <div className="agz-total">
-        <span className="agz-total-label">{pageText(locale, 'Agency rebates', 'החזרי סוכנויות')}</span>
+        <span className="agz-total-label">{pageText(locale, 'Agency rebates', 'רבייט סוכנויות')}</span>
         <span className="agz-total-value bidi-figure figure-nowrap">{formatCurrency(summary.rebate, locale)}</span>
       </div>
       <div className="agz-total">

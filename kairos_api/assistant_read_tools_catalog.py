@@ -129,8 +129,56 @@ def _read_get_agency_detail(args: dict[str, Any], user: str | None = None) -> di
     except Exception:  # noqa: BLE001 - findings are additive, never fail the read
         payload["overlaps"] = []
         payload["overlaps_note"] = "overlap findings could not be computed"
+    payload["money"] = _agency_money(record.get("name") or "")
     payload["basis"] = AGENCY_BASIS
     return payload
+
+
+def _agency_money(agency_name: str) -> dict[str, Any]:
+    """The agency's own daily-ledger rollup: totals over EVERY spot that
+    resolved to it, plus the full per-client breakdown. Totals are computed
+    before any row shaping, so an answer can always carry the whole sum."""
+    from kairos.export.spots import price_daily_file
+    from kairos_api.uploads import _newest_daily
+
+    if not agency_name:
+        return {"status": "unavailable", "reason": "the agency record carries no name to match spots by"}
+    path = _newest_daily()
+    if path is None:
+        return {"status": "unavailable",
+                "reason": "no daily spot file exists, so the per-spot ledger cannot be built"}
+    result = price_daily_file(path)
+    by_client: dict[str, dict[str, Any]] = {}
+    gross = net = 0.0
+    spots = 0
+    for spot in result.priced:
+        if spot.agency != agency_name:
+            continue
+        spots += 1
+        gross += spot.revenue
+        net += spot.net_revenue
+        entry = by_client.setdefault(spot.advertiser, {
+            "advertiser": spot.advertiser, "spots": 0,
+            "gross_revenue_ils": 0.0, "net_revenue_ils": 0.0,
+        })
+        entry["spots"] += 1
+        entry["gross_revenue_ils"] += spot.revenue
+        entry["net_revenue_ils"] += spot.net_revenue
+    clients = sorted(by_client.values(), key=lambda entry: -entry["gross_revenue_ils"])
+    for entry in clients:
+        entry["gross_revenue_ils"] = round(entry["gross_revenue_ils"], 2)
+        entry["net_revenue_ils"] = round(entry["net_revenue_ils"], 2)
+    return {
+        "source_file": path.name,
+        "spots": spots,
+        "gross_revenue_ils": round(gross, 2),
+        "net_revenue_ils": round(net, 2),
+        "rebate_ils": round(gross - net, 2),
+        "clients": clients,
+        "clients_total": len(clients),
+        "basis": LEDGER_BASIS,
+        "currency": "ILS",
+    }
 
 
 # --- calendar events --------------------------------------------------------------

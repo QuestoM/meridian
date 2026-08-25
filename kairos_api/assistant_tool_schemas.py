@@ -45,8 +45,10 @@ EXTRA_READ_TOOL_SCHEMAS: list[dict[str, Any]] = [
         "get_agency_detail",
         "Read one agency in full: its record and terms, its advertiser links (observed "
         "from the daily file versus manual, with the effective set), its scoped "
-        "conditions, and any overlap findings. Call this when the operator asks about a "
-        "specific agency, who buys through it, or its special conditions.",
+        "conditions, any overlap findings, and its money rollup from the daily ledger - "
+        "total gross, net and rebate in ILS plus the complete per-client breakdown. Call "
+        "this when the operator asks about a specific agency, who buys through it, its "
+        "special conditions, or how much it brought in.",
         {"agency_id": {"type": "string", "description": "The agency id from get_agencies."},
          "name": {"type": "string", "description": "An agency name or alias, when the id is unknown."}},
     ),

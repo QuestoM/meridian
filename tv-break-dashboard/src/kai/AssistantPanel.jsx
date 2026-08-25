@@ -344,7 +344,7 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
             <div>
               <h2>{pageText(locale, 'Conversation', 'שיחה')}</h2>
               <span>{pageText(locale, 'Saved to your account and shown here when you return.', 'נשמרת לחשבון שלכם ומוצגת כאן בכל חזרה.')}</span>
-              {actingUser ? <span className="asst-user">{pageText(locale, 'Acting user', 'מבצע')}: <b><Name>{actingUser}</Name></b></span> : null}
+              {actingUser ? <span className="asst-user">{pageText(locale, 'Acting user', 'מבצע')}: <b><Name>{actingUser === 'auth-disabled' ? pageText(locale, 'No sign-in', 'ללא כניסה') : actingUser}</Name></b></span> : null}
             </div>
             <AssistantConversationToolbar
               locale={locale} supported={conv.supported} listState={conv.listState} busy={conv.busy} asking={asking}

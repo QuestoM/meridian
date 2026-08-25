@@ -273,8 +273,14 @@ def test_with_no_ledger_the_delivery_is_unknown_and_names_the_missing_feed(clien
     assert delivery["campaigns_with_a_source"] == 0
     assert "delivery" in delivery["reason_en"].lower()
     assert set(delivery["reason_he"]) & HEBREW
-    assert "seed_campaigns" in delivery["path_forward_en"]
-    assert delivery["path_forward_he"]
+    # The path forward speaks the trade's language, not the developer's: it
+    # names the missing as-run feed and promises unknown-not-guessed, and no
+    # script path or code artifact leaks into an operator-facing sentence.
+    assert "as-run" in delivery["path_forward_en"]
+    assert "unknown" in delivery["path_forward_en"]
+    assert "scripts/" not in delivery["path_forward_en"]
+    assert "As Run" in delivery["path_forward_he"]
+    assert "scripts/" not in delivery["path_forward_he"]
 
     own = payload["campaigns"][0]["delivery"]
     assert own["available"] is False

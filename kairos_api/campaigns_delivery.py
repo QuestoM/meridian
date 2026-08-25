@@ -120,12 +120,12 @@ SPEND_BASIS_HE = (
 NO_SOURCE_EN = "No delivery row matches any campaign on this payload, so what aired is unknown."
 NO_SOURCE_HE = "אין שורת אספקה שמתאימה לקמפיין כלשהו בתשובה הזו, ולכן מה ששודר אינו ידוע."
 NO_SOURCE_PATH_EN = (
-    "Upload a daily traffic file for the flight days, then run scripts/seed_campaigns.py to rebuild "
-    "the delivery ledger from it."
+    "Delivery for these days will come from the daily as-run files; that feed is not connected "
+    "yet, so days without one stay unknown rather than guessed."
 )
 NO_SOURCE_PATH_HE = (
-    "העלו קובץ שידור יומי לימי הטיסה, ואז הריצו את scripts/seed_campaigns.py כדי לבנות מחדש את ספר "
-    "האספקה ממנו."
+    "האספקה לימים אלה תגיע מקובצי שידור יומיים (As Run); החיבור טרם הופעל, ולכן ימים ללא קובץ "
+    "נשארים לא ידועים ואינם מנוחשים."
 )
 GOAL_UNMEASURABLE_EN = (
     "The goal names a target audience this product has no panel breakdown for, so progress against "
