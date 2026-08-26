@@ -48,7 +48,7 @@ def channel_account(tmp_path, monkeypatch):
 
 
 # --- the propose-only contract, the Bar 3 floor for this piece ---------------
-def test_the_tool_surface_is_still_44_read_9_propose_and_0_write() -> None:
+def test_the_tool_surface_is_still_45_read_10_propose_and_0_write() -> None:
     # 38 when the read half of the coverage gap closed: the pod the traffic
     # operator assembles (2 tools), the break the scheduler places (2), and
     # pacing against goal with the remedy the campaign manager is told to name
@@ -65,8 +65,17 @@ def test_the_tool_surface_is_still_44_read_9_propose_and_0_write() -> None:
     # review-first assistant that could stage them would be staging a way in.
     # One complete advertiser-airings read replaces an incomplete top-20 plus
     # pod-by-pod reconstruction; it reads raw traffic rows and writes nothing.
-    assert len(assistant_tools.READ_TOOL_NAMES) == 44
-    assert len(assistant_tools.PROPOSE_TOOL_NAMES) == 9
+    # Then 45: resolve_counterparty, which checks whether a party a document
+    # names already exists BEFORE a create is proposed, so a second record is
+    # never made for a party we already carry. It reads the rosters and writes
+    # nothing; the create it guards is still an approval-gated propose.
+    assert len(assistant_tools.READ_TOOL_NAMES) == 45
+    # Then 10 proposes: propose_agency_merge, which folds a duplicate agency
+    # into the record it duplicates. It is a MONEY act - an agency's rebate and
+    # conditions price real spots - so it is a proposal like every other, with a
+    # field-by-field conflict table on the card, and it suspends rather than
+    # deletes so an approval is reversible.
+    assert len(assistant_tools.PROPOSE_TOOL_NAMES) == 10
     every_name = assistant_tools.READ_TOOL_NAMES | assistant_tools.PROPOSE_TOOL_NAMES
     assert len(assistant_tools.anthropic_tools()) == len(every_name)
     # No tool applies anything. The apply engine is the only writer, and it is

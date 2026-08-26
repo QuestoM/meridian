@@ -92,6 +92,24 @@ EXTRA_READ_TOOL_SCHEMAS: list[dict[str, Any]] = [
         "which advertisers bring the most revenue.",
         {"limit": {"type": "integer", "description": "How many advertisers to return (1-20, default 10)."}},
     ),
+    _tool(
+        "resolve_counterparty",
+        "Before proposing to CREATE an agency or advertiser - especially one named in an "
+        "uploaded document - check whether it already exists. Returns ranked existing "
+        "candidates with identity signals (normalized name, alias, VAT id, fuzzy ratio), "
+        "a verdict (exact/probable/possible/none) and a recommended action "
+        "(use_existing/ask/create_new). Ambiguous candidates are adjudicated by the model "
+        "with structured output. ALWAYS call this before proposing a create: if the verdict "
+        "is exact or probable, use or link the existing record instead of creating a "
+        "duplicate; if possible, surface the candidates to the operator and ask.",
+        {"kind": {"type": "string", "enum": ["agency", "advertiser"],
+                  "description": "Which roster to resolve against."},
+         "name": {"type": "string", "description": "The party name as the document or operator gave it."},
+         "vat_id": {"type": "string", "description": "The company VAT id from the document, if any - the strongest single match signal."},
+         "aliases": {"type": "array", "items": {"type": "string"},
+                     "description": "Other spellings the document uses (e.g. a Latin and a Hebrew form)."},
+         "evidence": {"type": "string", "description": "A short quote from the document naming the party, for the adjudicator to cite."}},
+    ),
 ]
 
 # The pod, break and pacing tools' schemas are defined beside their executors, so
@@ -151,6 +169,25 @@ EXTRA_PROPOSE_TOOL_SCHEMAS: list[dict[str, Any]] = [
         },
         ["agency_id", "action", "reason"],
     ),
+    _tool(
+        "propose_agency_merge",
+        "Propose merging a DUPLICATE agency record into a SURVIVING one, when "
+        "resolve_counterparty (or the operator) established that two records are the "
+        "same commercial party. The proposal carries a field-by-field conflict table: "
+        "the survivor keeps every populated field unless the operator flips it, and the "
+        "duplicate only fills fields the survivor left empty. Its name strings fold into "
+        "the survivor's aliases and its row is SUSPENDED, never deleted, so the merge is "
+        "reversible. Links, conditions and campaigns move to the survivor. This moves "
+        "money - an agency's rebate and conditions price real spots - so the operator "
+        "must approve before anything is written.",
+        {
+            "survivor_agency_id": {"type": "string", "description": "The agency id that survives and keeps pricing."},
+            "duplicate_agency_id": {"type": "string", "description": "The agency id that is folded in and suspended."},
+            "field_overrides": {"type": "object", "description": "Optional per-field winner: {field: 'survivor'|'duplicate'}. Omit to take the conservative default."},
+            "reason": _REASON,
+        },
+        ["survivor_agency_id", "duplicate_agency_id", "reason"],
+    ),
 ]
 
 # The pacing-decision propose tool's schema is defined beside its validator and
@@ -164,5 +201,6 @@ EXTRA_PROPOSE_TOOL_SCHEMAS.extend(PACING_PROPOSE_TOOL_SCHEMAS)
 EXTRA_KIND_BY_TOOL = {
     "propose_event_change": "event_change",
     "propose_agency_change": "agency_change",
+    "propose_agency_merge": "agency_merge",
     "propose_pacing_decision": "pacing_decision",
 }

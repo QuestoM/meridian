@@ -365,6 +365,25 @@ def _read_get_top_advertisers(args: dict[str, Any], user: str | None = None) -> 
     }
 
 
+def _read_resolve_counterparty(args: dict[str, Any], user: str | None = None) -> dict[str, Any]:
+    from kairos_api import entity_resolution
+
+    kind = str(args.get("kind", "") or "").strip()
+    if kind not in ("agency", "advertiser"):
+        return {"error": "kind must be 'agency' or 'advertiser'"}
+    name = str(args.get("name", "") or "").strip()
+    if not name:
+        return {"error": "name is required to check whether a party already exists"}
+    aliases = args.get("aliases")
+    aliases = [str(a).strip() for a in aliases if str(a).strip()] if isinstance(aliases, list) else []
+    return entity_resolution.resolve_counterparty(
+        kind, name,
+        vat_id=str(args.get("vat_id", "") or ""),
+        aliases=aliases,
+        evidence=str(args.get("evidence", "") or ""),
+    )
+
+
 _CATALOG_READ_EXECUTORS = {
     "get_agencies": _read_get_agencies,
     "get_agency_detail": _read_get_agency_detail,
@@ -372,6 +391,7 @@ _CATALOG_READ_EXECUTORS = {
     "get_event_pricing": _read_get_event_pricing,
     "get_advertiser_pricing": _read_get_advertiser_pricing,
     "get_top_advertisers": _read_get_top_advertisers,
+    "resolve_counterparty": _read_resolve_counterparty,
 }
 
 CATALOG_SOURCE_BY_TOOL = {
@@ -381,6 +401,7 @@ CATALOG_SOURCE_BY_TOOL = {
     "get_event_pricing": "calendar events store and rate-card activation",
     "get_advertiser_pricing": "advertiser rules and scoped conditions stores",
     "get_top_advertisers": "daily per-spot ledger (newest daily file)",
+    "resolve_counterparty": "agencies / advertisers rosters, with model adjudication",
 }
 
 

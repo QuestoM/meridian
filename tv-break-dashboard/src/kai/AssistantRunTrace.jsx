@@ -107,6 +107,7 @@ const SOURCE_HE = {
   'advertiser rules store': 'מאגר כללי המפרסמים',
   'advertiser rules and scoped conditions stores': 'מאגרי כללי המפרסמים והתנאים הממוקדים',
   'daily per-spot ledger (newest daily file)': 'הספר היומי לפי ספוט, הקובץ היומי העדכני',
+  'agencies / advertisers rosters, with model adjudication': 'מאגרי הסוכנויות והמפרסמים, עם הכרעת מודל',
   'all authoritative raw daily traffic files on disk (data/daily_input/Wally_*.csv)': 'כל קובצי הטראפיק היומיים הסמכותיים הזמינים בדיסק',
   'restriction preview on the owned channel: the saved weekly plan, and an optimizer run on the days it touches': 'תצוגה מקדימה של הגבלה בערוץ שלכם: התוכנית השבועית השמורה, והרצת אופטימייזר על הימים שההגבלה נוגעת בהם',
   'the account list and the broadcast licence limits': 'רשימת החשבונות ומגבלות רישיון השידור',

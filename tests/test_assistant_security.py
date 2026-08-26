@@ -120,6 +120,9 @@ def _read_tool_args(own_rows: Any) -> dict[str, dict[str, Any]]:
     agencies = _agencies_frame()
     if len(agencies):
         args["get_agency_detail"] = {"agency_id": str(agencies.iloc[0]["agency_id"])}
+        # Resolve a REAL agency name so the leak scan bites on a real candidate
+        # list rather than an error stub; deterministic-only keeps it fast.
+        args["resolve_counterparty"] = {"kind": "agency", "name": str(agencies.iloc[0]["name"])}
     from kairos_api.advertisers import _load_frame as _advertisers_frame
 
     advertisers = _advertisers_frame()

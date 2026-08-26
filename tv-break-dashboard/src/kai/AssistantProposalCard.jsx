@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '../studio/actions';
-import { Building2, CalendarClock, ExternalLink, Gauge, Layers, Lock, PlayCircle, Scale, SlidersHorizontal, Tag, TriangleAlert, Users } from 'lucide-react';
+import { Building2, CalendarClock, ExternalLink, Gauge, Layers, Lock, Merge, PlayCircle, Scale, SlidersHorizontal, Tag, TriangleAlert, Users } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
 import { Figure, Code, Name } from '../shell/bidi';
 import AssistantUndo from './AssistantUndo';
@@ -35,6 +35,7 @@ export const KINDS = {
   agency_change: { Icon: Building2, en: 'Agency change', he: 'שינוי סוכנות' },
   agency_link_change: { Icon: Building2, en: 'Agency link change', he: 'שינוי שיוך סוכנות' },
   agency_condition_change: { Icon: Building2, en: 'Agency condition change', he: 'שינוי תנאי סוכנות' },
+  agency_merge: { Icon: Merge, en: 'Agency merge', he: 'מיזוג סוכנויות' },
   // The words are the pacing surface's own: the ledger is ספר ההחלטות and what
   // goes into it is a decision. Not "make-good", because this one kind covers
   // both endings a board row has, and only one of them is a פיצוי שידור.

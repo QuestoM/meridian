@@ -323,9 +323,88 @@ def _validate_agency_change(args: dict[str, Any]) -> tuple[dict[str, Any], str]:
     return _validate_agency_condition_action(agency_id, action, args)
 
 
+def _evidence_sentence(evidence: dict[str, Any]) -> str:
+    """The identity evidence in the operator's own language, for the card."""
+    signals = evidence.get("signals") or {}
+    parts: list[str] = []
+    if signals.get("vat_match"):
+        parts.append("אותו ח.פ.")
+    if signals.get("normalized_exact"):
+        parts.append("אותו שם לאחר נרמול")
+    if signals.get("alias_hit"):
+        parts.append("השם מופיע ככינוי של השורדת")
+    ratio = signals.get("fuzzy_ratio")
+    if ratio and not parts:
+        parts.append(f"דמיון שם {round(float(ratio) * 100)}%")
+    if evidence.get("model_verdict") == "same":
+        confidence = evidence.get("model_confidence")
+        suffix = f" בביטחון {round(float(confidence) * 100)}%" if confidence else ""
+        parts.append(f"והמודל קבע שזו אותה סוכנות{suffix}")
+    return "; ".join(parts) or "אין ראיית זהות"
+
+
+def _validate_agency_merge(args: dict[str, Any]) -> tuple[dict[str, Any], str]:
+    """Plan the merge NOW, and refuse to offer one whose identity evidence the
+    stores do not support.
+
+    Two re-derivations happen here rather than being taken on trust, and both
+    matter most when KAI is the proposer. The conflict table is re-planned from
+    the live stores, and the IDENTITY EVIDENCE is recomputed - because a model
+    that judged two records to be one party and then proposed merging them is a
+    single witness testifying twice. So a merge may only be offered when a
+    signal no model produced is present: the same VAT id, the same normalized
+    name, or the duplicate's name already sitting in the survivor's aliases.
+    A likeness the model alone believes in is a question for the operator, not
+    a proposal, and the refusal says exactly that.
+    """
+    from kairos_api import entity_merge
+
+    survivor = str(args.get("survivor_agency_id", "") or "").strip()
+    duplicate = str(args.get("duplicate_agency_id", "") or "").strip()
+    overrides = args.get("field_overrides") or {}
+    if not isinstance(overrides, dict):
+        raise ValueError("field_overrides must be an object of {field: 'survivor'|'duplicate'}")
+    try:
+        plan = entity_merge.plan_merge(survivor, duplicate, {str(k): str(v) for k, v in overrides.items()})
+        evidence = entity_merge.merge_evidence(survivor, duplicate)
+    except ValueError as exc:
+        raise ValueError(str(exc)) from exc
+    if not evidence["deterministic_signal"]:
+        raise ValueError(
+            "these two agencies share no identity signal beyond a likeness "
+            f"({_evidence_sentence(evidence)}): a merge moves an agency's rebate and "
+            "conditions onto another record's spots, so it is only proposed when the "
+            "VAT id, the normalized name or an existing alias ties them together. "
+            "Ask the operator which record is right instead of proposing a merge."
+        )
+    survivor_name = plan["survivor"]["name"] or survivor
+    duplicate_name = plan["duplicate"]["name"] or duplicate
+    moves = plan["attachments_total"]
+    taken = len(plan["field_changes"])
+    summary = (
+        f"מיזוג סוכנויות: {duplicate_name} ({duplicate}) מתמזגת לתוך {survivor_name} ({survivor}). "
+        f"הראיה: {_evidence_sentence(evidence)}. "
+        f"{moves} רשומות מקושרות עוברות, {taken} שדות נלקחים מהכפילה, "
+        f"{len(plan['aliases_folded'])} שמות מתקפלים לכינויים, והכפילה מושהית ולא נמחקת"
+    )
+    payload = {
+        "survivor_agency_id": survivor,
+        "duplicate_agency_id": duplicate,
+        "field_overrides": {str(k): str(v) for k, v in overrides.items()},
+        # Both travel with the item so the approval card can show WHY these are
+        # one party and WHAT the merge decides. The apply RE-PLANS from the live
+        # stores rather than trusting the plan, so an edit between proposal and
+        # approval cannot slip through on stale values.
+        "plan": plan,
+        "evidence": evidence,
+    }
+    return payload, summary
+
+
 EXTRA_PROPOSE_VALIDATORS = {
     "propose_event_change": _validate_event_change,
     "propose_agency_change": _validate_agency_change,
+    "propose_agency_merge": _validate_agency_merge,
 }
 
 
@@ -384,11 +463,23 @@ def _apply_agency_change(payload: dict[str, Any], actor: str) -> dict[str, Any]:
     return {"agency_id": agency_id, "action": action, "rule_id": record.get("rule_id")}
 
 
+def _apply_agency_merge(payload: dict[str, Any], actor: str) -> dict[str, Any]:
+    from kairos_api import entity_merge
+
+    return entity_merge.apply_merge(
+        str(payload.get("survivor_agency_id") or ""),
+        str(payload.get("duplicate_agency_id") or ""),
+        {str(k): str(v) for k, v in (payload.get("field_overrides") or {}).items()},
+        actor=actor,
+    )
+
+
 EXTRA_APPLIERS = {
     "event_change": _apply_event_change,
     "agency_change": _apply_agency_change,
     "agency_link_change": _apply_agency_change,
     "agency_condition_change": _apply_agency_change,
+    "agency_merge": _apply_agency_merge,
 }
 
 # Each new kind maps to exactly one logical version-store file and one restore
@@ -398,6 +489,9 @@ EXTRA_LOGICAL_FOR_KIND = {
     "agency_change": "agencies",
     "agency_link_change": "agency_links",
     "agency_condition_change": "agency_conditions",
+    # A merge writes the agencies store plus three side stores, so it versions
+    # against the agencies timeline and carries all four as restore points.
+    "agency_merge": "agencies",
 }
 
 
@@ -415,6 +509,15 @@ def _extra_state_paths(kinds: set[str]) -> list[Any]:
         paths.append(Path(agency_conditions.LINKS_PATH))
     if "agency_condition_change" in kinds:
         paths.append(Path(agency_conditions.CONDITIONS_PATH))
+    if "agency_merge" in kinds:
+        # One approval touches four stores: the record, its links, its
+        # conditions and the campaigns filed under the duplicate. All four are
+        # restore points or an undo would bring back half a merge.
+        from kairos_api import campaigns_api_store
+
+        paths.extend([Path(agencies.AGENCIES_PATH), Path(agency_conditions.LINKS_PATH),
+                      Path(agency_conditions.CONDITIONS_PATH),
+                      Path(campaigns_api_store.CAMPAIGNS_PATH)])
     if "pacing_decision" in kinds:
         from kairos_api import makegood_store
 
