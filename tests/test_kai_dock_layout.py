@@ -81,6 +81,17 @@ def test_the_keyboard_hint_costs_no_height_until_the_field_is_focused():
     assert ".asst-hint {" in console, "the full-page hint keeps its own always-on rule"
 
 
+def test_the_dock_does_not_inherit_the_page_s_block_padding():
+    """The console on its own page gets a page's breathing room. The dock is not
+    a page, and that inherited padding measured 24px of dead space above the
+    status line and 40px below the composer - a band of nothing under the one
+    control the panel exists for, taken from the conversation. Measured after
+    removal: the gap below the composer fell from 49px to 9px, and at a 700px
+    window the conversation grew from 215px to 297px."""
+    css = _layout()
+    assert ".asst-in-dock.asst-workspace { padding-block: var(--space-2) 0;" in css
+
+
 def test_the_dock_repeats_neither_its_title_nor_its_subtitle_in_the_body():
     """The tab already says Conversation and the status line already says the
     rest; a heading and a sentence repeating them cost a band for nothing."""

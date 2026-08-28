@@ -14,6 +14,12 @@
    thread would defeat this by re-introducing a second height authority, so it
    is removed rather than raised. */
 .asst-in-dock { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+/* The full page gives the console a page's breathing room above and below.
+   The dock is not a page: that inherited block padding is 24px of dead space
+   over the status line and 40px under the composer - measured - and every
+   pixel of it is taken from the conversation, which is the one thing here
+   that wants height. The panel's own inset stays; the page's does not. */
+.asst-in-dock.asst-workspace { padding-block: var(--space-2) 0; gap: var(--space-2); }
 .asst-in-dock .asst-layout { grid-template-columns: 1fr; flex: 1; min-height: 0; }
 .asst-in-dock .asst-chat { min-height: 0; height: 100%; }
 .asst-in-dock .asst-thread { flex: 1; min-height: 120px; max-height: none; }
