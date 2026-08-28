@@ -39,6 +39,23 @@
   line-height: var(--type-data-line);
 }
 
+/* The validity window reads as a fact about the agreement, not as metadata:
+   it is the first thing a trader checks and it sits with the title. */
+.trd-review-window {
+  margin-block: var(--space-1) 0;
+  color: var(--ink);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
+/* An agreement that binds nothing yet is a headline, not a footnote. */
+.trd-review-binding {
+  margin-block: var(--space-1) 0;
+  color: var(--warning);
+  font-size: var(--type-data-size);
+  line-height: var(--type-data-line);
+}
+
 .trd-doc-switch {
   display: flex;
   flex-wrap: wrap;

@@ -180,6 +180,15 @@
   margin: 0;
 }
 
+/* A basis note that changes what the figure above it MEANS, rather than
+   describing where it came from. Muted grey is right for provenance and wrong
+   for a caveat a reader must carry away with the number. */
+.clients-basis-warn {
+  color: var(--warning);
+  border-inline-start: 2px solid var(--warning-line);
+  padding-inline-start: var(--space-2);
+}
+
 .clients-basis-path {
   font-size: var(--text-sm);
   color: var(--teal-ink);

@@ -64,9 +64,20 @@ def test_collapsed_pacing_row_is_a_full_clickable_fact_summary() -> None:
     workspace = (PACING / "PacingWorkspace.jsx").read_text(encoding="utf-8")
     styles = (PACING / "pacing-row-collapsed.css").read_text(encoding="utf-8")
 
-    for label in ("Counted delivery", "Flight commitment", "Pace / risk"):
+    # The closed row carries four figures, not three, and the fourth is the
+    # DENOMINATOR of the percent beside it. Measured on a first-run study: with
+    # counted 2.6 next to a commitment of 20 next to 91%, a media buyer read
+    # "91% of 20" and reported the campaign healthy, because the reference the
+    # 91% is really against - what is due by the counted day - was named only
+    # in the open row. So "Pace / risk", a label that named neither the
+    # numerator nor the denominator, is gone: the percent now says what it is a
+    # percent OF, and what it is of is printed beside it.
+    for label in ("Counted delivery", "Due by the counted day",
+                  "Flight commitment", "Of what is due"):
         assert label in row
+    assert "Pace / risk" not in row, "a percent must name what it is a percent of"
     assert "amount(line.counted.through_counted_day, line.unit, locale)" in row
+    assert "amount(line.reference.expected_through_counted_day, line.unit, locale)" in row
     assert "amount(line.goal, line.unit, locale)" in row
     assert '<Button type="button" className="pacing-row-hit"' in row
     assert "aria-describedby={expanded ? undefined : compactId}" in row

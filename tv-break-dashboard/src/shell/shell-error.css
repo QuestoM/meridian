@@ -1,0 +1,34 @@
+/* The screen that replaces a blank page when a surface fails to render.
+   Its own file because the boundary is its own component, and because
+   studio-shell.css sits at this destination's line cap. */
+
+/* The state that replaces a blank page. It sits inside the shell, so the
+   navigation rail stays reachable and the operator can leave this screen
+   instead of only reloading. */
+.shell-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  max-inline-size: var(--measure-readable);
+  margin: var(--space-6) auto;
+  padding: var(--surface-inset);
+  border: 1px solid var(--warning-line);
+  border-radius: var(--radius-surface);
+  background: var(--warning-wash);
+  color: var(--ink);
+}
+
+.shell-error h1 {
+  margin: 0;
+  font-size: var(--type-section-size);
+  font-weight: var(--weight-semibold);
+  line-height: var(--type-section-line);
+}
+
+.shell-error p {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+}

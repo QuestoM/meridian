@@ -1,0 +1,57 @@
+/* The docked assistant's layout: one fixed-height column whose conversation is
+   the only thing that scrolls, and whose composer never leaves the screen.
+   Split from assistant-console.css, which sits at this destination's line cap,
+   and separate on its own merits: these are the rules of ONE mode. */
+
+/* THE DOCK IS A FIXED-HEIGHT COLUMN, AND ONLY THE THREAD SCROLLS.
+   Measured at a 900px window: of 774px of dock body the conversation held 239,
+   and with a real conversation the thread's own viewport cap pushed the
+   composer past the bottom edge - so the field and the send button, the two
+   controls the panel exists for, were unreachable without scrolling a panel
+   nobody expects to scroll. The chain from the dock down to the thread is
+   therefore flex with min-height 0 at every link, the thread is the single
+   scroll region, and the composer is pinned below it. A viewport cap on the
+   thread would defeat this by re-introducing a second height authority, so it
+   is removed rather than raised. */
+.asst-in-dock { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+.asst-in-dock .asst-layout { grid-template-columns: 1fr; flex: 1; min-height: 0; }
+.asst-in-dock .asst-chat { min-height: 0; height: 100%; }
+.asst-in-dock .asst-thread { flex: 1; min-height: 120px; max-height: none; }
+.asst-in-dock .asst-composer, .asst-in-dock .asst-upload { flex: none; }
+/* The dock body stops being the scroller; each tab panel owns its own. */
+.asst-dock-body.asst-dock-body { overflow: hidden; display: flex; flex-direction: column; }
+.asst-in-dock .asst-rail { overflow-y: auto; min-height: 0; }
+
+/* Height the conversation would rather have. The tab above already says
+   "Conversation", so the panel heading repeating it, plus the sentence about
+   where conversations are saved, cost a band of chrome for nothing. The
+   toolbar (new, history, delete) and the acting user stay: they are controls
+   and a fact, not a label. */
+.asst-in-dock .asst-chat > .panel-head { padding-block: var(--space-2); }
+.asst-in-dock .asst-chat > .panel-head h2,
+.asst-in-dock .asst-chat > .panel-head > div > span:not(.asst-user) { display: none; }
+.asst-in-dock .asst-dock-meta { padding-bottom: var(--space-2); }
+
+/* Three stacked status lines cost 88px before a word of conversation. They are
+   short facts, not paragraphs, so in the dock they flow as one wrapping row
+   and take one or two. The dock's own padding shrinks with them: this column
+   is narrow and its content already carries insets. */
+.asst-in-dock .asst-dock-meta { flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: var(--space-3); row-gap: var(--space-1); }
+.asst-dock-body.asst-dock-body { padding: var(--space-2); }
+/* The acting user and the conversation controls belong on one line: a fact and
+   the buttons that act on it, not two bands. */
+.asst-in-dock .asst-chat > .panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; }
+.asst-in-dock .asst-chat > .panel-head > div { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+
+/* The keyboard hint is a sentence you need on your first day and never again,
+   and in a narrow dock it wraps to two permanent lines directly under the
+   field. In the dock it is revealed when the composer has focus, which is
+   exactly when its contents apply, and it holds no layout when it is not. The
+   full page keeps it always-on: there is room there and no conversation is
+   being squeezed for it. */
+.asst-in-dock .asst-hint { display: none; }
+.asst-in-dock .asst-chat:focus-within .asst-hint { display: block; }
+
+/* The dock header already carries the product mark and the panel title; the
+   subtitle repeats what the tab bar and the status line say. */
+.asst-dock-title small { display: none; }

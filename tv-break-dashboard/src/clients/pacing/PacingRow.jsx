@@ -128,9 +128,19 @@ function Headline({ line, flight, locale, days, expanded, onToggle }) {
   );
 }
 
+// The three figures a closed row shows must divide into each other, or the
+// reader does the arithmetic the layout implies and gets a different answer
+// from the one printed. Measured on a first-run study: counted 2.6 beside a
+// commitment of 20 beside 91% reads as "we are at 91% of 20", and a buyer
+// reported the campaign as healthy. The 91% is against the reference DUE BY
+// THE COUNTED DAY, which only the open row named. So the closed row names it
+// too, and the percent is labelled by what it is a percent OF.
 function CompactHeadline({ line, locale, id }) {
   const counted = line ? amount(line.counted.through_counted_day, line.unit, locale) : null;
   const commitment = line ? amount(line.goal, line.unit, locale) : null;
+  const reference = line?.reference
+    ? amount(line.reference.expected_through_counted_day, line.unit, locale)
+    : null;
   const ratio = line?.pace ? percent(line.pace.ratio, locale) : null;
   const unavailable = pick(locale, 'Not measured', 'לא נמדד');
   return (
@@ -140,11 +150,15 @@ function CompactHeadline({ line, locale, id }) {
         <dd>{counted ? <Figure>{counted}</Figure> : unavailable}</dd>
       </div>
       <div>
+        <dt>{pick(locale, 'Due by the counted day', 'מגיע עד היום שנספר')}</dt>
+        <dd>{reference ? <Figure>{reference}</Figure> : unavailable}</dd>
+      </div>
+      <div>
         <dt>{pick(locale, 'Flight commitment', 'התחייבות לקמפיין')}</dt>
         <dd>{commitment ? <Figure>{commitment}</Figure> : unavailable}</dd>
       </div>
       <div className={line?.pace?.verdict || 'unknown'}>
-        <dt>{pick(locale, 'Pace / risk', 'קצב / סיכון')}</dt>
+        <dt>{pick(locale, 'Of what is due', 'מתוך המגיע עד היום')}</dt>
         <dd>{ratio ? <Figure>{ratio}</Figure> : unavailable}</dd>
       </div>
     </dl>

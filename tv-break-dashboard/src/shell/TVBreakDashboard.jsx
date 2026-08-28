@@ -20,6 +20,16 @@ import { createPlanActions } from './plan-actions';
 import { renderSideRail } from './side-rail';
 import { renderTopBar } from './top-bar';
 import { renderWorkspace } from './workspace-router';
+import ErrorBoundary from './ErrorBoundary';
+
+// renderWorkspace is a plain function, so calling it inline would run it during
+// THIS component's render - above the boundary, which only catches what its
+// descendants throw. Rendering it as an element puts the work inside the
+// boundary's subtree, where a failure is caught and shown instead of blanking
+// the page. Verified by a deliberate throw before this line existed.
+function WorkspaceRoute(props) {
+  return renderWorkspace(props);
+}
 import { AssistantPageProvider } from './assistant-page-context';
 import ScheduleStalenessBanner from './ScheduleStalenessBanner';
 import { ChangePasswordDialog, requestLogout } from './Login';
@@ -346,7 +356,11 @@ function TVBreakDashboard({ auth, setAuth }) {
           onReviewRun={() => setActiveView('Plan', { plan: 'run' })}
         />}
 
-        {renderWorkspace({
+        {/* Keyed by the same workspaceKey the router uses, so a traversal that
+            remounts the workspace also clears a boundary left standing by the
+            screen before it. */}
+        <ErrorBoundary key={`boundary-${workspaceKey}-${activeView}`} locale={locale}>
+        <WorkspaceRoute {...({
           activeView, workspaceKey, overview, schedule, inventory, breakLibrary, campaigns, forecasts,
           reports, files, impact, parameters, compliance, copy, locale, loading,
           notify, refreshKey, setRefreshKey, planEvents, settings, settingsAvailable, setActiveView,
@@ -355,7 +369,8 @@ function TVBreakDashboard({ auth, setAuth }) {
           approveRecommendation, rejectRecommendation, openRecommendationInOverrides,
           applySimilarRecommendations, onReviewPlanRun: () => setActiveView('Plan', { plan: 'run' }),
           overridePrefill, setOverridePrefill, saveState, persistSettings,
-        })}
+        })} />
+        </ErrorBoundary>
 
         {actionMessage && <Toast className="toast">{actionMessage}</Toast>}
         {loading && <Toast className="toast">{copy.loading}</Toast>}

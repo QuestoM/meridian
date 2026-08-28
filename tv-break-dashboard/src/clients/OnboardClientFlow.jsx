@@ -14,6 +14,20 @@ const STEPS = [{ en: 'Identity', he: 'זהות' }, { en: 'Commercial terms', he:
   { en: 'Flights', he: 'טיסות שידור' }, { en: 'Review', he: 'בדיקה' }];
 const EMPTY_AGENCY = { name: '', agency_type: '', contact_name: '', contact_role: '', contact_phone: '',
   contact_email: '', vat_id: '', rebate_percent: '', commission_percent: '', credit_limit_ils: '', payment_terms_days: '60' };
+// Hebrew counts its nouns: one flight is a SINGULAR noun with a trailing אחת,
+// none is a word rather than a zero, and only two or more take the plural. The
+// count read "נוצר עם 1 טיסות שידור" on a screen whose whole job is to be
+// trusted, which is exactly where a grammar slip is most expensive.
+function flightsCreatedLine(count, locale) {
+  if (locale !== 'he') {
+    if (count === 0) return 'campaign created with no flights yet';
+    return `campaign created with ${count} flight${count === 1 ? '' : 's'}`;
+  }
+  if (count === 0) return 'קמפיין נוצר, בלי טיסות שידור בשלב זה';
+  if (count === 1) return 'קמפיין נוצר עם טיסת שידור אחת';
+  return `קמפיין נוצר עם ${isolate(count)} טיסות שידור`;
+}
+
 function openWord(kind, locale) {
   if (kind === 'campaign') return pageText(locale, 'Open that campaign', 'פתחו את הקמפיין הזה');
   if (kind === 'agency') return pageText(locale, 'Open that agency record', 'פתחו את כרטיס הסוכנות');
@@ -104,6 +118,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
   function nextStep() {
     if (!formRef.current || formRef.current.reportValidity()) setStep((current) => Math.min(STEPS.length - 1, current + 1));
   }
+  const readyFlights = flights.filter((flight) => flight.starts_on && flight.ends_on && flight.goal_value !== '');
   // The agency by NAME wherever a person reads it; the id stays secondary.
   function agencyWord() {
     if (agencyMode !== 'existing') return agency.name;
@@ -159,7 +174,7 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
       [pageText(locale, 'Client record', 'כרטיס הלקוח'), (result.advertiser.identity || {}).outcome === 'registered'
         ? pageText(locale, 'named as a client of this operator, so a rule can be written against its name', 'נרשם כלקוח של המפעיל, ולכן אפשר לכתוב כלל על שמו')
         : pageText(locale, 'already a named client, so nothing was written', 'כבר לקוח בשם, ולכן לא נכתב דבר')],
-      [result.campaign.campaign_id, pageText(locale, `campaign created with ${result.flights.length} flights`, `קמפיין נוצר עם ${isolate(result.flights.length)} טיסות שידור`)],
+      [result.campaign.campaign_id, flightsCreatedLine(result.flights.length, locale)],
       [pageText(locale, 'Terms', 'תנאים'), result.discount.outcome === 'priced_as_agency_condition'
         ? localized(result.discount, 'covers', locale) : localized(result.discount, 'note', locale)],
     ];
@@ -370,12 +385,21 @@ export default function OnboardClientFlow({ locale, prefill, onClose, onDone, on
             {discount.percent !== '' ? (
               <div><dt>{pageText(locale, 'Surcharge discount', 'הנחה מהתוספת')}</dt><dd>{`${discount.percent}%`}</dd></div>
             ) : null}
-            {flights.filter((flight) => flight.starts_on && flight.ends_on && flight.goal_value !== '').map((flight, index) => (
+            {readyFlights.length ? readyFlights.map((flight, index) => (
               <div key={`review-flight-${index}`}>
                 <dt>{pageText(locale, `Flight ${index + 1}`, `טיסה ${index + 1}`)}</dt>
                 <dd>{`${formatSpan(flight.starts_on, flight.ends_on, locale)} · ${goalLabel(flight, locale, goalWords)}`}</dd>
               </div>
-            ))}
+            )) : (
+              // Silence here would be the worst answer: a campaign with no
+              // flight books nothing, and the review must say so rather than
+              // simply omitting the row, which reads as "nothing to report".
+              <div>
+                <dt>{pageText(locale, 'Flights', 'טיסות שידור')}</dt>
+                <dd>{pageText(locale, 'none yet: the campaign is created with nothing booked against it',
+                              'אין עדיין: הקמפיין ייווצר בלי שהוזמן דבר מולו')}</dd>
+              </div>
+            )}
           </dl>
           <p className="clients-basis-note">
             {pageText(locale, 'Nothing is written until you choose Create and link below.', 'דבר אינו נכתב עד לבחירה ב״יצירה וקישור״ למטה.')}

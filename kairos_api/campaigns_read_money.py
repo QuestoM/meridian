@@ -96,6 +96,54 @@ def _operator_channel() -> str:
         return ""
 
 
+def _commission_note() -> dict[str, Any]:
+    """The OTHER agency cut, named where the net is read.
+
+    Net here is gross minus the agency REBATE, and the label says so. But an
+    agency also carries a COMMISSION, and the trade treats both as forms of one
+    thing: the agency's cut, which an agreement declares either as an invoice
+    deduction or as a periodic rebate (docs/trade/domain.md section 5). The
+    engine applies only the rebate, deliberately, because which of the two is in
+    force is an agreement fact this product does not read yet.
+
+    Measured on a first-run study: a media buyer read 'net' as 'what we keep'
+    and would have reported it upward, while every agency on file carried a
+    further 15% the engine never deducted. The disclosure existed - on the
+    agency card, one screen away. This carries it to the number itself, and
+    only when there really is an unapplied commission to name.
+    """
+    try:
+        from kairos_api.agencies import _load_frame
+
+        frame = _load_frame()
+        if "commission_percent" not in frame.columns:
+            return {}
+        values = sorted({
+            round(float(raw), 2)
+            for raw in frame["commission_percent"].astype(str)
+            if str(raw).strip() and float(raw or 0) > 0
+        })
+    except Exception:  # noqa: BLE001 - a side store must never break the money read
+        return {}
+    if not values:
+        return {}
+    shown = f"{values[0]:g}%" if len(values) == 1 else f"{values[0]:g}%-{values[-1]:g}%"
+    return {
+        "unapplied_commission_percent": values[0] if len(values) == 1 else None,
+        "commission_note_en": (
+            f"Net here is gross minus the agency REBATE only. The agency cards also carry an "
+            f"agency commission ({shown}) which the engine does not deduct, because whether it is "
+            f"an invoice deduction or a periodic rebate is stated per agreement and is not read "
+            f"here. What the channel finally keeps can therefore be lower than this net."
+        ),
+        "commission_note_he": (
+            f"הנטו כאן הוא ברוטו פחות רבייט הסוכנות בלבד. בכרטיסי הסוכנויות רשומה גם עמלת סוכנות "
+            f"({shown}) שהמנוע אינו מנכה, משום שהשאלה אם היא ניכוי מהחשבונית או החזר תקופתי נקבעת "
+            f"בהסכם ואינה נקראת כאן. לכן מה שנשאר בפועל לערוץ עשוי להיות נמוך מהנטו הזה."
+        ),
+    }
+
+
 def _basis(path: Optional[Path], priced: int, dropped: int) -> dict[str, Any]:
     """What these figures are of: the file, the day, the scope, the coverage."""
     files = _daily_files()
@@ -116,6 +164,7 @@ def _basis(path: Optional[Path], priced: int, dropped: int) -> dict[str, Any]:
         "period_note_he": PERIOD_NOTE_HE,
         "wider_period_en": MONTH_PATH_EN,
         "wider_period_he": MONTH_PATH_HE,
+        **_commission_note(),
     }
 
 

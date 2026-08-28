@@ -69,7 +69,11 @@ export function AssistantEmptyThread({ locale, showSuggestions, onPick }) {
 // passes is bound below under the name the line already used, so the keystroke
 // path itself is unchanged: the same call still tells the panel the text moved.
 
-export function AssistantComposer({ locale, composerRef, question, onQuestionChange: setText, refs, onRefsChange, onKeyDown, unavailable, asking, onSend, onStop, onActivity }) {
+// ``attachments`` rides INSIDE the composer row rather than on a row of its
+// own above it. In the dock the panel is a narrow column and every band of
+// chrome is taken from the conversation; the paperclip belongs beside the
+// field it attaches to anyway.
+export function AssistantComposer({ locale, composerRef, question, onQuestionChange: setText, refs, onRefsChange, onKeyDown, unavailable, asking, onSend, onStop, onActivity, attachments = null }) {
   const activity = onActivity || (() => {});
   const overlayRef = React.useRef(null);
   const mention = useMentions({
@@ -141,6 +145,7 @@ export function AssistantComposer({ locale, composerRef, question, onQuestionCha
           onDescend={mention.descend}
           onUpTo={mention.upTo}
         />
+        {attachments}
         {asking ? (
           <Button variant="outlined" size="small" className="asst-send-btn" onClick={onStop}>
             {pageText(locale, 'Stop', 'עצירה')}

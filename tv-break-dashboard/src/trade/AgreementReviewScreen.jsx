@@ -8,6 +8,7 @@ import {
   acknowledgeClause, decideInstance, addInstance, approveAgreement, loadAgreement,
   loadProposal, markClausesSeen, refusalText, resolveConflict,
 } from './trade-api';
+import ReviewAgreementFacts from './ReviewAgreementFacts';
 import {
   buildClauses, buildConflicts, buildTerms, coverageOf, groupByMechanism,
   isUndecided, splitByStanding, termFilters,
@@ -360,6 +361,7 @@ export default function AgreementReviewScreen({
                 <Code>{documents[0] ? documents[0].filename : documentId}</Code>
               )}
             </p>
+            <ReviewAgreementFacts head={head} versions={detail && detail.versions} locale={locale} />
           </div>
         </div>
         <div className="trd-header-actions">

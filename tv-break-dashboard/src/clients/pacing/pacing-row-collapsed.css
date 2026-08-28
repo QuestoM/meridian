@@ -88,9 +88,12 @@
 
 .pacing-compact-facts {
   display: grid;
-  grid-template-columns: repeat(3, minmax(92px, 1fr));
-  flex: 1 1 420px;
-  max-inline-size: 520px;
+  /* Four figures now: counted, due-by-today, commitment, and the percent OF
+     the due figure. The percent is meaningless without its denominator beside
+     it, so the denominator is a column and not a disclosure one click away. */
+  grid-template-columns: repeat(4, minmax(84px, 1fr));
+  flex: 1 1 520px;
+  max-inline-size: 640px;
   min-inline-size: 0;
   gap: 0;
   margin: 0;

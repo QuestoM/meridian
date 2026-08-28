@@ -197,6 +197,14 @@ export default function MoneyBoard({
         </p>
         <p className="clients-basis-note">{periodNote(basis, locale)}</p>
         <p className="clients-basis-note">{scopeNote(basis, locale)}</p>
+        {/* The second agency cut, said where the net is read rather than one
+            screen away on the agency card. Present only when an unapplied
+            commission actually exists to name. */}
+        {basis && (locale === 'he' ? basis.commission_note_he : basis.commission_note_en) ? (
+          <p className="clients-basis-note clients-basis-warn">
+            {locale === 'he' ? basis.commission_note_he : basis.commission_note_en}
+          </p>
+        ) : null}
         <p className="clients-basis-path">
           {widerPeriod(basis, locale)}
           <Button type="button" className="clients-inline-action" onClick={() => goToView('Data')}>

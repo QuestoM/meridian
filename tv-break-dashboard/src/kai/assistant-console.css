@@ -306,7 +306,8 @@
 .asst-diff-adv-h { font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--ink); overflow-wrap: anywhere; }
 
 /* Composer agreement upload: paperclip, chip and the own-files popover */
-.asst-upload { position: relative; display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; padding: var(--space-3) var(--space-4) 0; }
+/* Inside the composer row now, so it carries no band of its own. */
+.asst-upload { position: relative; display: flex; align-items: center; gap: var(--space-1); flex: none; padding: 0; }
 .asst-upload-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 /* Tooltip anchor around a possibly-disabled button: a disabled button fires no
    pointer events, so the wrapping span carries the MUI tooltip listeners. */
@@ -434,8 +435,7 @@
 .asst-stats span + span::before { content: '·'; margin-inline-end: var(--space-2); color: var(--subtle); }
 
 /* In the dock everything stacks in one column and the chat stays compact. */
-.asst-in-dock .asst-layout { grid-template-columns: 1fr; }
-.asst-in-dock .asst-thread { min-height: 220px; max-height: 44vh; }
+
 .asst-in-dock .asst-rail-body { max-height: none; }
 .asst-in-dock .asst-conv-list { max-height: 22vh; }
 .asst-in-dock .asst-q { max-width: 92%; }

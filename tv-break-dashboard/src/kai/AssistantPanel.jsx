@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { pageText } from '../shell/surface-helpers';
+// One actor table for the whole product: 'auth-disabled' is a fact about the
+// deployment, not a person's name, and it is put into words in one place.
+import { actorLabel } from '../history/history-labels';
 import { Figure, Code, Name } from '../shell/bidi';
 import { requestJson } from './assistant-stream';
 import { keepPrefixWarm } from './kai-keep-warm';
@@ -19,6 +22,7 @@ import { AssistantComposer, AssistantEmptyThread } from './AssistantComposer';
 import { FOCUS_EVENT, FOCUS_PENDING } from './kai-shortcuts';
 import { isolate } from '../shell/bidi';
 import './assistant-console.css';
+import './assistant-dock-layout.css';
 import './studio-ledger-kai.css';
 import { formatDay } from '../shell/dates';
 
@@ -344,7 +348,7 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
             <div>
               <h2>{pageText(locale, 'Conversation', 'שיחה')}</h2>
               <span>{pageText(locale, 'Saved to your account and shown here when you return.', 'נשמרת לחשבון שלכם ומוצגת כאן בכל חזרה.')}</span>
-              {actingUser ? <span className="asst-user">{pageText(locale, 'Acting user', 'מבצע')}: <b><Name>{actingUser === 'auth-disabled' ? pageText(locale, 'No sign-in', 'ללא כניסה') : actingUser}</Name></b></span> : null}
+              {actingUser ? <span className="asst-user">{pageText(locale, 'Acting user', 'מבצע')}: <b><Name>{actorLabel(actingUser, locale)}</Name></b></span> : null}
             </div>
             <AssistantConversationToolbar
               locale={locale} supported={conv.supported} listState={conv.listState} busy={conv.busy} asking={asking}
@@ -396,14 +400,15 @@ export default function AssistantPanel({ locale, notify, dock = false }) {
             </div>
           ) : null}
 
-          <AssistantUpload
-            locale={locale}
-            notify={notify}
-            disabled={asking || unavailable}
-            onSuggest={(text) => { setQuestion(text); if (composerRef.current) composerRef.current.focus(); }}
-          />
-
           <AssistantComposer
+            attachments={(
+              <AssistantUpload
+                locale={locale}
+                notify={notify}
+                disabled={asking || unavailable}
+                onSuggest={(text) => { setQuestion(text); if (composerRef.current) composerRef.current.focus(); }}
+              />
+            )}
             locale={locale}
             composerRef={composerRef}
             question={question}

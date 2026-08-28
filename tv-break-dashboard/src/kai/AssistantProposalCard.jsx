@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { Button } from '../studio/actions';
 import { Building2, CalendarClock, ExternalLink, Gauge, Layers, Lock, Merge, PlayCircle, Scale, SlidersHorizontal, Tag, TriangleAlert, Users } from 'lucide-react';
 import { pageText } from '../shell/surface-helpers';
+// One actor table for the whole product: a recorded token like 'auth-disabled'
+// is a fact about the deployment, not a person's name, and it reads as a
+// sentence in exactly one place.
+import { actorLabel } from '../history/history-labels';
 import { Figure, Code, Name } from '../shell/bidi';
 import AssistantUndo from './AssistantUndo';
 import EffectView from './AssistantEffectView';
@@ -385,7 +389,7 @@ export default function AssistantProposalCard({ batch, locale, busy, applyResult
               <p className="asst-restore-line">
                 {pageText(locale, 'A restore point was created before this change.', 'נוצרה נקודת שחזור לפני השינוי הזה.')}
                 {point.appliedAt ? <time><Figure>{appliedLabel(point.appliedAt)}</Figure></time> : null}
-                {point.appliedBy ? <span>{pageText(locale, 'Applied by ', 'הוחל על ידי ')}<Name>{point.appliedBy}</Name></span> : null}
+                {point.appliedBy ? <span>{pageText(locale, 'Applied by ', 'הוחל על ידי ')}<Name>{actorLabel(point.appliedBy, locale)}</Name></span> : null}
               </p>
               <AssistantUndo locale={locale} restoreId={point.restoreId} notify={notify} onDone={onUndone} />
             </div>

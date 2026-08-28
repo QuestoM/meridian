@@ -56,6 +56,16 @@
   gap: var(--space-4);
 }
 
+/* The steps are different heights, and a centred dialog re-centres on every
+   one - so Continue lands at a different screen position each time and a
+   second click on the "same" button misses it entirely. Measured on a
+   first-run study. A floor on the body's height holds the footer still across
+   all four steps; it is a floor and not a fixed height, so a long step still
+   grows and scrolls as before. */
+.clients-onboard .studio-modal__body {
+  min-block-size: min(52vh, 460px);
+}
+
 .clients-workflow-panel[hidden] {
   display: none;
 }
