@@ -1,0 +1,7 @@
+# Kairos carries one broadcaster's commercial data: its schedule, its
+# advertisers, its agencies and their agreed terms. None of it belongs in a
+# search index, and the demo deployment is reachable from the open internet,
+# so the refusal is stated here rather than assumed from the login wall. The
+# wall stops a reader; this stops a crawler from listing the door.
+User-agent: *
+Disallow: /

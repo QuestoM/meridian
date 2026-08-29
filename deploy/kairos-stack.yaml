@@ -132,6 +132,12 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       Encrypted: true
+      # Retain protects the volume from a stack delete. It is not a backup:
+      # it does nothing about a file deleted or overwritten inside a living
+      # filesystem, which is the failure that actually happens. This is the
+      # only copy of everything the channel uploads, so AWS Backup takes daily
+      # recovery points and the pair of them cover both losses.
+      BackupPolicy: { Status: ENABLED }
       FileSystemTags: [{ Key: Name, Value: kairos-state }]
   MountTargetA:
     Type: AWS::EFS::MountTarget
