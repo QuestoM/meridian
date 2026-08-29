@@ -42,6 +42,17 @@ def test_robots_ships_from_the_static_root_rather_than_the_spa_fallback():
     assert "Disallow: /" in served.read_text(encoding="utf-8")
 
 
+def test_robots_is_served_as_text_and_not_as_a_byte_stream():
+    """Measured on the live deployment the first time it shipped: the file was
+    served with content-type application/octet-stream, because the static
+    server's table had no entry for .txt and fell through to its default.
+    RFC 9309 asks for text/plain, and a crawler is entitled to skip a robots
+    file that arrives as an opaque byte stream - which would undo the refusal
+    while still answering 200 to anyone checking by hand."""
+    server = (ROOT / "deploy" / "serve-dist.mjs").read_text(encoding="utf-8")
+    assert "'.txt': 'text/plain" in server
+
+
 def test_the_pre_auth_shell_names_no_operator_and_no_advertiser():
     """Measured against the live deployment: the HTML served before a session
     exists carries no channel, advertiser or agency name. This keeps it that

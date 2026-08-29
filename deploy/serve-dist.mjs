@@ -16,7 +16,10 @@ const HSTS = process.env.KAIROS_TLS === '1';
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
   '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png',
   '.woff2': 'font/woff2', '.ico': 'image/x-icon', '.map': 'application/json',
-  '.webmanifest': 'application/manifest+json' };
+  '.webmanifest': 'application/manifest+json',
+  // RFC 9309 requires robots.txt to arrive as text/plain; a crawler may skip a
+  // file served as a byte stream, which would silently undo the refusal.
+  '.txt': 'text/plain; charset=utf-8' };
 
 createServer(async (req, res) => {
   if (HSTS) res.setHeader('strict-transport-security', 'max-age=31536000; includeSubDomains');
