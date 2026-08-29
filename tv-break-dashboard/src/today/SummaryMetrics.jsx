@@ -87,11 +87,33 @@ export function SummaryMetrics({ overview, copy, locale, planEvents = null, onOp
       `כ-${formatNumber(Math.round((100 - retentionPct) * 10) / 10, locale)}% עוזבים זמנית בברייק ממוצע, ורובם חוזרים מיד אחריו`,
     )
     : null;
-  const minutesHint = pageText(
-    locale,
-    'Total ad seconds on the planning week of the saved plan, shown as minutes.',
-    'סך שניות הפרסום בשבוע התכנון של התוכנית השמורה, מוצג בדקות.',
-  );
+  // THE VOLUME THIS REVENUE ASSUMES, AT THE NUMBER. A projected-revenue tile
+  // reads as money on the table, and it is only that if the airtime behind it is
+  // airtime the channel would sell. Measured on the reference month the plan
+  // carries 1.70x the seconds the operator channel actually aired, and nothing
+  // said so, because the baseline was never computed until the broadcaster's own
+  // pod numbering was read. A comparison the backend could not make is shown as
+  // nothing at all, never as agreement.
+  const adLoad = week ? week.ad_load_against_aired : summary.ad_load_against_aired;
+  const loadRatio = adLoad && adLoad.comparable ? finiteNumber(adLoad.ad_seconds_ratio) : null;
+  const minutesSub = loadRatio !== null
+    ? pageText(
+      locale,
+      `${loadRatio.toFixed(2)}x the advertising the channel aired on the same days`,
+      `פי ${loadRatio.toFixed(2)} מהפרסום שהערוץ שידר באותם ימים`,
+    )
+    : null;
+  const minutesHint = loadRatio !== null
+    ? pageText(
+      locale,
+      `Total ad seconds on the planning week of the saved plan, shown as minutes. This is ${loadRatio.toFixed(2)} times the advertising the channel actually aired on the same days, so the revenue beside it is the value of that volume rather than an increment on what airs today.`,
+      `סך שניות הפרסום בשבוע התכנון של התוכנית השמורה, מוצג בדקות. זה פי ${loadRatio.toFixed(2)} מהפרסום שהערוץ שידר בפועל באותם ימים, ולכן ההכנסה שלידו היא הערך של נפח הפרסום הזה ולא תוספת על מה שמשודר היום.`,
+    )
+    : pageText(
+      locale,
+      'Total ad seconds on the planning week of the saved plan, shown as minutes.',
+      'סך שניות הפרסום בשבוע התכנון של התוכנית השמורה, מוצג בדקות.',
+    );
   const riskHint = pageText(
     locale,
     'How far the planning week’s average retention sits below your retention floor (0 = at or above the floor). Not a general business-risk score.',
@@ -102,7 +124,7 @@ export function SummaryMetrics({ overview, copy, locale, planEvents = null, onOp
       <section className="metric-strip" aria-label="Optimization summary">
         <Metric label={copy.metrics[0]} value={formatCurrency(revenueValue, locale)} sub={revenueSub} icon={CircleDollarSign} positive title={revenueHint} />
         <Metric label={copy.metrics[1]} value={formatPercent(retentionValue, locale)} sub={retentionSub} icon={Users} title={retentionHint} />
-        <Metric label={copy.metrics[2]} value={formatMinutes(adSecondsValue, locale)} icon={Clock3} positive title={minutesHint} />
+        <Metric label={copy.metrics[2]} value={formatMinutes(adSecondsValue, locale)} sub={minutesSub} icon={Clock3} positive title={minutesHint} />
         <Metric label={copy.metrics[3]} value={riskScore === null ? '-' : copy.risk[riskLabel(riskScore)]} delta={riskScore === null ? '-' : `${riskScore}/100`} icon={ShieldCheck} tone="risk" title={riskHint} />
       </section>
       {basisLabel && (

@@ -10,6 +10,7 @@ display and edit it instead of relying on placeholder math.
 
 from __future__ import annotations
 
+import logging
 import uuid
 from dataclasses import asdict, replace
 from datetime import date, datetime, timezone
@@ -21,7 +22,7 @@ import pandas as pd
 from kairos.data import ProgramClassifier
 from kairos.data.ai_classifier import CachedClassifier, load_ai_overrides
 from kairos.data.dayparts import daypart_for_hour
-from kairos.data.loaders import REFERENCE_DIR, load_daily_input, load_programmes
+from kairos.data.loaders import REFERENCE_DIR, load_daily_input, load_programmes, load_spots
 from kairos.data.transform import (
     build_segments_from_daily_input,
     build_segments_from_programmes,
@@ -29,6 +30,7 @@ from kairos.data.transform import (
 from kairos.model.freshness import coefficient_freshness
 from kairos.model.impact import ImpactModel, load_impact_model
 from kairos.model.measure import read_coefficients_metadata
+from kairos.model import plan_against_aired, pod_length
 from kairos.observability.run_log import build_run_record, write_run_log
 from kairos.optimize.advertiser_rules import AdvertiserRuleEngine
 from kairos.optimize.demand import build_demand_weights
@@ -48,6 +50,8 @@ from kairos.optimize.pacing import (
 from kairos.optimize.optimizer import OptimizationResult, optimize_breaks
 from kairos.optimize.overrides import OverrideSet
 from kairos.optimize.pricing import OptimizerAssumptions, PricingModel, pricing_from_settings
+
+logger = logging.getLogger(__name__)
 
 SECONDS_PER_MINUTE = 60.0
 SECONDS_PER_HOUR = 3600.0
@@ -123,6 +127,76 @@ def _apply_first_break_multiplier(assumptions: OptimizerAssumptions) -> Optimize
     if chosen == assumptions.first_break_multiplier:
         return assumptions
     return replace(assumptions, first_break_multiplier=chosen)
+
+
+def _apply_measured_pod_length(
+    assumptions: OptimizerAssumptions,
+    settings: Optional[Mapping[str, Any]],
+) -> OptimizerAssumptions:
+    """Plan on the pod length the channel actually airs, when the owner asks for it.
+
+    The declared 120 seconds was never measured. Against the broadcaster's own
+    numbering of its own log the operator channel's pods average 190.7 seconds,
+    which means four pods an hour is 763 seconds on air where the engine reads
+    480 -- so the twelve-minute cap the plan clears in the engine's units is
+    breached in the broadcaster's, and the eight-minute cap over news and
+    children's programming is exceeded by half again. See
+    :mod:`kairos.model.pod_length` for the measurement and for why one number
+    rather than a daypart model.
+
+    Activating this moves ad load and revenue, so it is gated on an explicit
+    settings key and off by default. Off, this returns the assumptions object
+    unchanged, so every existing number stays byte-identical.
+    """
+    if settings is None or settings.get(pod_length.ACTIVATION_SETTINGS_KEY) is not True:
+        return assumptions
+    try:
+        measurement = pod_length.measure_pod_length(
+            load_spots(), channel=_operator_channel(settings),
+        )
+    except Exception:  # noqa: BLE001 - an unreadable source must not fail the plan
+        logger.warning("Could not measure pod length; keeping the declared default.", exc_info=True)
+        return assumptions
+    measured = pod_length.measured_length_from_settings(settings, measurement)
+    if measured is None or measured == assumptions.default_break_length_seconds:
+        return assumptions
+    return replace(assumptions, default_break_length_seconds=measured)
+
+
+def _ad_load_against_aired(
+    payload: Mapping[str, Any],
+    settings: Optional[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """The plan's advertising load beside the load the channel actually aired.
+
+    A revenue figure reads as money on the table, and it is only that if the
+    airtime behind it is airtime the channel would really sell. Measured on the
+    real month the shipped plan carries 1.70 times the seconds the operator
+    channel aired, and nothing said so, because the number to compare against was
+    never computed. This puts the comparison in the same payload as the revenue
+    rather than a screen away from it.
+
+    Never fatal and never fabricated: any failure, and an absent as-run source,
+    both read as not comparable with the reason stated.
+    """
+    summary = payload.get("summary") or {}
+    channel = payload.get("channel") or _operator_channel(settings)
+    days = [payload["day"]] if payload.get("day") else None
+    try:
+        return plan_against_aired.compare_plan_to_aired(
+            plan_pods=int(summary.get("total_breaks") or 0),
+            plan_ad_seconds=float(summary.get("total_ad_seconds") or 0.0),
+            spots=load_spots(),
+            channel=str(channel),
+            days=days,
+        )
+    except Exception:  # noqa: BLE001 - a missing comparison must never fail a plan
+        logger.warning("Could not compare the plan's ad load to the as-run log.", exc_info=True)
+        return {
+            "comparable": False,
+            "reason": "the as-run log could not be read on this run",
+            "channel": str(channel),
+        }
 
 
 def guardrails_from_settings(settings: Mapping[str, Any]) -> Guardrails:
@@ -429,6 +503,7 @@ def optimize_day_plan(
     )
     pricing = pricing_from_settings(settings, pricing)
     assumptions = _apply_first_break_multiplier(assumptions or OptimizerAssumptions())
+    assumptions = _apply_measured_pod_length(assumptions, settings)
     guardrails = guardrails_from_settings(settings) if settings else Guardrails()
     weight = revenue_weight if revenue_weight is not None else assumptions.revenue_weight
     risk = risk_lambda if risk_lambda is not None else assumptions.risk_lambda
@@ -484,6 +559,7 @@ def optimize_day_plan(
     payload["segment_count"] = len(segments)
     payload["impact_source"] = impact_model.source
     payload["coefficient_freshness"] = _coefficient_freshness_block(impact_model)
+    payload["ad_load_against_aired"] = _ad_load_against_aired(payload, settings)
 
     if log_run:
         # Provenance: hash the programmes file when one fed the run. With a frame

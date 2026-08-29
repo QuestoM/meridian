@@ -66,6 +66,7 @@ from kairos.optimize.pacing import build_pacing_weights, load_campaigns  # noqa:
 from kairos.optimize.pricing import OptimizerAssumptions, PricingModel, pricing_from_settings
 from kairos.service import (
     _apply_first_break_multiplier,
+    _apply_measured_pod_length,
     _build_classifier,
     _pacing_knobs_from_settings,
     guardrails_from_settings,
@@ -315,6 +316,13 @@ def build_weekly_schedule(
     # assumptions, so the show's first break is charged its measured extra cost.
     # Off (1.0) when the coefficients file has no value, so behaviour is unchanged.
     assumptions = _apply_first_break_multiplier(assumptions)
+    # And the measured pod length, on the same settings the live service reads.
+    # Applied here for the same reason the multiplier above is: the export and the
+    # service must plan on one length, or an activated measurement would move the
+    # live plan's revenue while the saved CSV kept pricing two-minute breaks, and
+    # the two surfaces would disagree about the same day. Off by default, so the
+    # exported plan is byte-identical until the owner activates it.
+    assumptions = _apply_measured_pod_length(assumptions, settings)
     if programmes is None:
         programmes = load_programmes(programmes_path)
     active_overrides_before = active_override_digest(ROOT)

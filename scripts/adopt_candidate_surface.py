@@ -24,7 +24,7 @@ from typing import Any
 # can produce the same plan today and price risk differently the moment an
 # operator moves risk_lambda.
 ENGINE_READ_METADATA = {
-    "first_break_multiplier": "kairos/service.py:117 folds it into the optimizer assumptions",
+    "first_break_multiplier": "kairos/service.py:121 folds it into the optimizer assumptions",
     "computed_at": "kairos/model/freshness.py:42 dates the operator's freshness banner",
     "source_fingerprints": "kairos/model/freshness.py:40 decides whether the plan is stale",
 }

@@ -655,7 +655,53 @@ def _window_metrics(frame: pd.DataFrame, settings: KairosSettings) -> dict[str, 
         "average_retention": avg_retention_pct,
         "risk_score": _risk_from_retention(avg_retention_pct, floor_percent),
         "retention_basis": retention_basis,
+        "ad_load_against_aired": _ad_load_against_aired(
+            frame, settings, int(num_breaks.sum()), float(break_time.sum()),
+        ),
     }
+
+
+def _ad_load_against_aired(
+    frame: pd.DataFrame,
+    settings: KairosSettings,
+    total_breaks: int,
+    total_ad_seconds: float,
+) -> dict[str, Any]:
+    """The advertising load this revenue figure assumes, beside what really aired.
+
+    A projected-revenue tile reads as money on the table, and it is only that if
+    the airtime behind it is airtime the channel would sell. Measured on the real
+    month the plan carries 1.70 times the seconds the operator channel aired, and
+    nothing said so, because the baseline was never computed. It is attached here,
+    at the single point both the whole-plan totals and the planning-week slice are
+    built, so the two can never disagree about it.
+
+    Scoped to the same days the metrics cover, and to the operator's own channel.
+    Any failure reads as not comparable with a reason, never as parity.
+    """
+    days = None
+    if "date" in frame.columns and not frame.empty:
+        days = sorted({text for text in frame["date"].astype(str).str.strip() if text})
+    try:
+        # Imported here rather than at module scope, as the other engine reads in
+        # this file are: the API must import on a host where the data layer's
+        # heavier dependencies are absent.
+        from kairos.data.loaders import load_spots
+        from kairos.model import plan_against_aired
+
+        return plan_against_aired.compare_plan_to_aired(
+            plan_pods=total_breaks,
+            plan_ad_seconds=total_ad_seconds,
+            spots=load_spots(),
+            channel=str(settings.operator_channel or "").strip(),
+            days=days,
+        )
+    except Exception:  # noqa: BLE001 - a missing baseline must never fail an overview
+        logger.warning("Could not compare the plan's ad load to the as-run log.", exc_info=True)
+        return {
+            "comparable": False,
+            "reason": "the as-run log could not be read on this run",
+        }
 
 
 def _augment_segment_ids(schedule: pd.DataFrame) -> pd.DataFrame:
